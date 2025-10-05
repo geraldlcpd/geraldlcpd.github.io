@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Editable Google Forms Pre-fill Generator</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <!-- Load QRious for QR Code generation -->
+    <script src="https://cdn.jsdelivr.net/npm/qrious@4.0.2/dist/qrious.min.js"></script>
+    <style>
+        /* Custom styles for better aesthetics and focus */
+        .input-field {
+            transition: all 0.2s;
+            border-radius: 8px;
+        }
+        .input-field:focus {
+            box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.5); /* blue-500 equivalent */
+        }
+        /* Style for disabled/readonly fields (used for fixed date entries) */
+        .date-input {
+            opacity: 0.6;
+            cursor: not-allowed;
+            background-color: #e5e7eb; /* gray-200 */
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen p-4 sm:p-8 font-sans">
+
+    <div class="max-w-4xl mx-auto">
+        <!-- Header -->
+        <header class="text-center mb-10">
+            <h1 class="text-4xl font-extrabold text-indigo-700">Editable Form Pre-fill Automator</h1>
+            <p class="mt-2 text-gray-600">Dynamically generate Google Form pre-filled links and QR codes with editable fields.</p>
+        </header>
+
+        <!-- Configuration Card -->
+        <div class="bg-white p-6 sm:p-8 rounded-xl shadow-2xl mb-8">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6 border-b pb-3">1. Configuration</h2>
+            
+            <!-- Base URL Input -->
+            <div class="mb-6">
+                <label for="baseUrl" class="block text-sm font-medium text-gray-700 mb-1">Google Form Base URL</label>
+                <input type="url" id="baseUrl" value="https://docs.google.com/forms/d/e/1FAIpQLSfn2ndz9ZVp2BkExQiyjQXtf4mbGku3OO7Xdnmv0YHcFLUzGg/viewform"
+                       placeholder="e.g., https://docs.google.com/forms/d/e/FORM_ID/viewform"
+                       class="input-field w-full p-3 border border-gray-300 focus:ring-indigo-500 focus:border-indigo-500">
+                <p class="mt-1 text-xs text-gray-500">Use the form's `viewform` URL (not the pre-filled URL).</p>
+            </div>
+
+            <h3 class="text-xl font-semibold text-gray-800 mb-4">2. Entry Fields</h3>
+
+            <!-- Dynamic Fields Container -->
+            <div id="entries-container">
+                <!-- Fixed Next Saturday Date Entries (Disabled/Greyed out as requested) -->
+                <div class="grid grid-cols-1 md:grid-cols-5 gap-3 mb-4 p-3 bg-indigo-50 rounded-lg border border-indigo-200">
+                    <div class="md:col-span-2">
+                        <label class="block text-xs font-medium text-indigo-700 mb-1">Fixed Date Entry 1 ID</label>
+                        <div class="flex space-x-2">
+                            <input type="text" data-id="2064895431" value="2064895431" disabled class="date-input w-full p-2 border border-gray-300 text-sm">
+                        </div>
+                    </div>
+                    <div class="md:col-span-3">
+                        <label class="block text-xs font-medium text-indigo-700 mb-1">Calculated Value (Next Saturday)</label>
+                        <input type="text" id="nextSaturday1" value="YYYY-MM-DD" disabled class="date-input w-full p-2 border border-gray-300 font-mono text-center text-sm">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-5 gap-3 mb-6 p-3 bg-indigo-50 rounded-lg border border-indigo-200">
+                    <div class="md:col-span-2">
+                        <label class="block text-xs font-medium text-indigo-700 mb-1">Fixed Date Entry 2 ID</label>
+                        <div class="flex space-x-2">
+                            <input type="text" data-id="1713726861" value="1713726861" disabled class="date-input w-full p-2 border border-gray-300 text-sm">
+                        </div>
+                    </div>
+                    <div class="md:col-span-3">
+                        <label class="block text-xs font-medium text-indigo-700 mb-1">Calculated Value (Next Saturday)</label>
+                        <input type="text" id="nextSaturday2" value="YYYY-MM-DD" disabled class="date-input w-full p-2 border border-gray-300 font-mono text-center text-sm">
+                    </div>
+                </div>
+                
+                <hr class="my-6">
+                <p class="text-base font-medium text-gray-700 mb-4">Custom Pre-fill Entries (5 Editable Fields)</p>
+
+                <!-- 5 Generic Editable Entries with New IDs -->
+                <div id="custom-entries" class="space-y-4">
+                    <!-- Placeholder 1: Editable -->
+                    <div class="entry-row grid grid-cols-1 md:grid-cols-5 gap-3">
+                        <div class="md:col-span-2">
+                            <label class="block text-xs font-medium text-gray-700 mb-1">Entry ID: 2136028424</label>
+                            <input type="text" data-id="2136028424" value="2136028424" class="input-field w-full p-3 border border-gray-300 focus:border-indigo-500 text-sm">
+                        </div>
+                        <div class="md:col-span-3">
+                            <label class="block text-xs font-medium text-gray-700 mb-1">Pre-fill Value</label>
+                            <input type="text" data-value="User Name" value="Gerald" class="input-field w-full p-3 border border-gray-300 focus:border-indigo-500 text-sm">
+                        </div>
+                    </div>
+                    <!-- Placeholder 2: Editable -->
+                    <div class="entry-row grid grid-cols-1 md:grid-cols-5 gap-3">
+                        <div class="md:col-span-2">
+                            <label class="block text-xs font-medium text-gray-700 mb-1">Entry ID: 779192591</label>
+                            <input type="text" data-id="779192591" value="779192591" class="input-field w-full p-3 border border-gray-300 focus:border-indigo-500 text-sm">
+                        </div>
+                        <div class="md:col-span-3">
+                            <label class="block text-xs font-medium text-gray-700 mb-1">Pre-fill Value</label>
+                            <input type="text" data-value="Department Code" value="MCS" class="input-field w-full p-3 border border-gray-300 focus:border-indigo-500 text-sm">
+                        </div>
+                    </div>
+                    <!-- Placeholder 3: Editable -->
+                    <div class="entry-row grid grid-cols-1 md:grid-cols-5 gap-3">
+                        <div class="md:col-span-2">
+                            <label class="block text-xs font-medium text-gray-700 mb-1">Entry ID: 1541239556</label>
+                            <input type="text" data-id="1541239556" value="1541239556" class="input-field w-full p-3 border border-gray-300 focus:border-indigo-500 text-sm">
+                        </div>
+                        <div class="md:col-span-3">
+                            <label class="block text-xs font-medium text-gray-700 mb-1">Pre-fill Value</label>
+                            <input type="text" data-value="Project Identifier" value="35283173" class="input-field w-full p-3 border border-gray-300 focus:border-indigo-500 text-sm">
+                        </div>
+                    </div>
+                    <!-- Placeholder 4: Editable -->
+                    <div class="entry-row grid grid-cols-1 md:grid-cols-5 gap-3">
+                        <div class="md:col-span-2">
+                            <label class="block text-xs font-medium text-gray-700 mb-1">Entry ID: 1808112377</label>
+                            <input type="text" data-id="1808112377" value="1808112377" class="input-field w-full p-3 border border-gray-300 focus:border-indigo-500 text-sm">
+                        </div>
+                        <div class="md:col-span-3">
+                            <label class="block text-xs font-medium text-gray-700 mb-1">Pre-fill Value</label>
+                            <input type="text" data-value="Status (e.g., Complete)" value="085882822338" class="input-field w-full p-3 border border-gray-300 focus:border-indigo-500 text-sm">
+                        </div>
+                    </div>
+                    <!-- Placeholder 5: Editable -->
+                    <div class="entry-row grid grid-cols-1 md:grid-cols-5 gap-3">
+                        <div class="md:col-span-2">
+                            <label class="block text-xs font-medium text-gray-700 mb-1">Entry ID: 1394696815</label>
+                            <input type="text" data-id="1394696815" value="1394696815" class="input-field w-full p-3 border border-gray-300 focus:border-indigo-500 text-sm">
+                        </div>
+                        <div class="md:col-span-3">
+                            <label class="block text-xs font-medium text-gray-700 mb-1">Pre-fill Value</label>
+                            <input type="text" data-value="Notes/Comment" value="gkal0012@student.monash.edu" class="input-field w-full p-3 border border-gray-300 focus:border-indigo-500 text-sm">
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+        
+        <!-- Output Card -->
+        <div class="bg-white p-6 sm:p-8 rounded-xl shadow-2xl">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6 border-b pb-3">3. Generated Output</h2>
+            
+            <!-- Result URL -->
+            <div class="mb-8">
+                <label for="resultUrl" class="block text-sm font-medium text-gray-700 mb-1">Pre-filled Form URL</label>
+                <textarea id="resultUrl" rows="4" readonly
+                       class="w-full p-3 border border-gray-300 bg-gray-100 text-gray-800 break-all text-sm rounded-lg resize-none"></textarea>
+                <button onclick="copyToClipboard()" id="copyButton"
+                        class="mt-2 w-full sm:w-auto px-6 py-2 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition duration-150 shadow-md">
+                    Copy URL
+                </button>
+                <span id="copyMessage" class="ml-4 text-sm text-green-600 opacity-0 transition-opacity duration-300">Copied!</span>
+            </div>
+
+            <!-- QR Code Placeholder -->
+            <div>
+                <h3 class="text-xl font-semibold text-gray-800 mb-4">QR Code for the Form</h3>
+                <div id="qr-code-placeholder" class="flex justify-center items-center p-4">
+                    <canvas id="qr-canvas" class="p-2 border-4 border-dashed border-gray-200 rounded-lg"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const DATE_ENTRY_ID_1 = "2064895431";
+        const DATE_ENTRY_ID_2 = "1713726861";
+
+        // Global variable for the QRious instance
+        let qr = null;
+
+        /**
+         * Calculates the date for the next Saturday.
+         * @returns {Date} The Date object for the next Saturday.
+         */
+        function calculateNextSaturday() {
+            const date = new Date();
+            const dayOfWeek = date.getDay(); // 0 = Sunday, 6 = Saturday
+            let daysUntilNextSaturday = 6 - dayOfWeek;
+
+            // If today is Saturday, we want the Saturday of the next week (7 days later)
+            if (daysUntilNextSaturday <= 0) {
+                daysUntilNextSaturday += 7;
+            }
+
+            date.setDate(date.getDate() + daysUntilNextSaturday);
+            return date;
+        }
+
+        /**
+         * Formats a Date object into YYYY-MM-DD string.
+         * @param {Date} date - The date to format.
+         * @returns {string} The formatted date string.
+         */
+        function formatDate(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0'); // Months are 0-based
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        /**
+         * Gets the year, month, and day components for the URL parameter format.
+         * @param {Date} date - The date to get components from.
+         * @returns {{year: number, month: number, day: number}} Date components.
+         */
+        function getDateComponents(date) {
+            return {
+                year: date.getFullYear(),
+                // Google Forms uses 1-based month, same as Date.getMonth() + 1
+                month: date.getMonth() + 1, 
+                day: date.getDate()
+            };
+        }
+
+        /**
+         * Reads all entry fields and builds the final pre-filled URL.
+         */
+        function generateUrl() {
+            const baseUrl = document.getElementById('baseUrl').value;
+            const customEntries = document.getElementById('custom-entries').querySelectorAll('.entry-row');
+            const nextSaturday = calculateNextSaturday();
+            const { year, month, day } = getDateComponents(nextSaturday);
+
+            // Update fixed date fields in the UI
+            const formattedDate = formatDate(nextSaturday);
+            document.getElementById('nextSaturday1').value = formattedDate;
+            document.getElementById('nextSaturday2').value = formattedDate;
+
+            if (!baseUrl.trim()) {
+                document.getElementById('resultUrl').value = "Please enter a valid Google Form Base URL.";
+                return;
+            }
+            
+            // Start URL construction with base and standard query parameter
+            let params = new URLSearchParams("usp=pp_url");
+
+            // 1. Add fixed date entries (Next Saturday)
+            params.append(`entry.${DATE_ENTRY_ID_1}_year`, year);
+            params.append(`entry.${DATE_ENTRY_ID_1}_month`, month);
+            params.append(`entry.${DATE_ENTRY_ID_1}_day`, day);
+
+            params.append(`entry.${DATE_ENTRY_ID_2}_year`, year);
+            params.append(`entry.${DATE_ENTRY_ID_2}_month`, month);
+            params.append(`entry.${DATE_ENTRY_ID_2}_day`, day);
+
+            // 2. Add custom entries
+            customEntries.forEach(row => {
+                // Since these are now editable, we read the current value directly
+                const idInput = row.querySelector('input[data-id]');
+                const valueInput = row.querySelector('input[data-value]');
+                
+                const id = idInput ? idInput.value.trim() : null;
+                const value = valueInput ? valueInput.value.trim() : null;
+
+                if (id && value) {
+                    params.append(`entry.${id}`, value);
+                }
+            });
+
+            // The base URL must be the 'viewform' URL
+            const finalUrl = `${baseUrl.split('?')[0]}?${params.toString()}`;
+            document.getElementById('resultUrl').value = finalUrl;
+            
+            generateQrCode(finalUrl);
+        }
+
+        /**
+         * Generates and updates the QR Code.
+         * @param {string} url - The URL to encode in the QR code.
+         */
+        function generateQrCode(url) {
+            const canvas = document.getElementById('qr-canvas');
+
+            if (!qr) {
+                // Initialize QRious only once
+                qr = new QRious({
+                    element: canvas,
+                    size: 300,
+                    padding: 10,
+                    value: url || 'No URL generated'
+                });
+            } else {
+                // Update value for existing instance
+                qr.set({ value: url || 'No URL generated' });
+            }
+            // Ensure the canvas border reflects the success of generation
+            canvas.classList.remove('border-gray-200');
+            canvas.classList.add('border-indigo-400');
+        }
+
+        /**
+         * Copies the generated URL to the clipboard.
+         */
+        function copyToClipboard() {
+            const urlTextarea = document.getElementById('resultUrl');
+            urlTextarea.select();
+            document.execCommand('copy');
+
+            const message = document.getElementById('copyMessage');
+            message.classList.remove('opacity-0');
+            message.classList.add('opacity-100');
+            setTimeout(() => {
+                message.classList.remove('opacity-100');
+                message.classList.add('opacity-0');
+            }, 1500);
+        }
+
+        /**
+         * Initializes event listeners and generates the initial output.
+         */
+        function initialize() {
+            // Attach event listeners to all inputs that change the output URL (Base URL, and 5 custom entries)
+            const editableInputs = document.querySelectorAll('#baseUrl, #custom-entries input');
+            
+            editableInputs.forEach(input => {
+                input.addEventListener('input', generateUrl);
+            });
+            
+            // Initial generation on load
+            generateUrl();
+        }
+
+        window.onload = initialize;
+
+    </script>
+</body>
+</html>
