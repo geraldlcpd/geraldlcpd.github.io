@@ -101,7 +101,7 @@
                             <input type="text" data-id="2136028424" value="2136028424" class="input-field w-full p-3 border border-gray-300 focus:border-indigo-500 text-sm">
                         </div>
                         <div class="md:col-span-3">
-                            <label class="block text-xs font-medium text-gray-700 mb-1">Pre-fill Value</label>
+                            <label class="block text-xs font-medium text-gray-700 mb-1">Name</label>
                             <input type="text" data-value="User Name" value="Gerald" class="input-field w-full p-3 border border-gray-300 focus:border-indigo-500 text-sm">
                         </div>
                     </div>
@@ -112,18 +112,18 @@
                             <input type="text" data-id="779192591" value="779192591" class="input-field w-full p-3 border border-gray-300 focus:border-indigo-500 text-sm">
                         </div>
                         <div class="md:col-span-3">
-                            <label class="block text-xs font-medium text-gray-700 mb-1">Pre-fill Value</label>
+                            <label class="block text-xs font-medium text-gray-700 mb-1">Program</label>
                             <input type="text" data-value="Department Code" value="MCS" class="input-field w-full p-3 border border-gray-300 focus:border-indigo-500 text-sm">
                         </div>
                     </div>
                     <!-- Placeholder 3: Editable -->
-                    <div class="entry-row grid grid-cols-1 md:grid-cols-5 gap-3">
+                    <div class="entry-row grid grid-cols-1 md:grid-cols-5 gap-3">	
                         <div class="md:col-span-2">
                             <label class="block text-xs font-medium text-gray-700 mb-1">Entry ID: 1541239556</label>
                             <input type="text" data-id="1541239556" value="1541239556" class="input-field w-full p-3 border border-gray-300 focus:border-indigo-500 text-sm">
                         </div>
                         <div class="md:col-span-3">
-                            <label class="block text-xs font-medium text-gray-700 mb-1">Pre-fill Value</label>
+                            <label class="block text-xs font-medium text-gray-700 mb-1">Student ID</label>
                             <input type="text" data-value="Project Identifier" value="35283173" class="input-field w-full p-3 border border-gray-300 focus:border-indigo-500 text-sm">
                         </div>
                     </div>
@@ -134,7 +134,7 @@
                             <input type="text" data-id="1808112377" value="1808112377" class="input-field w-full p-3 border border-gray-300 focus:border-indigo-500 text-sm">
                         </div>
                         <div class="md:col-span-3">
-                            <label class="block text-xs font-medium text-gray-700 mb-1">Pre-fill Value</label>
+                            <label class="block text-xs font-medium text-gray-700 mb-1">Phone Number</label>
                             <input type="text" data-value="Status (e.g., Complete)" value="085882822338" class="input-field w-full p-3 border border-gray-300 focus:border-indigo-500 text-sm">
                         </div>
                     </div>
@@ -145,7 +145,7 @@
                             <input type="text" data-id="1394696815" value="1394696815" class="input-field w-full p-3 border border-gray-300 focus:border-indigo-500 text-sm">
                         </div>
                         <div class="md:col-span-3">
-                            <label class="block text-xs font-medium text-gray-700 mb-1">Pre-fill Value</label>
+                            <label class="block text-xs font-medium text-gray-700 mb-1">Student Email</label>
                             <input type="text" data-value="Notes/Comment" value="gkal0012@student.monash.edu" class="input-field w-full p-3 border border-gray-300 focus:border-indigo-500 text-sm">
                         </div>
                     </div>
@@ -163,11 +163,19 @@
                 <label for="resultUrl" class="block text-sm font-medium text-gray-700 mb-1">Pre-filled Form URL</label>
                 <textarea id="resultUrl" rows="4" readonly
                        class="w-full p-3 border border-gray-300 bg-gray-100 text-gray-800 break-all text-sm rounded-lg resize-none"></textarea>
-                <button onclick="copyToClipboard()" id="copyButton"
-                        class="mt-2 w-full sm:w-auto px-6 py-2 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition duration-150 shadow-md">
-                    Copy URL
-                </button>
-                <span id="copyMessage" class="ml-4 text-sm text-green-600 opacity-0 transition-opacity duration-300">Copied!</span>
+                
+                <div class="flex flex-col sm:flex-row sm:space-x-4">
+                    <button onclick="copyToClipboard()" id="copyButton"
+                            class="mt-2 w-full sm:w-auto px-6 py-2 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition duration-150 shadow-md">
+                        Copy URL
+                    </button>
+                    <button onclick="openUrl()" id="openButton"
+                            class="mt-2 w-full sm:w-auto px-6 py-2 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition duration-150 shadow-md">
+                        Open URL
+                    </button>
+                    <!-- Message Span -->
+                    <span id="copyMessage" class="ml-4 mt-2 sm:mt-0 self-center text-sm text-green-600 opacity-0 transition-opacity duration-300">Copied!</span>
+                </div>
             </div>
 
             <!-- QR Code Placeholder -->
@@ -284,6 +292,51 @@
         }
 
         /**
+         * Opens the generated URL in a new browser tab.
+         */
+        function openUrl() {
+            const urlTextarea = document.getElementById('resultUrl');
+            const url = urlTextarea.value.trim();
+            const message = document.getElementById('copyMessage');
+
+            // Check if the URL is valid (i.e., not the error message)
+            if (url && url !== "Please enter a valid Google Form Base URL.") {
+                window.open(url, '_blank');
+            } else {
+                // Display error message
+                message.textContent = "Please enter Base URL first!";
+                message.classList.remove('text-green-600', 'opacity-0');
+                message.classList.add('text-red-600', 'opacity-100');
+                
+                // Hide the message after a delay and reset its properties
+                setTimeout(() => {
+                    message.classList.remove('text-red-600', 'opacity-100');
+                    message.classList.add('text-green-600', 'opacity-0');
+                    message.textContent = "Copied!"; // Reset message for copy function
+                }, 2000);
+            }
+        }
+
+        /**
+         * Copies the generated URL to the clipboard.
+         */
+        function copyToClipboard() {
+            const urlTextarea = document.getElementById('resultUrl');
+            urlTextarea.select();
+            document.execCommand('copy');
+
+            const message = document.getElementById('copyMessage');
+            // Ensure message is green for success
+            message.classList.remove('text-red-600', 'opacity-0');
+            message.classList.add('text-green-600', 'opacity-100');
+
+            setTimeout(() => {
+                message.classList.remove('opacity-100');
+                message.classList.add('opacity-0');
+            }, 1500);
+        }
+
+        /**
          * Generates and updates the QR Code.
          * @param {string} url - The URL to encode in the QR code.
          */
@@ -305,23 +358,6 @@
             // Ensure the canvas border reflects the success of generation
             canvas.classList.remove('border-gray-200');
             canvas.classList.add('border-indigo-400');
-        }
-
-        /**
-         * Copies the generated URL to the clipboard.
-         */
-        function copyToClipboard() {
-            const urlTextarea = document.getElementById('resultUrl');
-            urlTextarea.select();
-            document.execCommand('copy');
-
-            const message = document.getElementById('copyMessage');
-            message.classList.remove('opacity-0');
-            message.classList.add('opacity-100');
-            setTimeout(() => {
-                message.classList.remove('opacity-100');
-                message.classList.add('opacity-0');
-            }, 1500);
         }
 
         /**
