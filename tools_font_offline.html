@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'none'; connect-src 'none';">
-  <title>API Key Shield - Strict Offline & Local Fonts</title>
+  <title>PGP Offline Tools - Strict Offline & Local Fonts</title>
   
   <!-- Standalone Vendor Libraries (Local Only Loader) -->
   <script>
@@ -547,9 +547,228 @@
       width: 100%;
       text-align: center;
     }
-    .flashing-red-countdown {
-      animation: flash-red-anim 1s infinite;
-      font-weight: 700;
+    .mono-preview {
+      background: var(--mono-bg);
+      color: var(--mono-text);
+      border: 1px solid var(--mono-border);
+      border-radius: 10px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 0.85rem;
+      padding: 1rem;
+      max-height: 300px;
+      overflow-y: auto;
+      position: relative;
+      white-space: pre-wrap;
+      word-break: break-all;
+      box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.05);
+    }
+    /* Bottom Console Panel styles */
+    .bottom-console-wrapper {
+      width: 100%;
+      max-width: 1200px;
+      margin-top: 2rem;
+      margin-bottom: 2rem;
+    }
+    .console-card {
+      background: var(--card-bg);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .console-header {
+      padding: 0.75rem 1.25rem;
+      background: rgba(0, 0, 0, 0.2);
+      border-bottom: 1px solid var(--card-border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      user-select: none;
+    }
+    .console-header h3 {
+      font-size: 0.95rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: var(--accent);
+      margin: 0;
+    }
+    .console-header-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .console-toggle-icon {
+      transition: transform var(--transition-speed);
+      font-size: 0.8rem;
+    }
+    .console-card.collapsed .console-toggle-icon {
+      transform: rotate(-90deg);
+    }
+    .console-body {
+      max-height: 220px;
+      transition: max-height var(--transition-speed) ease-in-out;
+      overflow: hidden;
+    }
+    .console-card.collapsed .console-body {
+      max-height: 0;
+    }
+    .console-log {
+      height: 220px;
+      background: var(--mono-bg);
+      color: var(--accent);
+      border: none;
+      border-radius: 0;
+      max-height: none;
+      box-shadow: none;
+    }
+    /* Collapsible Key Accordions using details/summary */
+    .key-details {
+      border: 1px solid var(--mono-border);
+      border-radius: 8px;
+      background: rgba(0, 0, 0, 0.15);
+      margin-bottom: 0.75rem;
+      overflow: hidden;
+    }
+    .key-details[open] {
+      background: var(--mono-bg);
+    }
+    .key-summary {
+      padding: 0.6rem 1rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-main);
+      cursor: pointer;
+      user-select: none;
+      outline: none;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .key-summary::-webkit-details-marker {
+      display: none;
+    }
+    .key-summary::after {
+      content: "▶";
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      transition: transform var(--transition-speed);
+    }
+    .key-details[open] .key-summary::after {
+      transform: rotate(90deg);
+    }
+    .key-details-content {
+      padding: 0 1rem 1rem 1rem;
+      position: relative;
+    }
+    /* Output Tabs styling */
+    .output-tab-container {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+    .output-tabs {
+      display: flex;
+      border-bottom: 1px solid var(--card-border);
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+    .output-tab {
+      padding: 0.5rem 0.25rem;
+      font-weight: 600;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      background: none;
+      border: none;
+      border-bottom: 2px solid transparent;
+      cursor: pointer;
+      transition: all var(--transition-speed);
+      margin-bottom: -1px;
+    }
+    .output-tab.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+    .output-tab:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+    .output-tab-content {
+      display: none;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    .output-tab-content.active {
+      display: flex;
+    }
+    .offline-banner summary::-webkit-details-marker {
+      display: none;
+    }
+    .offline-banner summary {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      outline: none;
+      font-weight: 600;
+      cursor: pointer;
+      user-select: none;
+    }
+    .offline-banner summary::after {
+      content: "▶";
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      margin-left: auto;
+      transition: transform var(--transition-speed);
+    }
+    .offline-banner[open] summary::after {
+      transform: rotate(90deg);
+    }
+    .welcome-btn-option {
+      background: rgba(99, 102, 241, 0.05) !important;
+      color: var(--text-main) !important;
+      border: 1px solid var(--primary) !important;
+      padding: 1.25rem !important;
+      text-align: left !important;
+      border-radius: 12px !important;
+      display: flex !important;
+      flex-direction: column !important;
+      gap: 0.5rem !important;
+      cursor: pointer !important;
+      transition: all 0.2s !important;
+      width: 100% !important;
+      justify-content: flex-start !important;
+    }
+    .welcome-btn-option:hover {
+      background: rgba(99, 102, 241, 0.15) !important;
+      transform: translateY(-2px) !important;
+      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15) !important;
+    }
+    .help-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid var(--card-border);
+      color: var(--text-muted);
+      font-size: 0.7rem;
+      font-weight: bold;
+      cursor: pointer;
+      margin-left: 0.35rem;
+      transition: all var(--transition-speed);
+      vertical-align: middle;
+      padding: 0;
+    }
+    .help-btn:hover {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary);
     }
     @keyframes flash-red-anim {
       0%, 100% { color: var(--error); filter: drop-shadow(0 0 2px var(--error)); }
@@ -558,6 +777,35 @@
   </style>
 </head>
 <body>
+
+  <!-- WELCOME POPUP MODAL -->
+  <div id="welcome-modal" style="display: flex; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.85); z-index: 99999; align-items: center; justify-content: center; backdrop-filter: blur(8px); padding: 2rem;">
+    <div class="modal-card" style="max-width: 550px; padding: 2.5rem; border-color: var(--primary); box-shadow: 0 10px 40px rgba(99, 102, 241, 0.2); text-align: left; display: flex; flex-direction: column; gap: 1.5rem; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 16px; position: relative;">
+      <!-- Close Button -->
+      <button onclick="document.getElementById('welcome-modal').style.display='none'" style="position: absolute; top: 1rem; right: 1rem; background: none; border: none; color: var(--text-muted); font-size: 1.25rem; cursor: pointer; transition: color var(--transition-speed);" onmouseover="this.style.color='var(--error)'" onmouseout="this.style.color='var(--text-muted)'">✕</button>
+      
+      <h3 style="font-size: 1.5rem; font-weight: 700; color: var(--primary); border-bottom: 1px solid var(--card-border); padding-bottom: 0.75rem; text-align: center; display: flex; align-items: center; justify-content: center; gap: 0.5rem; margin: 0;">
+        🛡️ PGP Offline Tools
+      </h3>
+      <p style="font-size: 0.95rem; line-height: 1.6; color: var(--text-main); text-align: center; margin: 0;">
+        Welcome! This secure tool runs entirely inside your browser using local resources. What would you like to do?
+      </p>
+      
+      <div style="display: grid; grid-template-columns: 1fr; gap: 1.25rem; margin-top: 0.5rem; width: 100%;">
+        <!-- Option: Encrypt -->
+        <button class="welcome-btn-option" onclick="selectWelcomeAction('encrypt')">
+          <strong style="color: var(--accent); font-size: 1.1rem; display: flex; align-items: center; gap: 0.5rem;">🔒 Encrypt & Package</strong>
+          <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: normal; line-height: 1.4;">Lock and package your API credentials (keys, secrets, client IDs) securely before sharing. The encrypted package can only be opened by the recipient.</span>
+        </button>
+
+        <!-- Option: Decrypt -->
+        <button class="welcome-btn-option" onclick="selectWelcomeAction('decrypt')">
+          <strong style="color: var(--success); font-size: 1.1rem; display: flex; align-items: center; gap: 0.5rem;">🔓 Decrypt received file</strong>
+          <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: normal; line-height: 1.4;">Open and read an encrypted credential package or message file that was securely sent to you, using your private key.</span>
+        </button>
+      </div>
+    </div>
+  </div>
 
   <!-- COMPACT AUTO-WIPE BANNER -->
   <div id="wipe-banner" style="display: none; position: fixed; bottom: 1rem; right: 1rem; background: var(--card-bg); border: 1px solid var(--primary); border-radius: 8px; padding: 0.75rem 1rem; box-shadow: var(--shadow); z-index: 999; align-items: center; gap: 0.75rem; font-size: 0.85rem; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);">
@@ -659,7 +907,7 @@
 
   <header>
     <div class="logo-container">
-      <h1 id="app-title">API Credential Shield (Strict Offline)</h1>
+      <h1 id="app-title">PGP Offline Tools (Strict Offline)</h1>
       <p id="app-subtitle">Secure Offline Credential Packaging & Verification Tool</p>
     </div>
     <div class="header-actions">
@@ -672,15 +920,18 @@
     </div>
   </header>
 
-  <div class="offline-banner">
-    <span class="offline-icon"></span>
-    <div>
+  <details class="offline-banner">
+    <summary>
+      <span class="offline-icon"></span>
+      <strong>Library Dependency Check</strong>
+    </summary>
+    <div style="margin-top: 0.75rem; cursor: default;" onclick="event.stopPropagation()">
       <strong>Strict Offline Mode:</strong> All cryptographic operations are processed entirely in your browser using local files only.
-      <div id="library-loading-status" style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">
+      <div id="library-loading-status" style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.5rem;">
         Loading local cryptographic libraries...
       </div>
     </div>
-  </div>
+  </details>
 
   <!-- ENCRYPTION SECTION -->
   <main id="encrypt-section">
@@ -724,17 +975,17 @@
       <div id="input-field-container" class="tab-content">
         <div class="input-row">
           <div class="form-group">
-            <label>Partner ID <span class="label-action" onclick="generateUUID('partner-id')">Generate UUID</span></label>
+            <label>Partner ID <button class="help-btn" onclick="showHelp('partnerId'); event.preventDefault();">?</button> <span class="label-action" onclick="generateUUID('partner-id')">Generate UUID</span></label>
             <input type="text" id="partner-id" placeholder="e.g., d3b07384-d113-4956-a5db-25f0e1d84872" autocomplete="off">
           </div>
           <div class="form-group">
-            <label>Client ID <span class="label-action" onclick="generateUUID('client-id')">Generate UUID</span></label>
+            <label>Client ID <button class="help-btn" onclick="showHelp('clientId'); event.preventDefault();">?</button> <span class="label-action" onclick="generateUUID('client-id')">Generate UUID</span></label>
             <input type="text" id="client-id" placeholder="e.g., e7d1bb39-16a7-47ab-a1a6-061031d279cf" autocomplete="off">
           </div>
         </div>
 
         <div class="form-group" style="margin-top: 1rem;">
-          <label>Secret Key <span class="label-action" onclick="generateSecret('secret-key')">Generate Random Secret</span></label>
+          <label>Secret Key <button class="help-btn" onclick="showHelp('secretKey'); event.preventDefault();">?</button> <span class="label-action" onclick="generateSecret('secret-key')">Generate Random Secret</span></label>
           <input type="text" id="secret-key" placeholder="e.g., s_4f89d873c52e4ba9b71e16f731a547b7" autocomplete="off">
         </div>
 
@@ -763,7 +1014,7 @@
           Encrypts the payload with a random AES-256 key, then encrypts that AES key with the client's standard RSA Public Key (PEM). Outputs a ZIP file containing the ciphertext and helper decryption scripts.
         </p>
         <div class="form-group">
-          <label>Client's RSA Public Key (PEM format) <span class="label-action" onclick="generateTestRsaKeypair()">Generate Test Keypair</span></label>
+          <label>Client's RSA Public Key (PEM format) <button class="help-btn" onclick="showHelp('publicKey'); event.preventDefault();">?</button> <span class="label-action" onclick="generateTestRsaKeypair()">Generate Test Keypair</span></label>
           <textarea id="rsa-public-key" rows="6" placeholder="-----BEGIN PUBLIC KEY-----&#10;MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA...&#10;-----END PUBLIC KEY-----" autocomplete="off"></textarea>
         </div>
         <button class="btn" onclick="encryptRsaHybrid()">Encrypt & Download ZIP Package</button>
@@ -775,7 +1026,7 @@
           Standard OpenPGP encryption. Encrypts the payload directly into an ASCII-Armored block decryptable by any standard PGP tool (like <code>gpg</code>).
         </p>
         <div class="form-group">
-          <label>Client's PGP Public Key (Armored) <span class="label-action" onclick="generateTestPgpKeypair()">Generate Test Keypair</span></label>
+          <label>Client's PGP Public Key (Armored) <button class="help-btn" onclick="showHelp('publicKey'); event.preventDefault();">?</button> <span class="label-action" onclick="generateTestPgpKeypair()">Generate Test Keypair</span></label>
           <textarea id="pgp-public-key" rows="6" placeholder="-----BEGIN PGP PUBLIC KEY BLOCK-----&#10;Version: OpenPGP.js...&#10;-----END PGP PUBLIC KEY BLOCK-----" autocomplete="off"></textarea>
         </div>
         <button class="btn" onclick="encryptPgp()">Encrypt to PGP Message</button>
@@ -784,55 +1035,70 @@
 
     <!-- Right Panel: Output & Decryption Preview -->
     <div class="card" style="justify-content: flex-start;">
-      <h2>Console & Encrypted Output</h2>
+      <h2>Encrypted Output & Assets</h2>
       
-      <div class="form-group">
-        <label>Execution Log</label>
-        <div class="mono-preview" id="encrypt-log-console" style="color: var(--accent); min-height: 80px;">System Ready. Input credentials above to start.</div>
-      </div>
-
-      <div class="form-group" style="position: relative;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-          <label style="margin: 0;">Ciphertext Preview</label>
-          <div style="display: flex; gap: 0.5rem; align-items: center;">
-            <button class="btn" id="download-cipher-btn" onclick="downloadEncryptedFile()" style="display: none; padding: 0.25rem 0.6rem; font-size: 0.75rem; background: var(--accent); color: var(--mono-bg); border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">Download</button>
-            <button class="btn" onclick="copyText('ciphertext-preview')" style="padding: 0.25rem 0.6rem; font-size: 0.75rem; background: var(--card-bg); border: 1px solid var(--card-border); color: var(--text-main); border-radius: 4px; cursor: pointer; font-weight: 600;">Copy</button>
-          </div>
+      <div class="output-tab-container">
+        <div class="output-tabs">
+          <button class="output-tab active" id="tab-cipher-btn" onclick="switchOutputTab('cipher')">Encrypted Payload</button>
+          <button class="output-tab" id="tab-helper-btn" onclick="switchOutputTab('helper')" disabled>Decryption Helper</button>
+          <button class="output-tab" id="tab-keys-btn" onclick="switchOutputTab('keys')" style="display: none;">Generated Keys</button>
         </div>
-        <div class="mono-preview" style="min-height: 180px;">
-          <code id="ciphertext-preview">No encryption performed yet.</code>
-        </div>
-      </div>
 
-      <!-- Generated Test Keys Panel -->
-      <div id="test-keys-section" style="display: none;" class="form-group">
-        <label>Generated Test Keys</label>
-        <div style="display: grid; grid-template-columns: 1fr; gap: 1rem;">
-          <div class="form-group" style="position: relative; margin-bottom: 0.5rem;">
-            <label style="font-size: 0.75rem;">Public Key (Auto-applied to input field)</label>
-            <div class="mono-preview" style="height: 100px; font-size: 0.75rem; padding-top: 2rem;">
-              <button class="copy-btn" onclick="copyText('generated-pubkey')">Copy</button>
-              <code id="generated-pubkey"></code>
-            </div>
-          </div>
+        <!-- Tab Content: Encrypted Payload -->
+        <div id="output-tab-cipher" class="output-tab-content active">
           <div class="form-group" style="position: relative;">
-            <label style="font-size: 0.75rem;">Private Key (Save for Decryption Sim / Decrypt tab)</label>
-            <div class="mono-preview" style="height: 120px; font-size: 0.75rem; padding-top: 2rem;">
-              <button class="copy-btn" onclick="copyText('generated-privkey')">Copy</button>
-              <code id="generated-privkey"></code>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+              <label style="margin: 0;">Ciphertext Preview <button class="help-btn" onclick="showHelp('ciphertext'); event.preventDefault();">?</button></label>
+              <div style="display: flex; gap: 0.5rem; align-items: center;">
+                <button class="btn" id="download-cipher-btn" onclick="downloadEncryptedFile()" style="display: none; padding: 0.25rem 0.6rem; font-size: 0.75rem; background: var(--accent); color: var(--mono-bg); border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">Download</button>
+                <button class="btn" onclick="copyText('ciphertext-preview')" style="padding: 0.25rem 0.6rem; font-size: 0.75rem; background: var(--card-bg); border: 1px solid var(--card-border); color: var(--text-main); border-radius: 4px; cursor: pointer; font-weight: 600;">Copy</button>
+              </div>
+            </div>
+            <div class="mono-preview" style="min-height: 250px;">
+              <code id="ciphertext-preview">No encryption performed yet.</code>
             </div>
           </div>
         </div>
-      </div>
 
-      <div id="decryption-instructions-section" style="display: none;" class="form-group">
-        <label>Client Decryption Helper</label>
-        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem;">
-          Give this code/instruction to the client to help them decrypt the payload using their Private Key:
-        </p>
-        <div class="mono-preview" style="min-height: 250px;">
-          <button class="copy-btn" onclick="copyText('decryption-code')">Copy</button>
-          <code id="decryption-code">Select an encryption method to see decryption instructions.</code>
+        <!-- Tab Content: Helper & Instructions -->
+        <div id="output-tab-helper" class="output-tab-content">
+          <div id="decryption-instructions-section" class="form-group">
+            <label>Client Decryption Helper</label>
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem;">
+              Give this code/instruction to the client to help them decrypt the payload using their Private Key:
+            </p>
+            <div class="mono-preview" style="min-height: 250px;">
+              <button class="copy-btn" onclick="copyText('decryption-code')">Copy</button>
+              <code id="decryption-code">Select an encryption method to see decryption instructions.</code>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab Content: Generated Keys -->
+        <div id="output-tab-keys" class="output-tab-content">
+          <div id="test-keys-section" class="form-group">
+            <label style="margin-bottom: 0.5rem;">Generated Test Keypair</label>
+            
+            <details class="key-details" open>
+              <summary class="key-summary">Public Key (Auto-applied to input field)</summary>
+              <div class="key-details-content">
+                <div class="mono-preview" style="height: 120px; font-size: 0.75rem; padding-top: 2rem;">
+                  <button class="copy-btn" onclick="copyText('generated-pubkey')">Copy</button>
+                  <code id="generated-pubkey"></code>
+                </div>
+              </div>
+            </details>
+
+            <details class="key-details">
+              <summary class="key-summary">Private Key (For Decrypt simulation)</summary>
+              <div class="key-details-content">
+                <div class="mono-preview" style="height: 150px; font-size: 0.75rem; padding-top: 2rem;">
+                  <button class="copy-btn" onclick="copyText('generated-privkey')">Copy</button>
+                  <code id="generated-privkey"></code>
+                </div>
+              </div>
+            </details>
+          </div>
         </div>
       </div>
     </div>
@@ -853,7 +1119,7 @@
       <div id="decrypt-rsa-hybrid-tab" class="tab-content">
         <div class="form-group">
           <label>
-            Client's RSA Private Key (PEM format)
+            Client's RSA Private Key (PEM format) <button class="help-btn" onclick="showHelp('privateKey'); event.preventDefault();">?</button>
             <div class="file-input-wrapper">
               <span class="file-input-label" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; border-radius: 4px;">Upload Key File (.pem/.key)</span>
               <input type="file" id="rsa-key-upload" onchange="handleRsaKeyUpload(event)">
@@ -864,7 +1130,7 @@
 
         <div class="form-group">
           <label>
-            Ciphertext (JSON Envelope or upload Package ZIP / JSON file)
+            Ciphertext (JSON Envelope or upload Package ZIP / JSON file) <button class="help-btn" onclick="showHelp('ciphertext'); event.preventDefault();">?</button>
             <div class="file-input-wrapper">
               <span class="file-input-label" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; border-radius: 4px;">Upload ZIP or JSON File</span>
               <input type="file" id="rsa-cipher-upload" accept=".zip,.json,.txt" onchange="handleRsaCipherUpload(event)">
@@ -880,7 +1146,7 @@
       <div id="decrypt-pgp-tab" class="tab-content active">
         <div class="form-group">
           <label>
-            Client's PGP Private Key (Armored)
+            Client's PGP Private Key (Armored) <button class="help-btn" onclick="showHelp('privateKey'); event.preventDefault();">?</button>
             <div class="file-input-wrapper">
               <span class="file-input-label" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; border-radius: 4px;">Upload PGP Private Key</span>
               <input type="file" id="pgp-key-upload" onchange="handlePgpKeyUpload(event)">
@@ -891,7 +1157,7 @@
 
         <div class="form-group">
           <label>
-            PGP Armored Message
+            PGP Armored Message <button class="help-btn" onclick="showHelp('ciphertext'); event.preventDefault();">?</button>
             <div class="file-input-wrapper">
               <span class="file-input-label" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; border-radius: 4px;">Upload PGP File (.asc/.pgp)</span>
               <input type="file" id="pgp-cipher-upload" accept=".asc,.pgp,.txt" onchange="handlePgpCipherUpload(event)">
@@ -906,22 +1172,36 @@
 
     <!-- Right Panel: Output and Logs -->
     <div class="card" style="justify-content: flex-start;">
-      <h2>Console & Decrypted Output</h2>
+      <h2>Decrypted Output</h2>
 
-      <div class="form-group">
-        <label>Execution Log</label>
-        <div class="mono-preview" id="decrypt-log-console" style="color: var(--accent); min-height: 80px;">System Ready. Provide key and ciphertext to test decryption.</div>
-      </div>
-
-      <div class="form-group">
+      <div class="form-group" style="height: 100%; display: flex; flex-direction: column; gap: 0.5rem;">
         <label>Decrypted Output</label>
-        <div class="mono-preview" style="min-height: 250px;">
+        <div class="mono-preview" style="flex-grow: 1; min-height: 300px;">
           <button class="copy-btn" onclick="copyText('decrypted-preview')">Copy</button>
           <code id="decrypted-preview" style="color: var(--success);">No successful decryption yet.</code>
         </div>
       </div>
     </div>
   </main>
+
+  <!-- UNIFIED SYSTEM LOGS -->
+  <div class="bottom-console-wrapper">
+    <div class="console-card" id="system-console-card">
+      <div class="console-header" onclick="toggleConsole()">
+        <h3>
+          <span>💻</span> System Execution Logs
+        </h3>
+        <div class="console-header-actions">
+          <span style="font-size: 0.75rem; color: var(--text-muted); font-family: monospace;" id="console-last-msg">System Ready.</span>
+          <button class="theme-toggle-btn" onclick="clearConsole(event)" style="padding: 0.25rem 0.60rem; font-size: 0.75rem; border-color: var(--card-border); margin: 0;">Clear Logs</button>
+          <span class="console-toggle-icon" id="console-toggle-icon">▼</span>
+        </div>
+      </div>
+      <div class="console-body">
+        <div class="mono-preview console-log" id="unified-log-console">System Ready. Ready for operations.</div>
+      </div>
+    </div>
+  </div>
 
   <script>
     // Theme Switcher Logic
@@ -937,6 +1217,11 @@
         themeToggleBtn.innerText = 'Light Mode';
       }
     });
+
+    function selectWelcomeAction(action) {
+      document.getElementById('welcome-modal').style.display = 'none';
+      switchMode(action);
+    }
 
     function clearSensitiveData() {
       // Clear sensitive fields in DOM
@@ -965,9 +1250,21 @@
         }
       });
 
-      // Hide optional panels
-      const testKeys = document.getElementById('test-keys-section');
-      if (testKeys) testKeys.style.display = 'none';
+      // Reset output tabs
+      const helperTabBtn = document.getElementById('tab-helper-btn');
+      if (helperTabBtn) helperTabBtn.disabled = true;
+
+      const keysTabBtn = document.getElementById('tab-keys-btn');
+      if (keysTabBtn) keysTabBtn.style.display = 'none';
+
+      switchOutputTab('cipher');
+
+      // Reset collapsible details key panels
+      const detailsEls = document.querySelectorAll('.key-details');
+      if (detailsEls.length >= 2) {
+        detailsEls[0].open = true; // Public key open
+        detailsEls[1].open = false; // Private key closed
+      }
 
       const confirmModal = document.getElementById('key-confirm-modal');
       if (confirmModal) {
@@ -980,9 +1277,6 @@
         passModal.style.display = 'none';
         document.getElementById('modal-passphrase-input').value = '';
       }
-
-      const helperSec = document.getElementById('decryption-instructions-section');
-      if (helperSec) helperSec.style.display = 'none';
 
       const dlBtn = document.getElementById('download-cipher-btn');
       if (dlBtn) dlBtn.style.display = 'none';
@@ -1100,30 +1394,66 @@
       }
     }
 
+    // Unified Console Toggle & Clear
+    function toggleConsole() {
+      const consoleCard = document.getElementById('system-console-card');
+      const toggleIcon = document.getElementById('console-toggle-icon');
+      if (consoleCard.classList.contains('collapsed')) {
+        consoleCard.classList.remove('collapsed');
+        toggleIcon.innerText = '▼';
+      } else {
+        consoleCard.classList.add('collapsed');
+        toggleIcon.innerText = '◀';
+      }
+    }
+    
+    function clearConsole(event) {
+      if (event) event.stopPropagation();
+      document.getElementById('unified-log-console').innerHTML = '[System Logs Cleared]';
+      document.getElementById('console-last-msg').innerText = 'Logs cleared.';
+    }
+
     // Logger helpers
-    function encryptLog(msg) {
-      const consoleEl = document.getElementById('encrypt-log-console');
+    function systemLog(msg, modePrefix) {
+      const consoleEl = document.getElementById('unified-log-console');
+      const lastMsgEl = document.getElementById('console-last-msg');
       if (consoleEl) {
         if (msg === "") {
           consoleEl.innerHTML += `\n`;
         } else {
           const timestamp = new Date().toLocaleTimeString();
-          consoleEl.innerHTML += `\n[${timestamp}] ${msg}`;
+          const logLine = `[${timestamp}] [${modePrefix}] ${msg}`;
+          consoleEl.innerHTML += `\n${logLine}`;
+          if (lastMsgEl) {
+            lastMsgEl.innerText = `[${modePrefix}] ${msg}`;
+          }
         }
         consoleEl.scrollTop = consoleEl.scrollHeight;
       }
     }
 
+    function encryptLog(msg) {
+      systemLog(msg, 'ENCRYPT');
+    }
+
     function decryptLog(msg) {
-      const consoleEl = document.getElementById('decrypt-log-console');
-      if (consoleEl) {
-        if (msg === "") {
-          consoleEl.innerHTML += `\n`;
-        } else {
-          const timestamp = new Date().toLocaleTimeString();
-          consoleEl.innerHTML += `\n[${timestamp}] ${msg}`;
-        }
-        consoleEl.scrollTop = consoleEl.scrollHeight;
+      systemLog(msg, 'DECRYPT');
+    }
+
+    // Tab Switcher for Output panel
+    function switchOutputTab(tabId) {
+      const tabs = document.querySelectorAll('.output-tab');
+      tabs.forEach(t => t.classList.remove('active'));
+      
+      const contents = document.querySelectorAll('.output-tab-content');
+      contents.forEach(c => c.classList.remove('active'));
+      
+      const selectedTab = document.getElementById(`tab-${tabId}-btn`);
+      const selectedContent = document.getElementById(`output-tab-${tabId}`);
+      
+      if (selectedTab && selectedContent) {
+        selectedTab.classList.add('active');
+        selectedContent.classList.add('active');
       }
     }
 
@@ -1256,7 +1586,12 @@
         
         document.getElementById('generated-pubkey').innerText = pemPublic;
         document.getElementById('generated-privkey').innerText = pemPrivate;
-        document.getElementById('test-keys-section').style.display = 'block';
+        
+        const keysTabBtn = document.getElementById('tab-keys-btn');
+        if (keysTabBtn) {
+          keysTabBtn.style.display = 'inline-block';
+        }
+        switchOutputTab('keys');
         
         encryptLog("Test RSA keypair generated successfully. Loaded Public Key into field and Private Key in Decryption Preview.");
       } catch(err) {
@@ -1280,7 +1615,12 @@
         
         document.getElementById('generated-pubkey').innerText = publicKey;
         document.getElementById('generated-privkey').innerText = privateKey;
-        document.getElementById('test-keys-section').style.display = 'block';
+        
+        const keysTabBtn = document.getElementById('tab-keys-btn');
+        if (keysTabBtn) {
+          keysTabBtn.style.display = 'inline-block';
+        }
+        switchOutputTab('keys');
         
         encryptLog("Test PGP keypair generated successfully. Loaded Public Key into field and Private Key in Decryption Preview.");
       } catch(err) {
@@ -1708,7 +2048,11 @@ console.log(decrypted);
 `;
 
         document.getElementById('decryption-code').innerText = pythonCode;
-        document.getElementById('decryption-instructions-section').style.display = 'block';
+        const helperTabBtn = document.getElementById('tab-helper-btn');
+        if (helperTabBtn) {
+          helperTabBtn.disabled = false;
+        }
+        switchOutputTab('cipher');
 
         const zip = new JSZip();
         zip.file("encrypted_secrets.json", envelopeStr);
@@ -1882,7 +2226,11 @@ Command line:
 gpg --decrypt encrypted_message.asc
 `;
         document.getElementById('decryption-code').innerText = decryptionInstructions;
-        document.getElementById('decryption-instructions-section').style.display = 'block';
+        const helperTabBtn = document.getElementById('tab-helper-btn');
+        if (helperTabBtn) {
+          helperTabBtn.disabled = false;
+        }
+        switchOutputTab('cipher');
 
         const blob = new Blob([encrypted], {type: "text/plain;charset=utf-8"});
         lastGeneratedBlob = blob;
@@ -2128,6 +2476,56 @@ gpg --decrypt encrypted_message.asc
         alert("PGP Decryption failed: " + err.message);
       }
     }
+
+    // Interactive Help Overlay functions
+    const helpTopics = {
+      publicKey: {
+        title: "🔑 Public Key (Kunci Publik)",
+        text: "A Public Key is like your <strong>mailbox address</strong> or a public padlock. Anyone can use it to write/lock an encrypted message for you, but they cannot open the mailbox or padlock once it is closed. It is safe to share with anyone."
+      },
+      privateKey: {
+        title: "🔑 Private Key (Kunci Privat)",
+        text: "A Private Key is like the <strong>physical key to your mailbox</strong>. Only you have this key, and you use it to unlock and read messages locked with your Public Key. <strong>NEVER share your Private Key with anyone.</strong>"
+      },
+      ciphertext: {
+        title: "🔒 Ciphertext (Pesan Terenkripsi)",
+        text: "Ciphertext is the scrambled, unreadable version of your data. Without the correct Private Key, it looks like random letters and numbers, making it completely safe to send over the internet."
+      },
+      partnerId: {
+        title: "🆔 Partner ID",
+        text: "A unique identifier representing your partner account. Think of it like a customer ID or account number."
+      },
+      clientId: {
+        title: "🆔 Client ID",
+        text: "A unique identifier representing your specific client application or service access point."
+      },
+      secretKey: {
+        title: "🔑 Secret Key (Kunci Rahasia)",
+        text: "A Secret Key is like a highly secure password. It is used to sign or authorize your connection. It must be kept secret and protected."
+      }
+    };
+
+    function showHelp(topic) {
+      const data = helpTopics[topic];
+      if (data) {
+        document.getElementById('help-title').innerText = data.title;
+        document.getElementById('help-text').innerHTML = data.text;
+        document.getElementById('help-modal').style.setProperty('display', 'flex', 'important');
+      }
+    }
+
+    function closeHelpModal() {
+      document.getElementById('help-modal').style.display = 'none';
+    }
   </script>
+
+  <!-- HELP DIALOG MODAL -->
+  <div id="help-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.6); z-index: 100003; align-items: center; justify-content: center; backdrop-filter: blur(4px); padding: 2rem;">
+    <div class="modal-card" style="max-width: 420px; padding: 2rem; background: var(--card-bg); border: 1px solid var(--primary); border-radius: 12px; position: relative; box-shadow: var(--shadow); text-align: left; display: flex; flex-direction: column;">
+      <button onclick="closeHelpModal()" style="position: absolute; top: 0.75rem; right: 0.75rem; background: none; border: none; color: var(--text-muted); font-size: 1.1rem; cursor: pointer;">✕</button>
+      <h3 id="help-title" style="font-size: 1.15rem; font-weight: 600; color: var(--accent); margin-bottom: 0.75rem; margin-top: 0;">Help Topic</h3>
+      <p id="help-text" style="font-size: 0.875rem; line-height: 1.5; color: var(--text-main); margin: 0;"></p>
+    </div>
+  </div>
 </body>
 </html>
