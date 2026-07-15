@@ -1,19 +1,22 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Geraldlcpd Portal - Documentation</title>
   <meta name="description" content="Search, browse, and preview PDF and Markdown documentations inside the repository.">
-  
+
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  
+  <link
+    href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet">
+
   <!-- FontAwesome for Premium Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  
+
   <!-- Marked.js for parsing Markdown -->
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
@@ -22,7 +25,7 @@
     :root {
       --font-primary: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       --font-secondary: 'Plus Jakarta Sans', sans-serif;
-      
+
       /* Dark Theme (Default) */
       --bg-gradient: linear-gradient(135deg, #090b11 0%, #111424 50%, #07080e 100%);
       --bg-glass: rgba(15, 20, 35, 0.45);
@@ -33,13 +36,13 @@
       --text-primary: #f8fafc;
       --text-secondary: #94a3b8;
       --text-muted: #64748b;
-      
+
       --color-primary: #6366f1;
       --color-primary-glow: rgba(99, 102, 241, 0.3);
       --color-secondary: #ec4899;
       --color-accent: #14b8a6;
       --shadow-color: rgba(0, 0, 0, 0.5);
-      
+
       --transition-smooth: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
@@ -53,7 +56,7 @@
       --text-primary: #0f172a;
       --text-secondary: #475569;
       --text-muted: #94a3b8;
-      
+
       --color-primary: #4f46e5;
       --color-primary-glow: rgba(79, 70, 229, 0.2);
       --shadow-color: rgba(148, 163, 184, 0.15);
@@ -80,7 +83,8 @@
     }
 
     /* Background Ambient Gradients */
-    body::before, body::after {
+    body::before,
+    body::after {
       content: '';
       position: absolute;
       width: 400px;
@@ -110,13 +114,16 @@
       width: 8px;
       height: 8px;
     }
+
     ::-webkit-scrollbar-track {
       background: rgba(0, 0, 0, 0.05);
     }
+
     ::-webkit-scrollbar-thumb {
       background: var(--border-glow);
       border-radius: 5px;
     }
+
     ::-webkit-scrollbar-thumb:hover {
       background: var(--color-primary);
     }
@@ -201,13 +208,13 @@
       -webkit-backdrop-filter: blur(10px);
       transition: var(--transition-smooth);
     }
-    
+
     .theme-switch-wrapper i {
       font-size: 0.85rem;
       color: var(--text-muted);
       transition: var(--transition-smooth);
     }
-    
+
     .theme-switch {
       width: 40px;
       height: 22px;
@@ -218,7 +225,7 @@
       border: 1px solid var(--border-color);
       transition: var(--transition-smooth);
     }
-    
+
     .theme-switch-handle {
       width: 16px;
       height: 16px;
@@ -228,18 +235,18 @@
       top: 2px;
       left: 2px;
       transition: var(--transition-smooth);
-      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
     }
-    
+
     [data-theme="light"] .theme-switch-handle {
       left: 20px;
       background: var(--color-primary);
     }
-    
+
     [data-theme="light"] .theme-switch-wrapper i.fa-sun {
       color: #eab308;
     }
-    
+
     [data-theme="dark"] .theme-switch-wrapper i.fa-moon {
       color: #a5b4fc;
     }
@@ -378,7 +385,8 @@
     }
 
     .doc-icon.pdf {
-      color: #ef4444; /* red-500 */
+      color: #ef4444;
+      /* red-500 */
     }
 
     .doc-icon.markdown {
@@ -522,7 +530,10 @@
       max-height: 650px;
     }
 
-    .markdown-body h1, .markdown-body h2, .markdown-body h3, .markdown-body h4 {
+    .markdown-body h1,
+    .markdown-body h2,
+    .markdown-body h3,
+    .markdown-body h4 {
       font-family: var(--font-secondary);
       color: var(--text-primary);
       margin-top: 1.5rem;
@@ -530,9 +541,21 @@
       font-weight: 700;
     }
 
-    .markdown-body h1 { font-size: 1.85rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; }
-    .markdown-body h2 { font-size: 1.45rem; border-bottom: 1px dashed var(--border-color); padding-bottom: 0.35rem; }
-    .markdown-body h3 { font-size: 1.25rem; }
+    .markdown-body h1 {
+      font-size: 1.85rem;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 0.5rem;
+    }
+
+    .markdown-body h2 {
+      font-size: 1.45rem;
+      border-bottom: 1px dashed var(--border-color);
+      padding-bottom: 0.35rem;
+    }
+
+    .markdown-body h3 {
+      font-size: 1.25rem;
+    }
 
     .markdown-body p {
       margin-bottom: 1.25rem;
@@ -573,7 +596,8 @@
       font-size: 0.85rem;
     }
 
-    .markdown-body ul, .markdown-body ol {
+    .markdown-body ul,
+    .markdown-body ol {
       margin-bottom: 1.25rem;
       padding-left: 1.5rem;
     }
@@ -617,13 +641,15 @@
     .skeleton-line::after {
       content: '';
       position: absolute;
-      top: 0; right: 0; bottom: 0; left: 0;
-      background: linear-gradient(90deg, 
-        rgba(255, 255, 255, 0) 0%, 
-        rgba(255, 255, 255, 0.03) 20%, 
-        rgba(255, 255, 255, 0.07) 60%, 
-        rgba(255, 255, 255, 0) 100%
-      );
+      top: 0;
+      right: 0;
+      bottom: 0;
+      left: 0;
+      background: linear-gradient(90deg,
+          rgba(255, 255, 255, 0) 0%,
+          rgba(255, 255, 255, 0.03) 20%,
+          rgba(255, 255, 255, 0.07) 60%,
+          rgba(255, 255, 255, 0) 100%);
       transform: translateX(-100%);
       animation: shimmer 1.5s infinite;
     }
@@ -658,9 +684,11 @@
       .docs-workspace {
         grid-template-columns: 1fr;
       }
+
       .sidebar {
         max-height: 350px;
       }
+
       .doc-list {
         max-height: 200px;
       }
@@ -673,21 +701,26 @@
         gap: 1rem;
         align-items: center;
       }
+
       .header-nav {
         width: 100%;
         justify-content: center;
       }
+
       .preview-pane {
         padding: 1.25rem;
       }
+
       .preview-header {
         flex-direction: column;
         align-items: flex-start;
         gap: 0.75rem;
       }
+
       .preview-actions {
         width: 100%;
       }
+
       .preview-btn {
         flex: 1;
         justify-content: center;
@@ -695,12 +728,13 @@
     }
   </style>
 </head>
+
 <body>
 
   <header>
     <div class="brand">
       <i class="fa-solid fa-shapes"></i>
-      <span>GeraldLCPD Portal</span>
+      <span>API Toolbox Portal - Docs</span>
     </div>
     <nav class="header-nav">
       <a href="index.html" class="nav-link"><i class="fa-solid fa-house"></i> Tools</a>
@@ -723,7 +757,7 @@
           <i class="fa-solid fa-folder-open text-indigo-400"></i>
           <span>Documentations</span>
         </div>
-        
+
         <div class="search-wrapper">
           <input type="text" id="doc-search" class="search-input" placeholder="Search documentation...">
           <i class="fa-solid fa-magnifying-glass"></i>
@@ -732,7 +766,8 @@
         <ul class="doc-list" id="doc-list-container">
           <!-- Populated by JavaScript -->
           <li style="text-align: center; padding: 2rem; color: var(--text-muted);">
-            <i class="fa-solid fa-spinner fa-spin" style="font-size: 1.5rem; margin-bottom: 0.5rem; display: block; color: var(--color-primary);"></i>
+            <i class="fa-solid fa-spinner fa-spin"
+              style="font-size: 1.5rem; margin-bottom: 0.5rem; display: block; color: var(--color-primary);"></i>
             Loading index...
           </li>
         </ul>
@@ -754,7 +789,9 @@
 
   <footer>
     <div>&copy; 2026 GeraldLCPD. All documents are loaded securely.</div>
-    <div>Hosted via <a href="https://pages.github.com/" target="_blank" rel="noopener">GitHub Pages</a> | Source code available on <a href="https://github.com/geraldlcpd/geraldlcpd.github.io" target="_blank" rel="noopener">GitHub</a></div>
+    <div>Hosted via <a href="https://pages.github.com/" target="_blank" rel="noopener">GitHub Pages</a> | Source code
+      available on <a href="https://github.com/geraldlcpd/geraldlcpd.github.io" target="_blank"
+        rel="noopener">GitHub</a></div>
   </footer>
 
   <script>
@@ -800,12 +837,12 @@
       try {
         const response = await fetch(DOCS_DIR_API);
         if (!response.ok) throw new Error('Docs API fetch failed');
-        
+
         const contents = await response.json();
-        
+
         // Filter PDF and MD files
-        const docFiles = contents.filter(item => 
-          item.type === 'file' && 
+        const docFiles = contents.filter(item =>
+          item.type === 'file' &&
           (item.name.endsWith('.pdf') || item.name.endsWith('.md'))
         );
 
@@ -852,7 +889,7 @@
 
     // Display list
     function displayDocsList() {
-      const filtered = docsData.filter(doc => 
+      const filtered = docsData.filter(doc =>
         doc.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         doc.filename.toLowerCase().includes(searchQuery.toLowerCase())
       );
@@ -871,7 +908,7 @@
         const isPdf = doc.filename.endsWith('.pdf');
         const iconClass = isPdf ? 'fa-file-pdf pdf' : 'fa-file-lines markdown';
         const isActive = activeDoc && activeDoc.filename === doc.filename ? 'active' : '';
-        
+
         return `
           <li class="doc-item ${isActive}" onclick="selectDocument(${idx})">
             <div class="doc-icon">
@@ -893,7 +930,7 @@
     async function selectDocument(index) {
       const doc = docsData[index];
       activeDoc = doc;
-      
+
       // Update sidebar active states
       displayDocsList();
 
@@ -912,7 +949,7 @@
 
       try {
         const isPdf = doc.filename.endsWith('.pdf');
-        
+
         // Build preview layout
         let previewHtml = `
           <div class="preview-header">
@@ -939,7 +976,7 @@
           const res = await fetch(doc.downloadUrl);
           if (!res.ok) throw new Error('Failed to load markdown text');
           const markdownText = await res.text();
-          
+
           // Render using Marked
           const renderedHtml = marked.parse(markdownText);
           previewHtml += `
@@ -980,4 +1017,5 @@
     loadDocsIndex();
   </script>
 </body>
+
 </html>
