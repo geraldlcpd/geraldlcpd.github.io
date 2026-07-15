@@ -1,0 +1,2133 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'none'; connect-src 'none';">
+  <title>API Key Shield - Strict Offline & Local Fonts</title>
+  
+  <!-- Standalone Vendor Libraries (Local Only Loader) -->
+  <script>
+    function loadLocalScript(src, globalVarName) {
+      return new Promise((resolve, reject) => {
+        if (window[globalVarName]) {
+          resolve(true);
+          return;
+        }
+        const script = document.createElement('script');
+        script.src = src;
+        script.onload = () => {
+          if (window[globalVarName]) {
+            resolve(true);
+          } else {
+            reject(new Error(globalVarName + ' failed verification'));
+          }
+        };
+        script.onerror = () => {
+          reject(new Error(src + ' failed to load'));
+        };
+        document.head.appendChild(script);
+      });
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      Promise.all([
+        loadLocalScript('openpgp.min.js', 'openpgp'),
+        loadLocalScript('jszip.min.js', 'JSZip')
+      ]).then(() => {
+        const statusEl = document.getElementById('library-loading-status');
+        if (statusEl) {
+          const pgpVersion = (window.openpgp && (window.openpgp.version || window.openpgp.config && window.openpgp.config.versionString)) || 'N/A';
+          const zipVersion = (window.JSZip && window.JSZip.version) || 'N/A';
+          statusEl.innerHTML = `
+            <table style="border-collapse: collapse; margin-top: 0.5rem; font-size: 0.8rem; text-align: left; border: 1px solid var(--accent); border-radius: 6px; overflow: hidden; background: rgba(0,0,0,0.15); width: max-content; min-width: 450px;">
+              <thead>
+                <tr style="background: rgba(0,0,0,0.3); border-bottom: 1px solid var(--accent); color: var(--accent);">
+                  <th style="padding: 0.35rem 0.75rem; font-weight: 600;">Status</th>
+                  <th style="padding: 0.35rem 0.75rem; font-weight: 600;">Library</th>
+                  <th style="padding: 0.35rem 0.75rem; font-weight: 600;">Version</th>
+                  <th style="padding: 0.35rem 0.75rem; font-weight: 600;">Filename</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                  <td style="padding: 0.35rem 0.75rem; color: var(--success); font-weight: 500;">✔ Verified</td>
+                  <td style="padding: 0.35rem 0.75rem; font-weight: bold; color: var(--text-main);">OpenPGP.js</td>
+                  <td style="padding: 0.35rem 0.75rem; font-family: monospace; color: var(--text-main);">${pgpVersion}</td>
+                  <td style="padding: 0.35rem 0.75rem; font-family: monospace; color: var(--text-muted);">openpgp.min.js</td>
+                </tr>
+                <tr>
+                  <td style="padding: 0.35rem 0.75rem; color: var(--success); font-weight: 500;">✔ Verified</td>
+                  <td style="padding: 0.35rem 0.75rem; font-weight: bold; color: var(--text-main);">JSZip</td>
+                  <td style="padding: 0.35rem 0.75rem; font-family: monospace; color: var(--text-main);">${zipVersion}</td>
+                  <td style="padding: 0.35rem 0.75rem; font-family: monospace; color: var(--text-muted);">jszip.min.js</td>
+                </tr>
+              </tbody>
+            </table>
+          `;
+        }
+      }).catch((err) => {
+        console.error("Library loading failed:", err);
+        showMissingLibsModal();
+      });
+    });
+
+    function showMissingLibsModal() {
+      const overlay = document.getElementById('missing-libs-overlay');
+      if (overlay) {
+        overlay.style.setProperty('display', 'flex', 'important');
+      }
+
+      const libs = [
+        {
+          rowId: 'status-openpgp',
+          name: 'OpenPGP.js',
+          filename: 'openpgp.min.js',
+          loaded: !!window.openpgp,
+          version: (window.openpgp && (window.openpgp.version || window.openpgp.config && window.openpgp.config.versionString)) || 'N/A'
+        },
+        {
+          rowId: 'status-jszip',
+          name: 'JSZip',
+          filename: 'jszip.min.js',
+          loaded: !!window.JSZip,
+          version: (window.JSZip && window.JSZip.version) || 'N/A'
+        }
+      ];
+
+      libs.forEach(lib => {
+        const row = document.getElementById(lib.rowId);
+        if (!row) return;
+        const statusTag = lib.loaded
+          ? `<span style="color:var(--success);font-weight:600;">Loaded</span>`
+          : `<span style="color:var(--error);font-weight:600;">Missing</span>`;
+        row.innerHTML = `
+          <td style="padding:0.4rem 0.75rem 0.4rem 0;white-space:nowrap;">${statusTag}</td>
+          <td style="padding:0.4rem 0.75rem;font-weight:600;color:var(--text-main);">${lib.name}</td>
+          <td style="padding:0.4rem 0.75rem;color:var(--text-muted);font-family:Consolas,monospace;">${lib.version}</td>
+          <td style="padding:0.4rem 0 0.4rem 0.75rem;color:var(--text-muted);font-family:Consolas,monospace;">${lib.filename}</td>
+        `;
+      });
+
+      // Disable all other buttons, inputs, textareas, selects
+      const interactiveElements = document.querySelectorAll('button, input, textarea, select');
+      interactiveElements.forEach(el => {
+        if (el.id !== 'refresh-btn-modal') {
+          el.disabled = true;
+          el.style.opacity = '0.5';
+          el.style.pointerEvents = 'none';
+        }
+      });
+    }
+  </script>
+
+  <style>
+    :root {
+      /* Theme color palette */
+      --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+      --card-bg: rgba(15, 23, 42, 0.75);
+      --card-border: rgba(255, 255, 255, 0.08);
+      --text-main: #f1f5f9;
+      --text-muted: #94a3b8;
+      --primary: #6366f1;
+      --primary-hover: #4f46e5;
+      --accent: #22d3ee;
+      --accent-bg: #083344;
+      --success: #34d399;
+      --error: #ef4444;
+      --shadow: 0 10px 35px rgba(0, 0, 0, 0.3);
+      --mono-bg: #020617;
+      --mono-text: #f8fafc;
+      --mono-border: #1e293b;
+      --input-bg: rgba(2, 6, 23, 0.5);
+      --input-border: rgba(255, 255, 255, 0.1);
+      --input-focus: #6366f1;
+      --transition-speed: 0.25s;
+    }
+
+    [data-theme="light"] {
+      --bg-gradient: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+      --card-bg: rgba(255, 255, 255, 0.85);
+      --card-border: rgba(0, 0, 0, 0.06);
+      --text-main: #0f172a;
+      --text-muted: #475569;
+      --primary: #4f46e5;
+      --primary-hover: #3730a3;
+      --accent: #06b6d4;
+      --accent-bg: #e0f7fa;
+      --success: #059669;
+      --error: #dc2626;
+      --shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+      --mono-bg: #f8fafc;
+      --mono-text: #0f172a;
+      --mono-border: #cbd5e1;
+      --input-bg: #ffffff;
+      --input-border: #cbd5e1;
+      --input-focus: #4f46e5;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg-gradient);
+      background-attachment: fixed;
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem 1rem;
+      transition: background var(--transition-speed), color var(--transition-speed);
+    }
+
+    header {
+      width: 100%;
+      max-width: 1200px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2rem;
+      flex-wrap: wrap;
+      gap: 1.5rem;
+    }
+
+    .logo-container h1 {
+      font-size: 1.75rem;
+      font-weight: 700;
+      letter-spacing: -0.025em;
+      background: linear-gradient(to right, var(--primary), var(--accent));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .logo-container p {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      margin-top: 0.25rem;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .mode-selector {
+      display: flex;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 50px;
+      padding: 0.25rem;
+      box-shadow: var(--shadow);
+    }
+
+    .mode-btn {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      padding: 0.5rem 1.25rem;
+      border-radius: 50px;
+      cursor: pointer;
+      font-size: 0.875rem;
+      font-weight: 600;
+      transition: all var(--transition-speed);
+    }
+
+    .mode-btn.active {
+      background: var(--primary);
+      color: #ffffff;
+    }
+
+    .theme-toggle-btn {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      color: var(--text-main);
+      padding: 0.6rem 1.2rem;
+      border-radius: 50px;
+      cursor: pointer;
+      font-size: 0.875rem;
+      font-weight: 500;
+      transition: transform 0.2s, background-color var(--transition-speed);
+      box-shadow: var(--shadow);
+    }
+
+    .theme-toggle-btn:hover {
+      transform: translateY(-2px);
+    }
+
+    main {
+      width: 100%;
+      max-width: 1200px;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 2rem;
+    }
+
+    @media (min-width: 1024px) {
+      main {
+        grid-template-columns: 1.2fr 1fr;
+      }
+    }
+
+    .card {
+      background: var(--card-bg);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      padding: 2rem;
+      box-shadow: var(--shadow);
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    h2 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      border-bottom: 1px solid var(--card-border);
+      padding-bottom: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    label {
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .label-action {
+      font-size: 0.75rem;
+      color: var(--primary);
+      cursor: pointer;
+      text-decoration: underline;
+    }
+
+    input, textarea, select {
+      background: var(--input-bg);
+      border: 1px solid var(--input-border);
+      color: var(--text-main);
+      padding: 0.75rem;
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    input:focus, textarea:focus, select:focus {
+      border-color: var(--input-focus);
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+    }
+
+    .input-row {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1rem;
+    }
+
+    @media (min-width: 640px) {
+      .input-row {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    .tabs {
+      display: flex;
+      border-bottom: 2px solid var(--card-border);
+      gap: 1.5rem;
+    }
+
+    .tab {
+      padding: 0.75rem 0.25rem;
+      font-weight: 600;
+      font-size: 0.95rem;
+      color: var(--text-muted);
+      background: none;
+      border: none;
+      border-bottom: 2px solid transparent;
+      cursor: pointer;
+      transition: color 0.2s, border-color 0.2s;
+      margin-bottom: -2px;
+    }
+
+    .tab.active {
+      color: var(--primary);
+      border-bottom-color: var(--primary);
+    }
+
+    .tab-content {
+      display: none;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .tab-content.active {
+      display: flex;
+    }
+
+    .btn {
+      background: var(--primary);
+      color: #ffffff;
+      padding: 0.85rem 1.5rem;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: background-color 0.2s, transform 0.1s;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .btn:hover {
+      background: var(--primary-hover);
+    }
+
+    .btn:active {
+      transform: scale(0.98);
+    }
+
+    .btn-secondary {
+      background: rgba(99, 102, 241, 0.1);
+      color: var(--primary);
+      border: 1px dashed var(--primary);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(99, 102, 241, 0.15);
+    }
+
+    .mono-preview {
+      background: var(--mono-bg);
+      color: var(--mono-text);
+      border: 1px solid var(--mono-border);
+      border-radius: 8px;
+      font-family: Consolas, "Andale Mono WT", "Andale Mono", "Lucida Console", Monaco, "Courier New", monospace;
+      font-size: 0.85rem;
+      padding: 1rem;
+      max-height: 300px;
+      overflow-y: auto;
+      position: relative;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+
+    .mono-preview code {
+      white-space: pre-wrap;
+      display: block;
+      word-break: break-all;
+    }
+
+    .copy-btn {
+      position: absolute;
+      top: 0.5rem;
+      right: 0.5rem;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      color: var(--text-main);
+      padding: 0.25rem 0.5rem;
+      font-size: 0.75rem;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .offline-banner {
+      width: 100%;
+      max-width: 1200px;
+      background: var(--accent-bg);
+      border: 1px solid var(--accent);
+      color: var(--text-main);
+      padding: 0.75rem 1.25rem;
+      border-radius: 12px;
+      margin-bottom: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.875rem;
+    }
+
+    .offline-icon {
+      width: 8px;
+      height: 8px;
+      background-color: var(--success);
+      border-radius: 50%;
+      box-shadow: 0 0 8px var(--success);
+      display: inline-block;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+      70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+      100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+    }
+
+    .file-input-wrapper {
+      position: relative;
+      overflow: hidden;
+      display: inline-block;
+    }
+
+    .file-input-label {
+      background: rgba(99, 102, 241, 0.1);
+      color: var(--primary);
+      border: 1px dashed var(--primary);
+      padding: 0.75rem;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 500;
+      transition: background-color 0.2s;
+    }
+
+    .file-input-label:hover {
+      background: rgba(99, 102, 241, 0.15);
+    }
+
+    .file-input-wrapper input[type=file] {
+      font-size: 100px;
+      position: absolute;
+      left: 0;
+      top: 0;
+      opacity: 0;
+      cursor: pointer;
+    }
+
+    /* Modal Overlay styling */
+    #missing-libs-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(15, 23, 42, 0.95);
+      z-index: 9999;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(10px);
+      padding: 2rem;
+    }
+
+    #missing-libs-overlay .modal-card {
+      background: var(--card-bg);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--error);
+      border-radius: 16px;
+      padding: 2rem;
+      box-shadow: 0 10px 40px rgba(239, 68, 68, 0.15);
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+      max-width: 500px;
+      width: 100%;
+      text-align: center;
+    }
+    .flashing-red-countdown {
+      animation: flash-red-anim 1s infinite;
+      font-weight: 700;
+    }
+    @keyframes flash-red-anim {
+      0%, 100% { color: var(--error); filter: drop-shadow(0 0 2px var(--error)); }
+      50% { color: var(--text-muted); filter: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- COMPACT AUTO-WIPE BANNER -->
+  <div id="wipe-banner" style="display: none; position: fixed; bottom: 1rem; right: 1rem; background: var(--card-bg); border: 1px solid var(--primary); border-radius: 8px; padding: 0.75rem 1rem; box-shadow: var(--shadow); z-index: 999; align-items: center; gap: 0.75rem; font-size: 0.85rem; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);">
+    <span style="color: var(--primary); font-weight: 600;">Auto-Wipe Timer:</span>
+    <span id="wipe-countdown" style="font-family: Consolas, monospace; font-weight: 700; color: var(--accent);">60s</span>
+    <button onclick="triggerImmediateWipe()" style="background: var(--error); border: none; color: #fff; padding: 0.15rem 0.35rem; border-radius: 4px; font-size: 0.7rem; cursor: pointer;">Wipe Now</button>
+  </div>
+
+  <!-- AUTO-WIPE WARNING MODAL -->
+  <div id="wipe-warning-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.85); z-index: 10000; align-items: center; justify-content: center; backdrop-filter: blur(5px); padding: 2rem;">
+    <div class="modal-card" style="max-width: 400px; padding: 2.5rem; border-color: var(--primary); box-shadow: 0 10px 40px rgba(99, 102, 241, 0.15);">
+      <h3 style="font-size: 1.25rem; font-weight: 600; color: var(--primary); border-bottom: 1px solid var(--card-border); padding-bottom: 0.5rem; text-align: center;">
+        Security Notice: Auto-Wipe
+      </h3>
+      <p style="font-size: 0.9rem; line-height: 1.5; color: var(--text-main); text-align: left;">
+        Your session data (credentials, keys, and outputs) will be cleared automatically to protect memory exposure.
+      </p>
+      <div style="font-size: 1.5rem; font-weight: 700; color: var(--accent); text-align: center; margin: 1.5rem 0;">
+        Wiping in: <span id="modal-wipe-countdown">30</span>s
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+        <button class="btn" onclick="triggerImmediateWipe()" style="background: var(--error); width: 100%; padding: 0.6rem 1.2rem; font-size: 0.9rem;">Wipe Now</button>
+        <button class="btn" onclick="suspendWipe()" style="background: var(--primary); width: 100%; padding: 0.6rem 1.2rem; font-size: 0.9rem;">Suspend (+120s)</button>
+        <button class="btn btn-secondary" onclick="cancelWipeSession()" style="width: 100%; border-style: solid; color: var(--text-main); border-color: var(--card-border); padding: 0.6rem 1.2rem; font-size: 0.9rem;">Skip Auto-Wipe</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- KEY CONFIRMATION MODAL -->
+  <div id="key-confirm-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.85); z-index: 10001; align-items: center; justify-content: center; backdrop-filter: blur(5px); padding: 2rem;">
+    <div class="modal-card" style="max-width: 450px; padding: 2.5rem; border-color: var(--primary); box-shadow: 0 10px 40px rgba(99, 102, 241, 0.15); background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 16px; text-align: left; display: flex; flex-direction: column; gap: 1.5rem;">
+      <h3 style="font-size: 1.25rem; font-weight: 600; color: var(--primary); border-bottom: 1px solid var(--card-border); padding-bottom: 0.5rem; text-align: center;">
+        Confirm Recipient Key
+      </h3>
+      <p style="font-size: 0.9rem; line-height: 1.5; color: var(--text-main);">
+        Please verify that the public key details below match the intended recipient before encrypting your credentials:
+      </p>
+      <div id="modal-key-details" style="background: var(--mono-bg); border: 1px solid var(--mono-border); padding: 1rem; border-radius: 8px; font-family: Consolas, monospace; font-size: 0.85rem; color: var(--text-main); word-break: break-all;">
+        <!-- Filled dynamically -->
+      </div>
+      <div style="display: flex; gap: 1rem;">
+        <button class="btn" id="confirm-proceed-btn" style="flex: 1; padding: 0.6rem 1.2rem; font-size: 0.9rem;">Proceed</button>
+        <button class="btn btn-secondary" onclick="closeKeyConfirmModal()" style="flex: 1; border-style: solid; color: var(--text-main); border-color: var(--card-border); padding: 0.6rem 1.2rem; font-size: 0.9rem;">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PASSPHRASE PROMPT MODAL -->
+  <div id="passphrase-prompt-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.85); z-index: 10002; align-items: center; justify-content: center; backdrop-filter: blur(5px); padding: 2rem;">
+    <div class="modal-card" style="max-width: 400px; padding: 2.5rem; border-color: var(--primary); box-shadow: 0 10px 40px rgba(99, 102, 241, 0.15); background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 16px; text-align: left; display: flex; flex-direction: column; gap: 1.5rem;">
+      <h3 style="font-size: 1.25rem; font-weight: 600; color: var(--primary); border-bottom: 1px solid var(--card-border); padding-bottom: 0.5rem; text-align: center;">
+        Passphrase Required
+      </h3>
+      <p style="font-size: 0.9rem; line-height: 1.5; color: var(--text-main);">
+        This PGP Private Key is encrypted. Please enter the passphrase to decrypt it:
+      </p>
+      <div class="form-group" style="margin-bottom: 0.25rem;">
+        <input type="password" id="modal-passphrase-input" placeholder="Enter passphrase..." autocomplete="off" style="width: 100%;">
+      </div>
+      <div id="passphrase-error-msg" style="display: none; color: var(--error); font-size: 0.8rem; font-weight: 500;"></div>
+      <div style="display: flex; gap: 1rem; margin-top: 0.5rem;">
+        <button class="btn" id="passphrase-submit-btn" style="flex: 1; padding: 0.6rem 1.2rem; font-size: 0.9rem;">Submit</button>
+        <button class="btn btn-secondary" id="passphrase-cancel-btn" style="flex: 1; border-style: solid; color: var(--text-main); border-color: var(--card-border); padding: 0.6rem 1.2rem; font-size: 0.9rem;">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MISSING LIBRARIES OVERLAY -->
+  <div id="missing-libs-overlay">
+    <div class="modal-card">
+      <h2 style="color: var(--error); border-bottom-color: var(--error); justify-content: center; font-size: 1.5rem; gap: 0.5rem;">
+        Offline Libraries Missing
+      </h2>
+      <p style="font-size: 0.95rem; line-height: 1.6; color: var(--text-main); text-align: left;">
+        This application runs in strict offline mode. The following libraries must be placed in the <strong>same folder</strong> as this HTML file:
+      </p>
+      <div style="background: var(--mono-bg); border: 1px solid var(--mono-border); padding: 1rem; border-radius: 8px; overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
+          <thead>
+            <tr style="border-bottom: 1px solid var(--mono-border); color: var(--text-muted); font-family: inherit; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; font-size: 0.75rem;">
+              <th style="padding: 0.3rem 0.75rem 0.5rem 0; text-align: left;">Status</th>
+              <th style="padding: 0.3rem 0.75rem; text-align: left;">Library</th>
+              <th style="padding: 0.3rem 0.75rem; text-align: left;">Version</th>
+              <th style="padding: 0.3rem 0 0.5rem 0.75rem; text-align: left;">Filename</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr id="status-openpgp"></tr>
+            <tr id="status-jszip"></tr>
+          </tbody>
+        </table>
+      </div>
+      <p style="font-size: 0.85rem; color: var(--text-muted); text-align: left; margin-top: 0.25rem;">
+        Obtain missing files from their official sources and place them in the same directory as this file, then refresh.
+      </p>
+      <button class="btn" id="refresh-btn-modal" onclick="window.location.reload()" style="background: var(--error); width: 100%;">Refresh Page</button>
+    </div>
+  </div>
+
+  <header>
+    <div class="logo-container">
+      <h1 id="app-title">API Credential Shield (Strict Offline)</h1>
+      <p id="app-subtitle">Secure Offline Credential Packaging & Verification Tool</p>
+    </div>
+    <div class="header-actions">
+      <div class="mode-selector">
+        <button id="mode-encrypt-btn" class="mode-btn active" onclick="switchMode('encrypt')">Encrypt & Package</button>
+        <button id="mode-decrypt-btn" class="mode-btn" onclick="switchMode('decrypt')">Decrypt & Verify</button>
+      </div>
+      <button class="theme-toggle-btn" onclick="clearSensitiveData()" style="border-color: var(--error); color: var(--error);">Wipe Session Data</button>
+      <button class="theme-toggle-btn" id="theme-toggle">Light Mode</button>
+    </div>
+  </header>
+
+  <div class="offline-banner">
+    <span class="offline-icon"></span>
+    <div>
+      <strong>Strict Offline Mode:</strong> All cryptographic operations are processed entirely in your browser using local files only.
+      <div id="library-loading-status" style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">
+        Loading local cryptographic libraries...
+      </div>
+    </div>
+  </div>
+
+  <!-- ENCRYPTION SECTION -->
+  <main id="encrypt-section">
+    <!-- Left Panel: Input Credentials and Config -->
+    <div class="card">
+      <h2>1. API Credentials Input</h2>
+      
+      <div class="tabs" style="margin-bottom: 1rem;">
+        <button class="tab input-mode-tab active" id="input-mode-raw-btn" onclick="switchInputMode('raw')">Raw Text Input</button>
+        <button class="tab input-mode-tab" id="input-mode-field-btn" onclick="switchInputMode('field')">Field Input</button>
+        <button class="tab input-mode-tab" id="input-mode-autogen-btn" onclick="switchInputMode('autogen')">Auto-Generate & Encrypt</button>
+      </div>
+
+      <!-- Mode: Auto-Generate -->
+      <div id="input-autogen-container" class="tab-content">
+        <div style="background: rgba(99, 102, 241, 0.05); border: 1px dashed var(--primary); padding: 1.5rem; border-radius: 8px; text-align: center;">
+          <p style="font-size: 0.95rem; color: var(--text-main); margin-bottom: 0.5rem; font-weight: 500;">
+            Secure In-Memory Generation Mode
+          </p>
+          <p style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.5;">
+            Clicking the encrypt button will generate a fresh package of 3 secure UUIDs (X-Partner-ID, Secret Key, and X-Client-ID) directly in memory, and immediately encrypt them using the provided Public Key. The plaintext credentials will never be exposed in the UI.
+          </p>
+        </div>
+      </div>
+
+      <!-- Mode: Raw Text Input -->
+      <div id="input-raw-container" class="tab-content active">
+        <div class="form-group">
+          <label>
+            Raw Text / Plaintext Payload
+            <div class="file-input-wrapper" style="margin-left: auto;">
+              <span class="file-input-label" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; border-radius: 4px;">Upload Payload File</span>
+              <input type="file" id="raw-payload-file-upload" accept=".txt,.json,.csv,.yaml,.yml,.xml" onchange="handleRawPayloadFileUpload(event)">
+            </div>
+          </label>
+          <textarea id="raw-plaintext-payload" rows="8" placeholder="Enter plaintext message or raw JSON to encrypt..." autocomplete="off"></textarea>
+        </div>
+      </div>
+
+      <!-- Mode: Field Input -->
+      <div id="input-field-container" class="tab-content">
+        <div class="input-row">
+          <div class="form-group">
+            <label>Partner ID <span class="label-action" onclick="generateUUID('partner-id')">Generate UUID</span></label>
+            <input type="text" id="partner-id" placeholder="e.g., d3b07384-d113-4956-a5db-25f0e1d84872" autocomplete="off">
+          </div>
+          <div class="form-group">
+            <label>Client ID <span class="label-action" onclick="generateUUID('client-id')">Generate UUID</span></label>
+            <input type="text" id="client-id" placeholder="e.g., e7d1bb39-16a7-47ab-a1a6-061031d279cf" autocomplete="off">
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-top: 1rem;">
+          <label>Secret Key <span class="label-action" onclick="generateSecret('secret-key')">Generate Random Secret</span></label>
+          <input type="text" id="secret-key" placeholder="e.g., s_4f89d873c52e4ba9b71e16f731a547b7" autocomplete="off">
+        </div>
+
+        <div class="form-group" style="margin-top: 1rem;">
+          <label>
+            Additional Payload (Optional Raw Text/JSON)
+            <div class="file-input-wrapper" style="margin-left: auto;">
+              <span class="file-input-label" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; border-radius: 4px;">Upload Payload File</span>
+              <input type="file" id="payload-file-upload" accept=".txt,.json,.csv,.yaml,.yml,.xml" onchange="handlePayloadFileUpload(event)">
+            </div>
+          </label>
+          <textarea id="additional-payload" rows="3" placeholder="Enter any extra config or custom metadata to encrypt..." autocomplete="off"></textarea>
+        </div>
+      </div>
+
+      <h2 style="margin-top: 1rem;">2. Encryption Method</h2>
+      
+      <div class="tabs">
+        <button class="tab encrypt-tab" onclick="switchEncryptTab('rsa-hybrid')">RSA Hybrid (Web Crypto)</button>
+        <button class="tab encrypt-tab active" onclick="switchEncryptTab('pgp')">PGP Standard</button>
+      </div>
+
+      <!-- Tab: RSA-OAEP + AES Hybrid -->
+      <div id="encrypt-rsa-hybrid-tab" class="tab-content">
+        <p style="font-size: 0.875rem; color: var(--text-muted);">
+          Encrypts the payload with a random AES-256 key, then encrypts that AES key with the client's standard RSA Public Key (PEM). Outputs a ZIP file containing the ciphertext and helper decryption scripts.
+        </p>
+        <div class="form-group">
+          <label>Client's RSA Public Key (PEM format) <span class="label-action" onclick="generateTestRsaKeypair()">Generate Test Keypair</span></label>
+          <textarea id="rsa-public-key" rows="6" placeholder="-----BEGIN PUBLIC KEY-----&#10;MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA...&#10;-----END PUBLIC KEY-----" autocomplete="off"></textarea>
+        </div>
+        <button class="btn" onclick="encryptRsaHybrid()">Encrypt & Download ZIP Package</button>
+      </div>
+
+      <!-- Tab: Standard PGP -->
+      <div id="encrypt-pgp-tab" class="tab-content active">
+        <p style="font-size: 0.875rem; color: var(--text-muted);">
+          Standard OpenPGP encryption. Encrypts the payload directly into an ASCII-Armored block decryptable by any standard PGP tool (like <code>gpg</code>).
+        </p>
+        <div class="form-group">
+          <label>Client's PGP Public Key (Armored) <span class="label-action" onclick="generateTestPgpKeypair()">Generate Test Keypair</span></label>
+          <textarea id="pgp-public-key" rows="6" placeholder="-----BEGIN PGP PUBLIC KEY BLOCK-----&#10;Version: OpenPGP.js...&#10;-----END PGP PUBLIC KEY BLOCK-----" autocomplete="off"></textarea>
+        </div>
+        <button class="btn" onclick="encryptPgp()">Encrypt to PGP Message</button>
+      </div>
+    </div>
+
+    <!-- Right Panel: Output & Decryption Preview -->
+    <div class="card" style="justify-content: flex-start;">
+      <h2>Console & Encrypted Output</h2>
+      
+      <div class="form-group">
+        <label>Execution Log</label>
+        <div class="mono-preview" id="encrypt-log-console" style="color: var(--accent); min-height: 80px;">System Ready. Input credentials above to start.</div>
+      </div>
+
+      <div class="form-group" style="position: relative;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+          <label style="margin: 0;">Ciphertext Preview</label>
+          <div style="display: flex; gap: 0.5rem; align-items: center;">
+            <button class="btn" id="download-cipher-btn" onclick="downloadEncryptedFile()" style="display: none; padding: 0.25rem 0.6rem; font-size: 0.75rem; background: var(--accent); color: var(--mono-bg); border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">Download</button>
+            <button class="btn" onclick="copyText('ciphertext-preview')" style="padding: 0.25rem 0.6rem; font-size: 0.75rem; background: var(--card-bg); border: 1px solid var(--card-border); color: var(--text-main); border-radius: 4px; cursor: pointer; font-weight: 600;">Copy</button>
+          </div>
+        </div>
+        <div class="mono-preview" style="min-height: 180px;">
+          <code id="ciphertext-preview">No encryption performed yet.</code>
+        </div>
+      </div>
+
+      <!-- Generated Test Keys Panel -->
+      <div id="test-keys-section" style="display: none;" class="form-group">
+        <label>Generated Test Keys</label>
+        <div style="display: grid; grid-template-columns: 1fr; gap: 1rem;">
+          <div class="form-group" style="position: relative; margin-bottom: 0.5rem;">
+            <label style="font-size: 0.75rem;">Public Key (Auto-applied to input field)</label>
+            <div class="mono-preview" style="height: 100px; font-size: 0.75rem; padding-top: 2rem;">
+              <button class="copy-btn" onclick="copyText('generated-pubkey')">Copy</button>
+              <code id="generated-pubkey"></code>
+            </div>
+          </div>
+          <div class="form-group" style="position: relative;">
+            <label style="font-size: 0.75rem;">Private Key (Save for Decryption Sim / Decrypt tab)</label>
+            <div class="mono-preview" style="height: 120px; font-size: 0.75rem; padding-top: 2rem;">
+              <button class="copy-btn" onclick="copyText('generated-privkey')">Copy</button>
+              <code id="generated-privkey"></code>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="decryption-instructions-section" style="display: none;" class="form-group">
+        <label>Client Decryption Helper</label>
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem;">
+          Give this code/instruction to the client to help them decrypt the payload using their Private Key:
+        </p>
+        <div class="mono-preview" style="min-height: 250px;">
+          <button class="copy-btn" onclick="copyText('decryption-code')">Copy</button>
+          <code id="decryption-code">Select an encryption method to see decryption instructions.</code>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- DECRYPTION SECTION -->
+  <main id="decrypt-section" style="display: none;">
+    <!-- Left Panel: Private Key and Ciphertext Inputs -->
+    <div class="card">
+      <h2>1. Decryption Mode</h2>
+      
+      <div class="tabs">
+        <button class="tab decrypt-tab" onclick="switchDecryptTab('rsa-hybrid')">RSA Hybrid (Web Crypto)</button>
+        <button class="tab decrypt-tab active" onclick="switchDecryptTab('pgp')">PGP Standard</button>
+      </div>
+
+      <!-- Tab: RSA-OAEP + AES Decryption -->
+      <div id="decrypt-rsa-hybrid-tab" class="tab-content">
+        <div class="form-group">
+          <label>
+            Client's RSA Private Key (PEM format)
+            <div class="file-input-wrapper">
+              <span class="file-input-label" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; border-radius: 4px;">Upload Key File (.pem/.key)</span>
+              <input type="file" id="rsa-key-upload" onchange="handleRsaKeyUpload(event)">
+            </div>
+          </label>
+          <textarea id="rsa-private-key" rows="5" placeholder="-----BEGIN PRIVATE KEY-----&#10;MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQ...&#10;-----END PRIVATE KEY-----" autocomplete="off"></textarea>
+        </div>
+
+        <div class="form-group">
+          <label>
+            Ciphertext (JSON Envelope or upload Package ZIP / JSON file)
+            <div class="file-input-wrapper">
+              <span class="file-input-label" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; border-radius: 4px;">Upload ZIP or JSON File</span>
+              <input type="file" id="rsa-cipher-upload" accept=".zip,.json,.txt" onchange="handleRsaCipherUpload(event)">
+            </div>
+          </label>
+          <textarea id="rsa-ciphertext" rows="5" placeholder="{&#10;  &quot;algorithm&quot;: &quot;RSA-OAEP-SHA256 / AES-256-GCM&quot;,&#10;  &quot;encryptedAesKey&quot;: &quot;...&quot;,&#10;  &quot;iv&quot;: &quot;...&quot;,&#10;  &quot;tag&quot;: &quot;...&quot;,&#10;  &quot;ciphertext&quot;: &quot;...&quot;&#10;}" autocomplete="off"></textarea>
+        </div>
+
+        <button class="btn" onclick="decryptRsaHybrid()">Decrypt Payload</button>
+      </div>
+
+      <!-- Tab: Standard PGP Decryption -->
+      <div id="decrypt-pgp-tab" class="tab-content active">
+        <div class="form-group">
+          <label>
+            Client's PGP Private Key (Armored)
+            <div class="file-input-wrapper">
+              <span class="file-input-label" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; border-radius: 4px;">Upload PGP Private Key</span>
+              <input type="file" id="pgp-key-upload" onchange="handlePgpKeyUpload(event)">
+            </div>
+          </label>
+          <textarea id="pgp-private-key" rows="5" placeholder="-----BEGIN PGP PRIVATE KEY BLOCK-----&#10;...&#10;-----END PGP PRIVATE KEY BLOCK-----" autocomplete="off"></textarea>
+        </div>
+
+        <div class="form-group">
+          <label>
+            PGP Armored Message
+            <div class="file-input-wrapper">
+              <span class="file-input-label" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; border-radius: 4px;">Upload PGP File (.asc/.pgp)</span>
+              <input type="file" id="pgp-cipher-upload" accept=".asc,.pgp,.txt" onchange="handlePgpCipherUpload(event)">
+            </div>
+          </label>
+          <textarea id="pgp-ciphertext" rows="5" placeholder="-----BEGIN PGP MESSAGE-----&#10;...&#10;-----END PGP MESSAGE-----" autocomplete="off"></textarea>
+        </div>
+
+        <button class="btn" onclick="decryptPgp()">Decrypt PGP Message</button>
+      </div>
+    </div>
+
+    <!-- Right Panel: Output and Logs -->
+    <div class="card" style="justify-content: flex-start;">
+      <h2>Console & Decrypted Output</h2>
+
+      <div class="form-group">
+        <label>Execution Log</label>
+        <div class="mono-preview" id="decrypt-log-console" style="color: var(--accent); min-height: 80px;">System Ready. Provide key and ciphertext to test decryption.</div>
+      </div>
+
+      <div class="form-group">
+        <label>Decrypted Output</label>
+        <div class="mono-preview" style="min-height: 250px;">
+          <button class="copy-btn" onclick="copyText('decrypted-preview')">Copy</button>
+          <code id="decrypted-preview" style="color: var(--success);">No successful decryption yet.</code>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    // Theme Switcher Logic
+    const themeToggleBtn = document.getElementById('theme-toggle');
+    const htmlEl = document.documentElement;
+
+    themeToggleBtn.addEventListener('click', () => {
+      if (htmlEl.getAttribute('data-theme') === 'dark') {
+        htmlEl.setAttribute('data-theme', 'light');
+        themeToggleBtn.innerText = 'Dark Mode';
+      } else {
+        htmlEl.setAttribute('data-theme', 'dark');
+        themeToggleBtn.innerText = 'Light Mode';
+      }
+    });
+
+    function clearSensitiveData() {
+      // Clear sensitive fields in DOM
+      const fields = [
+        'partner-id', 'client-id', 'secret-key', 'additional-payload',
+        'raw-plaintext-payload', 'rsa-public-key', 'pgp-public-key',
+        'rsa-private-key', 'rsa-ciphertext', 'pgp-private-key', 'pgp-ciphertext'
+      ];
+      fields.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+      });
+
+      // Clear preview codes and outputs
+      const previews = ['ciphertext-preview', 'generated-pubkey', 'generated-privkey', 'decrypted-preview'];
+      previews.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+          if (id === 'decrypted-preview') {
+            el.innerText = 'No successful decryption yet.';
+          } else if (id === 'ciphertext-preview') {
+            el.innerText = 'No encryption performed yet.';
+          } else {
+            el.innerText = '';
+          }
+        }
+      });
+
+      // Hide optional panels
+      const testKeys = document.getElementById('test-keys-section');
+      if (testKeys) testKeys.style.display = 'none';
+
+      const confirmModal = document.getElementById('key-confirm-modal');
+      if (confirmModal) {
+        confirmModal.style.display = 'none';
+        document.getElementById('modal-key-details').innerHTML = '';
+      }
+
+      const passModal = document.getElementById('passphrase-prompt-modal');
+      if (passModal) {
+        passModal.style.display = 'none';
+        document.getElementById('modal-passphrase-input').value = '';
+      }
+
+      const helperSec = document.getElementById('decryption-instructions-section');
+      if (helperSec) helperSec.style.display = 'none';
+
+      const dlBtn = document.getElementById('download-cipher-btn');
+      if (dlBtn) dlBtn.style.display = 'none';
+
+      // Dereference variables to clean up memory
+      lastGeneratedBlob = null;
+      lastGeneratedFilename = "";
+
+      // Stop and hide the auto-wipe timer if active
+      clearInterval(wipeTimer);
+      document.getElementById('wipe-banner').style.display = 'none';
+      document.getElementById('wipe-warning-modal').style.display = 'none';
+
+      encryptLog("Cleared all credentials and local memory.");
+      decryptLog("Cleared all credentials and local memory.");
+    }
+
+    // --- Auto-Wipe Timer Logic ---
+    const SECURITY_TIMEOUT_CONFIG = {
+      ENABLED: 1, // Set to 1 to enable the security timeout config, 0 to disable
+      TOTAL_TIMEOUT_SECONDS: 60,
+      WARNING_THRESHOLD_SECONDS: 30,
+      SUSPEND_ADD_SECONDS: 120
+    };
+
+    let wipeTimer = null;
+    let secondsRemaining = 0;
+    let isWipeCancelled = false;
+
+    function startAutoWipeTimer() {
+      if (SECURITY_TIMEOUT_CONFIG.ENABLED !== 1) return;
+      if (isWipeCancelled) return;
+
+      clearInterval(wipeTimer);
+      secondsRemaining = SECURITY_TIMEOUT_CONFIG.TOTAL_TIMEOUT_SECONDS;
+
+      document.getElementById('wipe-banner').style.display = 'flex';
+      document.getElementById('wipe-warning-modal').style.display = 'none';
+      updateWipeUI();
+
+      wipeTimer = setInterval(() => {
+        secondsRemaining--;
+
+        if (secondsRemaining <= 0) {
+          clearInterval(wipeTimer);
+          clearSensitiveData();
+        } else {
+          updateWipeUI();
+        }
+      }, 1000);
+    }
+
+    function updateWipeUI() {
+      const bannerCountdown = document.getElementById('wipe-countdown');
+      const modalCountdown = document.getElementById('modal-wipe-countdown');
+      
+      bannerCountdown.innerText = secondsRemaining + 's';
+      
+      const warningModal = document.getElementById('wipe-warning-modal');
+      if (secondsRemaining <= SECURITY_TIMEOUT_CONFIG.WARNING_THRESHOLD_SECONDS) {
+        warningModal.style.setProperty('display', 'flex', 'important');
+        modalCountdown.innerText = secondsRemaining;
+        
+        bannerCountdown.classList.add('flashing-red-countdown');
+        modalCountdown.classList.add('flashing-red-countdown');
+      } else {
+        warningModal.style.display = 'none';
+        
+        bannerCountdown.classList.remove('flashing-red-countdown');
+        modalCountdown.classList.remove('flashing-red-countdown');
+      }
+    }
+
+    function triggerImmediateWipe() {
+      clearInterval(wipeTimer);
+      clearSensitiveData();
+    }
+
+    function suspendWipe() {
+      secondsRemaining += SECURITY_TIMEOUT_CONFIG.SUSPEND_ADD_SECONDS;
+      document.getElementById('wipe-warning-modal').style.display = 'none';
+      encryptLog("Auto-wipe suspended. Added " + SECURITY_TIMEOUT_CONFIG.SUSPEND_ADD_SECONDS + "s.");
+      decryptLog("Auto-wipe suspended. Added " + SECURITY_TIMEOUT_CONFIG.SUSPEND_ADD_SECONDS + "s.");
+      updateWipeUI();
+    }
+
+    function cancelWipeSession() {
+      clearInterval(wipeTimer);
+      isWipeCancelled = true;
+      document.getElementById('wipe-banner').style.display = 'none';
+      document.getElementById('wipe-warning-modal').style.display = 'none';
+      encryptLog("Auto-wipe disabled for this session.");
+      decryptLog("Auto-wipe disabled for this session.");
+    }
+
+    // Mode Switcher Logic
+    function switchMode(mode) {
+      const encryptSection = document.getElementById('encrypt-section');
+      const decryptSection = document.getElementById('decrypt-section');
+      const encryptBtn = document.getElementById('mode-encrypt-btn');
+      const decryptBtn = document.getElementById('mode-decrypt-btn');
+
+      if (mode === 'encrypt') {
+        encryptSection.style.display = 'grid';
+        decryptSection.style.display = 'none';
+        encryptBtn.classList.add('active');
+        decryptBtn.classList.remove('active');
+        encryptLog("Switched to Encrypt & Package Mode.");
+      } else {
+        encryptSection.style.display = 'none';
+        decryptSection.style.display = 'grid';
+        encryptBtn.classList.remove('active');
+        decryptBtn.classList.add('active');
+        decryptLog("Switched to Decrypt & Verify Mode.");
+      }
+    }
+
+    // Logger helpers
+    function encryptLog(msg) {
+      const consoleEl = document.getElementById('encrypt-log-console');
+      if (consoleEl) {
+        if (msg === "") {
+          consoleEl.innerHTML += `\n`;
+        } else {
+          const timestamp = new Date().toLocaleTimeString();
+          consoleEl.innerHTML += `\n[${timestamp}] ${msg}`;
+        }
+        consoleEl.scrollTop = consoleEl.scrollHeight;
+      }
+    }
+
+    function decryptLog(msg) {
+      const consoleEl = document.getElementById('decrypt-log-console');
+      if (consoleEl) {
+        if (msg === "") {
+          consoleEl.innerHTML += `\n`;
+        } else {
+          const timestamp = new Date().toLocaleTimeString();
+          consoleEl.innerHTML += `\n[${timestamp}] ${msg}`;
+        }
+        consoleEl.scrollTop = consoleEl.scrollHeight;
+      }
+    }
+
+    function copyText(elementId) {
+      const text = document.getElementById(elementId).innerText;
+      navigator.clipboard.writeText(text).then(() => {
+        alert("Copied to clipboard!");
+      }).catch(err => {
+        alert("Failed to copy: " + err);
+      });
+    }
+
+    let lastGeneratedBlob = null;
+    let lastGeneratedFilename = "";
+
+    function downloadEncryptedFile() {
+      if (lastGeneratedBlob && lastGeneratedFilename) {
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(lastGeneratedBlob);
+        link.download = lastGeneratedFilename;
+        link.click();
+        encryptLog(`Downloaded '${lastGeneratedFilename}'.`);
+        encryptLog("");
+      }
+    }
+
+    // Helper functions to generate random credentials using Web Crypto API (CSPRNG)
+    function generateUUID(targetId) {
+      let uuid;
+      if (typeof self.crypto.randomUUID === 'function') {
+        uuid = self.crypto.randomUUID();
+      } else {
+        const array = new Uint8Array(16);
+        window.crypto.getRandomValues(array);
+        array[6] = (array[6] & 0x0f) | 0x40;
+        array[8] = (array[8] & 0x3f) | 0x80;
+        const hex = Array.from(array).map(b => b.toString(16).padStart(2, '0')).join('');
+        uuid = `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+      }
+      document.getElementById(targetId).value = uuid;
+      encryptLog("Generated secure UUID for " + targetId);
+      encryptLog("");
+    }
+
+    function generateSecret(targetId) {
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_.-';
+      const array = new Uint8Array(32);
+      window.crypto.getRandomValues(array);
+      let secret = 's_';
+      for (let i = 0; i < 32; i++) {
+        secret += chars.charAt(array[i] % chars.length);
+      }
+      document.getElementById(targetId).value = secret;
+      encryptLog("Generated secure random Secret Key");
+      encryptLog("");
+    }
+
+    function handlePayloadFileUpload(event) {
+      const file = event.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          document.getElementById('additional-payload').value = e.target.result;
+          encryptLog(`Loaded payload file: ${file.name} (${file.size} bytes)`);
+        };
+        reader.readAsText(file);
+      }
+    }
+
+    // Tab Switcher for Encrypt Card
+    function switchEncryptTab(tabId) {
+      const tabs = document.querySelectorAll('.encrypt-tab');
+      tabs.forEach(t => t.classList.remove('active'));
+
+      document.getElementById('encrypt-rsa-hybrid-tab').classList.remove('active');
+      document.getElementById('encrypt-pgp-tab').classList.remove('active');
+
+      if (tabId === 'rsa-hybrid') {
+        tabs[0].classList.add('active');
+        document.getElementById('encrypt-rsa-hybrid-tab').classList.add('active');
+      } else {
+        tabs[1].classList.add('active');
+        document.getElementById('encrypt-pgp-tab').classList.add('active');
+      }
+      encryptLog("Switched encryption tab to: " + tabId);
+    }
+
+    // Tab Switcher for Decrypt Card
+    function switchDecryptTab(tabId) {
+      const tabs = document.querySelectorAll('.decrypt-tab');
+      tabs.forEach(t => t.classList.remove('active'));
+
+      document.getElementById('decrypt-rsa-hybrid-tab').classList.remove('active');
+      document.getElementById('decrypt-pgp-tab').classList.remove('active');
+
+      if (tabId === 'rsa-hybrid') {
+        tabs[0].classList.add('active');
+        document.getElementById('decrypt-rsa-hybrid-tab').classList.add('active');
+      } else {
+        tabs[1].classList.add('active');
+        document.getElementById('decrypt-pgp-tab').classList.add('active');
+      }
+      decryptLog("Switched decryption tab to: " + tabId);
+    }
+
+    // --- Key Generators for Encryption ---
+    async function generateTestRsaKeypair() {
+      try {
+        encryptLog("Generating test 2048-bit RSA-OAEP key pair...");
+        const keypair = await window.crypto.subtle.generateKey(
+          {
+            name: "RSA-OAEP",
+            modulusLength: 2048,
+            publicExponent: new Uint8Array([1, 0, 1]),
+            hash: "SHA-256"
+          },
+          true,
+          ["encrypt", "decrypt"]
+        );
+
+        const spkiBuffer = await window.crypto.subtle.exportKey("spki", keypair.publicKey);
+        const spkiBase64 = arrayBufferToBase64(spkiBuffer);
+        const pemPublic = `-----BEGIN PUBLIC KEY-----\n${spkiBase64.match(/.{1,64}/g).join('\n')}\n-----END PUBLIC KEY-----`;
+
+        const pkcs8Buffer = await window.crypto.subtle.exportKey("pkcs8", keypair.privateKey);
+        const pkcs8Base64 = arrayBufferToBase64(pkcs8Buffer);
+        const pemPrivate = `-----BEGIN PRIVATE KEY-----\n${pkcs8Base64.match(/.{1,64}/g).join('\n')}\n-----END PRIVATE KEY-----`;
+
+        document.getElementById('rsa-public-key').value = pemPublic;
+        
+        document.getElementById('generated-pubkey').innerText = pemPublic;
+        document.getElementById('generated-privkey').innerText = pemPrivate;
+        document.getElementById('test-keys-section').style.display = 'block';
+        
+        encryptLog("Test RSA keypair generated successfully. Loaded Public Key into field and Private Key in Decryption Preview.");
+      } catch(err) {
+        encryptLog("RSA Key Gen Error: " + err.message);
+      }
+    }
+
+    async function generateTestPgpKeypair() {
+      try {
+        if (typeof openpgp === 'undefined') {
+          throw new Error("OpenPGP library is not loaded. Ensure you have network access or openpgp.min.js is in the folder.");
+        }
+        encryptLog("Generating test PGP key pair (ECC Curve25519)...");
+        const { privateKey, publicKey } = await openpgp.generateKey({
+          type: 'ecc',
+          curve: 'curve25519',
+          userIDs: [{ name: 'Test User', email: 'test@example.com' }]
+        });
+
+        document.getElementById('pgp-public-key').value = publicKey;
+        
+        document.getElementById('generated-pubkey').innerText = publicKey;
+        document.getElementById('generated-privkey').innerText = privateKey;
+        document.getElementById('test-keys-section').style.display = 'block';
+        
+        encryptLog("Test PGP keypair generated successfully. Loaded Public Key into field and Private Key in Decryption Preview.");
+      } catch(err) {
+        encryptLog("PGP Key Gen Error: " + err.message);
+      }
+    }
+
+    // --- Input Mode Switching ---
+    let currentInputMode = 'raw';
+
+    function createSecureUUID() {
+      if (typeof self.crypto.randomUUID === 'function') {
+        return self.crypto.randomUUID();
+      }
+      const array = new Uint8Array(16);
+      window.crypto.getRandomValues(array);
+      array[6] = (array[6] & 0x0f) | 0x40;
+      array[8] = (array[8] & 0x3f) | 0x80;
+      const hex = Array.from(array).map(b => b.toString(16).padStart(2, '0')).join('');
+      return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+    }
+
+    function switchInputMode(mode) {
+      currentInputMode = mode;
+      const rawBtn = document.getElementById('input-mode-raw-btn');
+      const fieldBtn = document.getElementById('input-mode-field-btn');
+      const autogenBtn = document.getElementById('input-mode-autogen-btn');
+      
+      const rawContainer = document.getElementById('input-raw-container');
+      const fieldContainer = document.getElementById('input-field-container');
+      const autogenContainer = document.getElementById('input-autogen-container');
+
+      // Reset active states
+      rawBtn.classList.remove('active');
+      fieldBtn.classList.remove('active');
+      autogenBtn.classList.remove('active');
+      
+      rawContainer.classList.remove('active');
+      fieldContainer.classList.remove('active');
+      autogenContainer.classList.remove('active');
+
+      if (mode === 'raw') {
+        rawBtn.classList.add('active');
+        rawContainer.classList.add('active');
+        encryptLog("Switched input mode to: Raw Text Input");
+      } else if (mode === 'field') {
+        fieldBtn.classList.add('active');
+        fieldContainer.classList.add('active');
+        encryptLog("Switched input mode to: Field Input");
+      } else if (mode === 'autogen') {
+        autogenBtn.classList.add('active');
+        autogenContainer.classList.add('active');
+        encryptLog("Switched input mode to: Auto-Generate & Encrypt");
+      }
+    }
+
+    function handleRawPayloadFileUpload(event) {
+      const file = event.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          document.getElementById('raw-plaintext-payload').value = e.target.result;
+          encryptLog(`Loaded raw payload file: ${file.name} (${file.size} bytes)`);
+        };
+        reader.readAsText(file);
+      }
+    }
+
+    // --- Payload Builder ---
+    function getPayload() {
+      if (currentInputMode === 'autogen') {
+        const pId = createSecureUUID();
+        const sKey = createSecureUUID();
+        const cId = createSecureUUID();
+        
+        const payload = {
+          partnerId: pId,
+          secretKey: sKey,
+          clientId: cId,
+          timestamp: new Date().toISOString()
+        };
+        
+        encryptLog("Generated fresh credential package in memory:");
+        encryptLog("X-Partner-ID: [masked]");
+        encryptLog("Secret Key: [masked]");
+        encryptLog("X-Client-ID: [masked]");
+        
+        return JSON.stringify(payload, null, 2);
+      }
+
+      if (currentInputMode === 'raw') {
+        const payloadText = document.getElementById('raw-plaintext-payload').value;
+        if (!payloadText.trim()) {
+          throw new Error("Please enter a plaintext payload to encrypt.");
+        }
+        return payloadText;
+      }
+
+      const partnerId = document.getElementById('partner-id').value.trim();
+      const clientId = document.getElementById('client-id').value.trim();
+      const secretKey = document.getElementById('secret-key').value.trim();
+      const additional = document.getElementById('additional-payload').value;
+
+      if (!partnerId && !clientId && !secretKey && !additional.trim()) {
+        throw new Error("Please enter at least one credential field (Partner ID, Client ID, Secret Key) or provide an Additional Payload.");
+      }
+
+      if (!partnerId && !clientId && !secretKey) {
+        return additional;
+      }
+
+      const payload = {
+        partnerId,
+        clientId,
+        secretKey,
+        timestamp: new Date().toISOString()
+      };
+
+      if (additional) {
+        try {
+          payload.additional = JSON.parse(additional);
+        } catch(e) {
+          payload.additional = additional;
+        }
+      }
+
+      return JSON.stringify(payload, null, 2);
+    }
+
+    // --- Utilities ---
+    function arrayBufferToBase64(buffer) {
+      let binary = '';
+      const bytes = new Uint8Array(buffer);
+      const len = bytes.byteLength;
+      for (let i = 0; i < len; i++) {
+        binary += String.fromCharCode(bytes[i]);
+      }
+      return window.btoa(binary);
+    }
+
+    function pemToDer(pem) {
+      const cleanPem = pem
+        .replace(/-----BEGIN PUBLIC KEY-----/g, "")
+        .replace(/-----END PUBLIC KEY-----/g, "")
+        .replace(/-----BEGIN RSA PUBLIC KEY-----/g, "")
+        .replace(/-----END RSA PUBLIC KEY-----/g, "")
+        .replace(/\s+/g, "");
+      const binaryDerString = window.atob(cleanPem);
+      const binaryDer = new Uint8Array(binaryDerString.length);
+      for (let i = 0; i < binaryDerString.length; i++) {
+        binaryDer[i] = binaryDerString.charCodeAt(i);
+      }
+      return binaryDer.buffer;
+    }
+
+    // --- Encryption Logic ---
+    async function encryptRsaHybrid() {
+      try {
+        const rsaPem = document.getElementById('rsa-public-key').value.trim();
+        if (!rsaPem) {
+          throw new Error("RSA Public Key is required for hybrid encryption.");
+        }
+
+        encryptLog("Validating RSA public key...");
+        let der;
+        try {
+          der = pemToDer(rsaPem);
+        } catch(e) {
+          throw new Error("Invalid PEM format. Ensure headers and base64 body are correct.");
+        }
+
+        try {
+          await window.crypto.subtle.importKey(
+            "spki",
+            der,
+            { name: "RSA-OAEP", hash: "SHA-256" },
+            false,
+            ["encrypt"]
+          );
+        } catch(e) {
+          throw new Error("Failed to import RSA public key: " + e.message);
+        }
+
+        let fingerprint = "[unavailable]";
+        try {
+          const hashBuffer = await window.crypto.subtle.digest("SHA-256", der);
+          const hashArray = Array.from(new Uint8Array(hashBuffer));
+          fingerprint = hashArray.map(b => b.toString(16).padStart(2, "0")).join("").toUpperCase().match(/.{1,4}/g).join(" ");
+        } catch (e) {}
+
+        let detailsHtml = `
+          <div style="margin-bottom: 0.4rem;"><strong>Key Type:</strong> <span style="color: var(--success);">RSA Public Key (PEM)</span></div>
+          <div style="margin-bottom: 0.4rem;"><strong>Algorithm:</strong> <span>RSA-OAEP-SHA256</span></div>
+          <div style="margin-bottom: 0.4rem;"><strong>Fingerprint (SHA-256):</strong> <span style="font-family: monospace; font-size: 0.8rem;">${fingerprint}</span></div>
+          <div style="margin-bottom: 0.4rem;"><strong>User IDs:</strong> <span style="color: var(--text-muted);">N/A for RSA keys</span></div>
+          <div style="margin-bottom: 0.4rem;"><strong>Emails:</strong> <span style="color: var(--text-muted);">N/A for RSA keys</span></div>
+          <div style="margin-bottom: 0.4rem;"><strong>Created / Expires:</strong> <span style="color: var(--text-muted);">N/A for RSA keys</span></div>
+        `;
+
+        document.getElementById('modal-key-details').innerHTML = detailsHtml;
+        document.getElementById('confirm-proceed-btn').onclick = executeRsaHybridEncryption;
+        document.getElementById('key-confirm-modal').style.setProperty('display', 'flex', 'important');
+      } catch (err) {
+        encryptLog("Error: " + err.message);
+        alert("RSA Validation failed: " + err.message);
+      }
+    }
+
+    function closeKeyConfirmModal() {
+      document.getElementById('key-confirm-modal').style.display = 'none';
+    }
+
+    // promptPassphraseModal - stays open until passphrase passes verifyFn or user cancels.
+    // verifyFn(passphrase): must return a Promise - resolve with result or throw on failure.
+    function promptPassphraseModal(verifyFn) {
+      return new Promise((resolve, reject) => {
+        const modal = document.getElementById('passphrase-prompt-modal');
+        const input = document.getElementById('modal-passphrase-input');
+        const errorMsg = document.getElementById('passphrase-error-msg');
+        const submitBtn = document.getElementById('passphrase-submit-btn');
+        const cancelBtn = document.getElementById('passphrase-cancel-btn');
+
+        // Reset state
+        input.value = '';
+        if (errorMsg) {
+          errorMsg.innerText = '';
+          errorMsg.style.display = 'none';
+        }
+        modal.style.setProperty('display', 'flex', 'important');
+        setTimeout(() => input.focus(), 50);
+
+        async function attemptSubmit() {
+          const val = input.value;
+          submitBtn.disabled = true;
+          submitBtn.innerText = 'Verifying...';
+          if (errorMsg) {
+            errorMsg.style.display = 'none';
+            errorMsg.innerText = '';
+          }
+          try {
+            const result = await verifyFn(val);
+            modal.style.display = 'none';
+            submitBtn.disabled = false;
+            submitBtn.innerText = 'Submit';
+            resolve(result);
+          } catch (e) {
+            submitBtn.disabled = false;
+            submitBtn.innerText = 'Submit';
+            if (errorMsg) {
+              errorMsg.innerText = 'Incorrect passphrase. Please try again.';
+              errorMsg.style.display = 'block';
+            }
+            input.value = '';
+            input.focus();
+          }
+        }
+
+        submitBtn.onclick = attemptSubmit;
+
+        cancelBtn.onclick = () => {
+          modal.style.display = 'none';
+          submitBtn.disabled = false;
+          submitBtn.innerText = 'Submit';
+          reject(new Error("Decryption cancelled. Private key passphrase is required."));
+        };
+
+        input.onkeydown = (e) => {
+          if (e.key === 'Enter') {
+            attemptSubmit();
+          }
+        };
+      });
+    }
+
+    async function executeRsaHybridEncryption() {
+      closeKeyConfirmModal();
+      try {
+        if (typeof JSZip === 'undefined') {
+          throw new Error("JSZip library is not loaded.");
+        }
+        const payload = getPayload();
+        const rsaPem = document.getElementById('rsa-public-key').value.trim();
+
+        encryptLog("Starting RSA-OAEP + AES-GCM encryption flow...");
+        const der = pemToDer(rsaPem);
+        const rsaPublicKey = await window.crypto.subtle.importKey(
+          "spki",
+          der,
+          {
+            name: "RSA-OAEP",
+            hash: "SHA-256"
+          },
+          false,
+          ["encrypt"]
+        );
+        encryptLog("RSA Public Key imported successfully.");
+
+        const aesKey = await window.crypto.subtle.generateKey(
+          {
+            name: "AES-GCM",
+            length: 256
+          },
+          true,
+          ["encrypt"]
+        );
+        encryptLog("Generated temporary AES-256 key.");
+
+        const iv = window.crypto.getRandomValues(new Uint8Array(12));
+        const encoder = new TextEncoder();
+        const payloadBytes = encoder.encode(payload);
+
+        const encryptedBuffer = await window.crypto.subtle.encrypt(
+          {
+            name: "AES-GCM",
+            iv: iv
+          },
+          aesKey,
+          payloadBytes
+        );
+
+        const fullEncryptedBytes = new Uint8Array(encryptedBuffer);
+        const ciphertextBytes = fullEncryptedBytes.slice(0, -16);
+        const tagBytes = fullEncryptedBytes.slice(-16);
+
+        encryptLog("Payload encrypted with AES-256-GCM.");
+
+        const rawAesKey = await window.crypto.subtle.exportKey("raw", aesKey);
+        const encryptedAesKeyBuffer = await window.crypto.subtle.encrypt(
+          {
+            name: "RSA-OAEP"
+          },
+          rsaPublicKey,
+          rawAesKey
+        );
+        encryptLog("AES symmetric key encrypted with RSA Public Key.");
+
+        const envelope = {
+          algorithm: "RSA-OAEP-SHA256 / AES-256-GCM",
+          encryptedAesKey: arrayBufferToBase64(encryptedAesKeyBuffer),
+          iv: arrayBufferToBase64(iv),
+          tag: arrayBufferToBase64(tagBytes),
+          ciphertext: arrayBufferToBase64(ciphertextBytes)
+        };
+
+        const envelopeStr = JSON.stringify(envelope, null, 2);
+        document.getElementById('ciphertext-preview').innerText = envelopeStr;
+
+        const pythonCode = `import base64
+import json
+from cryptography.hazmat.primitives.asymmetric import padding
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+
+# 1. Load the encrypted envelope
+with open('encrypted_secrets.json', 'r') as f:
+    envelope = json.load(f)
+
+# 2. Load your RSA Private Key (PEM format)
+with open('private_key.pem', 'rb') as key_file:
+    private_key = serialization.load_pem_private_key(
+        key_file.read(),
+        password=None
+    )
+
+# 3. Decrypt the AES key using RSA-OAEP with SHA-256
+encrypted_aes_key = base64.b64decode(envelope['encryptedAesKey'])
+aes_key = private_key.decrypt(
+    encrypted_aes_key,
+    padding.OAEP(
+        mgf=padding.MGF1(algorithm=hashes.SHA256()),
+        algorithm=hashes.SHA256(),
+        label=None
+    )
+)
+
+# 4. Decrypt the payload using AES-256-GCM
+iv = base64.b64decode(envelope['iv'])
+tag = base64.b64decode(envelope['tag'])
+ciphertext = base64.b64decode(envelope['ciphertext'])
+
+decryptor = Cipher(
+    algorithms.AES(aes_key),
+    modes.GCM(iv, tag)
+).decryptor()
+
+decrypted_bytes = decryptor.update(ciphertext) + decryptor.finalize()
+decrypted_secrets = decrypted_bytes.decode('utf-8')
+
+print("--- Decrypted Secrets ---")
+print(decrypted_secrets)
+`;
+
+        const nodeCode = `const crypto = require('crypto');
+const fs = require('fs');
+
+// 1. Load the encrypted envelope
+const envelope = JSON.parse(fs.readFileSync('encrypted_secrets.json', 'utf8'));
+
+// 2. Load your RSA Private Key
+const privateKey = fs.readFileSync('private_key.pem', 'utf8');
+
+// 3. Decrypt the AES key using RSA-OAEP
+const aesKey = crypto.privateDecrypt(
+  {
+    key: privateKey,
+    padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
+    oaepHash: 'sha256'
+  },
+  Buffer.from(envelope.encryptedAesKey, 'base64')
+);
+
+// 4. Decrypt the payload using AES-256-GCM
+const decipher = crypto.createDecipheriv(
+  'aes-256-gcm',
+  aesKey,
+  Buffer.from(envelope.iv, 'base64')
+);
+decipher.setAuthTag(Buffer.from(envelope.tag, 'base64'));
+
+let decrypted = decipher.update(Buffer.from(envelope.ciphertext, 'base64'), 'utf8');
+decrypted += decipher.final('utf8');
+
+console.log("--- Decrypted Secrets ---");
+console.log(decrypted);
+`;
+
+        document.getElementById('decryption-code').innerText = pythonCode;
+        document.getElementById('decryption-instructions-section').style.display = 'block';
+
+        const zip = new JSZip();
+        zip.file("encrypted_secrets.json", envelopeStr);
+        zip.file("decrypt.py", pythonCode);
+        zip.file("decrypt.js", nodeCode);
+        zip.file("README.txt", `DECRYPTION INSTRUCTIONS:
+1. Place your private key in this folder as 'private_key.pem'.
+2. To decrypt using Python, run:
+   pip install cryptography
+   python decrypt.py
+3. To decrypt using Node.js, run:
+   node decrypt.js
+`);
+
+        const blob = await zip.generateAsync({type: "blob"});
+        lastGeneratedBlob = blob;
+        lastGeneratedFilename = "encrypted_credentials_package.zip";
+        document.getElementById('download-cipher-btn').style.display = 'block';
+        encryptLog("Encryption complete. Click 'Download' in the preview panel to save 'encrypted_credentials_package.zip'.");
+        encryptLog("");
+        startAutoWipeTimer();
+
+      } catch(err) {
+        encryptLog("Error: " + err.message);
+        alert("Encryption failed: " + err.message);
+      }
+    }
+
+    async function encryptPgp() {
+      try {
+        if (typeof openpgp === 'undefined') {
+          throw new Error("OpenPGP library is not loaded.");
+        }
+        const pgpPem = document.getElementById('pgp-public-key').value.trim();
+        if (!pgpPem) {
+          throw new Error("PGP Public Key is required for OpenPGP encryption.");
+        }
+
+        encryptLog("Validating PGP public key...");
+        let publicKey;
+        try {
+          publicKey = await openpgp.readKey({ armoredKey: pgpPem });
+        } catch (e) {
+          throw new Error("Invalid PGP Public Key format: " + e.message);
+        }
+
+        // Failsafe attribute extraction
+        let userIds = "[unavailable]";
+        let emails = "[unavailable]";
+        try {
+          const uids = publicKey.getUserIDs();
+          if (uids && uids.length > 0) {
+            userIds = uids.join(", ");
+            const extracted = [];
+            uids.forEach(uid => {
+              const match = uid.match(/<([^>]+)>/);
+              if (match && match[1]) {
+                extracted.push(match[1]);
+              }
+            });
+            if (extracted.length > 0) {
+              emails = extracted.join(", ");
+            }
+          }
+        } catch (e) {}
+
+        let keyId = "[unavailable]";
+        try {
+          const kid = publicKey.getKeyID();
+          if (kid) {
+            keyId = kid.toHex().toUpperCase();
+          }
+        } catch (e) {}
+
+        let fingerprint = "[unavailable]";
+        try {
+          const fp = publicKey.getFingerprint();
+          if (fp) {
+            fingerprint = fp.toUpperCase().match(/.{1,4}/g).join(" ");
+          }
+        } catch (e) {}
+
+        let algorithm = "[unavailable]";
+        try {
+          const algo = publicKey.getAlgorithmInfo();
+          if (algo) {
+            algorithm = algo.algorithm || algo;
+          }
+        } catch (e) {}
+
+        let creationTime = "[unavailable]";
+        try {
+          const created = publicKey.getCreationTime();
+          if (created) {
+            creationTime = new Date(created).toUTCString();
+          }
+        } catch (e) {}
+
+        let expirationTime = "[unavailable]";
+        try {
+          const expires = await publicKey.getExpirationTime();
+          if (expires === Infinity) {
+            expirationTime = "Never Expires";
+          } else if (expires) {
+            expirationTime = new Date(expires).toUTCString();
+          } else {
+            expirationTime = "Never Expires";
+          }
+        } catch (e) {}
+
+        let isRevoked = "[unavailable]";
+        try {
+          const revoked = await publicKey.isRevoked();
+          isRevoked = revoked ? "Yes (Revoked)" : "No";
+        } catch (e) {}
+
+        let strength = "[unavailable]";
+        try {
+          const primaryKey = publicKey.toPublic().primaryKey;
+          if (primaryKey && primaryKey.getBitSize) {
+            strength = primaryKey.getBitSize() + " bits";
+          } else if (primaryKey && primaryKey.curve) {
+            strength = "ECC Curve: " + primaryKey.curve;
+          }
+        } catch (e) {}
+
+        let detailsHtml = `
+          <div style="margin-bottom: 0.4rem;"><strong>Key Type:</strong> <span style="color: var(--success);">PGP Public Key (Armored)</span></div>
+          <div style="margin-bottom: 0.4rem;"><strong>User IDs:</strong> <span style="color: var(--success);">${userIds}</span></div>
+          <div style="margin-bottom: 0.4rem;"><strong>Emails:</strong> <span style="color: var(--accent);">${emails}</span></div>
+          <div style="margin-bottom: 0.4rem;"><strong>Key ID:</strong> <span>${keyId}</span></div>
+          <div style="margin-bottom: 0.4rem;"><strong>Fingerprint:</strong> <span style="font-family: monospace; font-size: 0.8rem;">${fingerprint}</span></div>
+          <div style="margin-bottom: 0.4rem;"><strong>Algorithm:</strong> <span>${algorithm}</span></div>
+          <div style="margin-bottom: 0.4rem;"><strong>Strength:</strong> <span>${strength}</span></div>
+          <div style="margin-bottom: 0.4rem;"><strong>Created:</strong> <span>${creationTime}</span></div>
+          <div style="margin-bottom: 0.4rem;"><strong>Expires:</strong> <span>${expirationTime}</span></div>
+          <div style="margin-bottom: 0.4rem;"><strong>Revoked:</strong> <span>${isRevoked}</span></div>
+        `;
+
+        document.getElementById('modal-key-details').innerHTML = detailsHtml;
+        document.getElementById('confirm-proceed-btn').onclick = executePgpEncryption;
+        document.getElementById('key-confirm-modal').style.setProperty('display', 'flex', 'important');
+      } catch (err) {
+        encryptLog("Error: " + err.message);
+        alert("PGP Validation failed: " + err.message);
+      }
+    }
+
+    async function executePgpEncryption() {
+      closeKeyConfirmModal();
+      try {
+        const payload = getPayload();
+        const pgpPem = document.getElementById('pgp-public-key').value.trim();
+
+        encryptLog("Loading PGP public key...");
+        const publicKey = await openpgp.readKey({ armoredKey: pgpPem });
+
+        encryptLog("Encrypting using OpenPGP.js...");
+        const message = await openpgp.createMessage({ text: payload });
+        const encrypted = await openpgp.encrypt({
+          message,
+          encryptionKeys: publicKey
+        });
+
+        document.getElementById('ciphertext-preview').innerText = encrypted;
+
+        const decryptionInstructions = `DECRYPTION INSTRUCTIONS:
+This is a standard OpenPGP message. You can decrypt it using GnuPG or any other PGP client.
+
+Command line:
+gpg --decrypt encrypted_message.asc
+`;
+        document.getElementById('decryption-code').innerText = decryptionInstructions;
+        document.getElementById('decryption-instructions-section').style.display = 'block';
+
+        const blob = new Blob([encrypted], {type: "text/plain;charset=utf-8"});
+        lastGeneratedBlob = blob;
+        lastGeneratedFilename = "encrypted_message.asc";
+        document.getElementById('download-cipher-btn').style.display = 'block';
+        encryptLog("PGP Encryption complete. Click 'Download' in the preview panel to save 'encrypted_message.asc'.");
+        encryptLog("");
+        startAutoWipeTimer();
+
+      } catch(err) {
+        encryptLog("Error: " + err.message);
+        alert("PGP Encryption failed: " + err.message);
+      }
+    }
+
+    // --- Decryption Key/Cipher Upload Handlers ---
+    function handleRsaKeyUpload(event) {
+      const file = event.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          document.getElementById('rsa-private-key').value = e.target.result;
+          decryptLog(`Loaded RSA private key from ${file.name}`);
+        };
+        reader.readAsText(file);
+      }
+    }
+
+    async function handleRsaCipherUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      if (file.name.endsWith('.zip')) {
+        if (typeof JSZip === 'undefined') {
+          alert("JSZip is not loaded yet. Cannot read ZIP files.");
+          return;
+        }
+        decryptLog("Reading ZIP package...");
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+          try {
+            const zip = await JSZip.loadAsync(e.target.result);
+            const secretsFile = zip.file("encrypted_secrets.json");
+            if (secretsFile) {
+              const text = await secretsFile.async("text");
+              document.getElementById('rsa-ciphertext').value = text;
+              decryptLog("Extracted encrypted_secrets.json from uploaded ZIP package.");
+            } else {
+              decryptLog("Error: ZIP does not contain 'encrypted_secrets.json'.");
+            }
+          } catch (err) {
+            decryptLog("Error reading ZIP: " + err.message);
+          }
+        };
+        reader.readAsArrayBuffer(file);
+      } else {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          document.getElementById('rsa-ciphertext').value = e.target.result;
+          decryptLog(`Loaded ciphertext from ${file.name}`);
+        };
+        reader.readAsText(file);
+      }
+    }
+
+    // --- Decryption Key/Cipher Upload Handlers ---
+    function handlePgpKeyUpload(event) {
+      const file = event.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          document.getElementById('pgp-private-key').value = e.target.result;
+          decryptLog(`Loaded PGP private key from ${file.name}`);
+        };
+        reader.readAsText(file);
+      }
+    }
+
+    function handlePgpCipherUpload(event) {
+      const file = event.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          document.getElementById('pgp-ciphertext').value = e.target.result;
+          decryptLog(`Loaded PGP ciphertext from ${file.name}`);
+        };
+        reader.readAsText(file);
+      }
+    }
+
+    // --- Decryption Utilities ---
+    function base64ToArrayBuffer(base64) {
+      const binaryString = window.atob(base64);
+      const len = binaryString.length;
+      const bytes = new Uint8Array(len);
+      for (let i = 0; i < len; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+      return bytes.buffer;
+    }
+
+    function base64ToUint8Array(base64) {
+      const binaryString = window.atob(base64);
+      const len = binaryString.length;
+      const bytes = new Uint8Array(len);
+      for (let i = 0; i < len; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+      return bytes;
+    }
+
+    function pemToDerPrivate(pem) {
+      const cleanPem = pem
+        .replace(/-----BEGIN PRIVATE KEY-----/g, "")
+        .replace(/-----END PRIVATE KEY-----/g, "")
+        .replace(/-----BEGIN RSA PRIVATE KEY-----/g, "")
+        .replace(/-----END RSA PRIVATE KEY-----/g, "")
+        .replace(/\s+/g, "");
+      const binaryDerString = window.atob(cleanPem);
+      const binaryDer = new Uint8Array(binaryDerString.length);
+      for (let i = 0; i < binaryDerString.length; i++) {
+        binaryDer[i] = binaryDerString.charCodeAt(i);
+      }
+      return binaryDer.buffer;
+    }
+
+    // --- Decryption Logic ---
+    async function decryptRsaHybrid() {
+      try {
+        const privateKeyPem = document.getElementById('rsa-private-key').value.trim();
+        const ciphertextJson = document.getElementById('rsa-ciphertext').value.trim();
+
+        if (!privateKeyPem || !ciphertextJson) {
+          throw new Error("RSA Private Key and Ciphertext JSON are both required.");
+        }
+
+        decryptLog("Starting RSA Hybrid decryption flow...");
+        const envelope = JSON.parse(ciphertextJson);
+
+        const der = pemToDerPrivate(privateKeyPem);
+        const rsaPrivateKey = await window.crypto.subtle.importKey(
+          "pkcs8",
+          der,
+          {
+            name: "RSA-OAEP",
+            hash: "SHA-256"
+          },
+          false,
+          ["decrypt"]
+        );
+        decryptLog("RSA Private Key imported successfully.");
+
+        const encryptedAesKeyBuffer = base64ToArrayBuffer(envelope.encryptedAesKey);
+        const aesKeyBuffer = await window.crypto.subtle.decrypt(
+          {
+            name: "RSA-OAEP"
+          },
+          rsaPrivateKey,
+          encryptedAesKeyBuffer
+        );
+        decryptLog("AES symmetric key decrypted successfully.");
+
+        const ciphertextBytes = base64ToUint8Array(envelope.ciphertext);
+        const tagBytes = base64ToUint8Array(envelope.tag);
+        const ivBytes = base64ToUint8Array(envelope.iv);
+
+        const combinedBuffer = new Uint8Array(ciphertextBytes.length + tagBytes.length);
+        combinedBuffer.set(ciphertextBytes, 0);
+        combinedBuffer.set(tagBytes, ciphertextBytes.length);
+
+        const aesKey = await window.crypto.subtle.importKey(
+          "raw",
+          aesKeyBuffer,
+          "AES-GCM",
+          false,
+          ["decrypt"]
+        );
+
+        const decryptedBuffer = await window.crypto.subtle.decrypt(
+          {
+            name: "AES-GCM",
+            iv: ivBytes
+          },
+          aesKey,
+          combinedBuffer
+        );
+
+        const decoder = new TextDecoder();
+        const decryptedText = decoder.decode(decryptedBuffer);
+
+        decryptLog("Decryption completed successfully.");
+        decryptLog("");
+        document.getElementById('decrypted-preview').innerText = decryptedText;
+        startAutoWipeTimer();
+
+      } catch(err) {
+        decryptLog("Error: " + err.message);
+        alert("Decryption failed: " + err.message);
+      }
+    }
+
+    async function decryptPgp() {
+      try {
+        if (typeof openpgp === 'undefined') {
+          throw new Error("OpenPGP library is not loaded.");
+        }
+
+        const privateKeyArmored = document.getElementById('pgp-private-key').value.trim();
+        const messageArmored = document.getElementById('pgp-ciphertext').value.trim();
+
+        if (!privateKeyArmored || !messageArmored) {
+          throw new Error("PGP Private Key and Ciphertext Message are both required.");
+        }
+
+        decryptLog("Loading PGP Private Key...");
+        let privateKey = await openpgp.readPrivateKey({ armoredKey: privateKeyArmored });
+
+        if (!privateKey.isDecrypted()) {
+          decryptLog("Private Key is encrypted. Prompting for passphrase...");
+          const lockedKey = privateKey;
+          privateKey = await promptPassphraseModal(async (passphrase) => {
+            return await openpgp.decryptKey({ privateKey: lockedKey, passphrase });
+          });
+          decryptLog("Private Key decrypted successfully.");
+        }
+
+        decryptLog("Reading encrypted message...");
+        const message = await openpgp.readMessage({ armoredMessage: messageArmored });
+
+        decryptLog("Decrypting message...");
+        const { data: decrypted } = await openpgp.decrypt({
+          message,
+          decryptionKeys: privateKey
+        });
+
+        decryptLog("Decryption completed successfully.");
+        decryptLog("");
+        document.getElementById('decrypted-preview').innerText = decrypted;
+        startAutoWipeTimer();
+
+      } catch (err) {
+        decryptLog("Error: " + err.message);
+        alert("PGP Decryption failed: " + err.message);
+      }
+    }
+  </script>
+</body>
+</html>
