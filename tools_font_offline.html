@@ -975,17 +975,17 @@
       <div id="input-field-container" class="tab-content">
         <div class="input-row">
           <div class="form-group">
-            <label>Partner ID <button class="help-btn" onclick="showHelp('partnerId'); event.preventDefault();">?</button> <span class="label-action" onclick="generateUUID('partner-id')">Generate UUID</span></label>
+            <label>Partner ID <span class="help-btn" role="button" onclick="showHelp('partnerId'); event.stopPropagation();">?</span> <span class="label-action" onclick="generateUUID('partner-id')">Generate UUID</span></label>
             <input type="text" id="partner-id" placeholder="e.g., d3b07384-d113-4956-a5db-25f0e1d84872" autocomplete="off">
           </div>
           <div class="form-group">
-            <label>Client ID <button class="help-btn" onclick="showHelp('clientId'); event.preventDefault();">?</button> <span class="label-action" onclick="generateUUID('client-id')">Generate UUID</span></label>
+            <label>Client ID <span class="help-btn" role="button" onclick="showHelp('clientId'); event.stopPropagation();">?</span> <span class="label-action" onclick="generateUUID('client-id')">Generate UUID</span></label>
             <input type="text" id="client-id" placeholder="e.g., e7d1bb39-16a7-47ab-a1a6-061031d279cf" autocomplete="off">
           </div>
         </div>
 
         <div class="form-group" style="margin-top: 1rem;">
-          <label>Secret Key <button class="help-btn" onclick="showHelp('secretKey'); event.preventDefault();">?</button> <span class="label-action" onclick="generateSecret('secret-key')">Generate Random Secret</span></label>
+          <label>Secret Key <span class="help-btn" role="button" onclick="showHelp('secretKey'); event.stopPropagation();">?</span> <span class="label-action" onclick="generateSecret('secret-key')">Generate Random Secret</span></label>
           <input type="text" id="secret-key" placeholder="e.g., s_4f89d873c52e4ba9b71e16f731a547b7" autocomplete="off">
         </div>
 
@@ -1014,7 +1014,7 @@
           Encrypts the payload with a random AES-256 key, then encrypts that AES key with the client's standard RSA Public Key (PEM). Outputs a ZIP file containing the ciphertext and helper decryption scripts.
         </p>
         <div class="form-group">
-          <label>Client's RSA Public Key (PEM format) <button class="help-btn" onclick="showHelp('publicKey'); event.preventDefault();">?</button> <span class="label-action" onclick="generateTestRsaKeypair()">Generate Test Keypair</span></label>
+          <label>Client's RSA Public Key (PEM format) <span class="help-btn" role="button" onclick="showHelp('publicKey'); event.stopPropagation();">?</span> <span class="label-action" onclick="generateTestRsaKeypair()">Generate Test Keypair</span></label>
           <textarea id="rsa-public-key" rows="6" placeholder="-----BEGIN PUBLIC KEY-----&#10;MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA...&#10;-----END PUBLIC KEY-----" autocomplete="off"></textarea>
         </div>
         <button class="btn" onclick="encryptRsaHybrid()">Encrypt & Download ZIP Package</button>
@@ -1026,7 +1026,7 @@
           Standard OpenPGP encryption. Encrypts the payload directly into an ASCII-Armored block decryptable by any standard PGP tool (like <code>gpg</code>).
         </p>
         <div class="form-group">
-          <label>Client's PGP Public Key (Armored) <button class="help-btn" onclick="showHelp('publicKey'); event.preventDefault();">?</button> <span class="label-action" onclick="generateTestPgpKeypair()">Generate Test Keypair</span></label>
+          <label>Client's PGP Public Key (Armored) <span class="help-btn" role="button" onclick="showHelp('publicKey'); event.stopPropagation();">?</span> <span class="label-action" onclick="generateTestPgpKeypair()">Generate Test Keypair</span></label>
           <textarea id="pgp-public-key" rows="6" placeholder="-----BEGIN PGP PUBLIC KEY BLOCK-----&#10;Version: OpenPGP.js...&#10;-----END PGP PUBLIC KEY BLOCK-----" autocomplete="off"></textarea>
         </div>
         <button class="btn" onclick="encryptPgp()">Encrypt to PGP Message</button>
@@ -1048,7 +1048,7 @@
         <div id="output-tab-cipher" class="output-tab-content active">
           <div class="form-group" style="position: relative;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-              <label style="margin: 0;">Ciphertext Preview <button class="help-btn" onclick="showHelp('ciphertext'); event.preventDefault();">?</button></label>
+              <label style="margin: 0;">Ciphertext Preview <span class="help-btn" role="button" onclick="showHelp('ciphertext'); event.stopPropagation();">?</span></label>
               <div style="display: flex; gap: 0.5rem; align-items: center;">
                 <button class="btn" id="download-cipher-btn" onclick="downloadEncryptedFile()" style="display: none; padding: 0.25rem 0.6rem; font-size: 0.75rem; background: var(--accent); color: var(--mono-bg); border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">Download</button>
                 <button class="btn" onclick="copyText('ciphertext-preview')" style="padding: 0.25rem 0.6rem; font-size: 0.75rem; background: var(--card-bg); border: 1px solid var(--card-border); color: var(--text-main); border-radius: 4px; cursor: pointer; font-weight: 600;">Copy</button>
@@ -1119,7 +1119,7 @@
       <div id="decrypt-rsa-hybrid-tab" class="tab-content">
         <div class="form-group">
           <label>
-            Client's RSA Private Key (PEM format) <button class="help-btn" onclick="showHelp('privateKey'); event.preventDefault();">?</button>
+            Client's RSA Private Key (PEM format) <span class="help-btn" role="button" onclick="showHelp('privateKey'); event.stopPropagation();">?</span>
             <div class="file-input-wrapper">
               <span class="file-input-label" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; border-radius: 4px;">Upload Key File (.pem/.key)</span>
               <input type="file" id="rsa-key-upload" onchange="handleRsaKeyUpload(event)">
@@ -1130,7 +1130,7 @@
 
         <div class="form-group">
           <label>
-            Ciphertext (JSON Envelope or upload Package ZIP / JSON file) <button class="help-btn" onclick="showHelp('ciphertext'); event.preventDefault();">?</button>
+            Ciphertext (JSON Envelope or upload Package ZIP / JSON file) <span class="help-btn" role="button" onclick="showHelp('ciphertext'); event.stopPropagation();">?</span>
             <div class="file-input-wrapper">
               <span class="file-input-label" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; border-radius: 4px;">Upload ZIP or JSON File</span>
               <input type="file" id="rsa-cipher-upload" accept=".zip,.json,.txt" onchange="handleRsaCipherUpload(event)">
@@ -1146,7 +1146,7 @@
       <div id="decrypt-pgp-tab" class="tab-content active">
         <div class="form-group">
           <label>
-            Client's PGP Private Key (Armored) <button class="help-btn" onclick="showHelp('privateKey'); event.preventDefault();">?</button>
+            Client's PGP Private Key (Armored) <span class="help-btn" role="button" onclick="showHelp('privateKey'); event.stopPropagation();">?</span>
             <div class="file-input-wrapper">
               <span class="file-input-label" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; border-radius: 4px;">Upload PGP Private Key</span>
               <input type="file" id="pgp-key-upload" onchange="handlePgpKeyUpload(event)">
@@ -1157,7 +1157,7 @@
 
         <div class="form-group">
           <label>
-            PGP Armored Message <button class="help-btn" onclick="showHelp('ciphertext'); event.preventDefault();">?</button>
+            PGP Armored Message <span class="help-btn" role="button" onclick="showHelp('ciphertext'); event.stopPropagation();">?</span>
             <div class="file-input-wrapper">
               <span class="file-input-label" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; border-radius: 4px;">Upload PGP File (.asc/.pgp)</span>
               <input type="file" id="pgp-cipher-upload" accept=".asc,.pgp,.txt" onchange="handlePgpCipherUpload(event)">
