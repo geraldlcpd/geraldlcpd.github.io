@@ -1,0 +1,934 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Geraldlcpd Tool Directory</title>
+  <meta name="description" content="A beautiful and interactive directory listing all tools, utilities, and services hosted in this GitHub Pages repository.">
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- FontAwesome for fallback/extra icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <style>
+    /* CSS Variables & Theme Configuration */
+    :root {
+      --font-primary: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --font-secondary: 'Plus Jakarta Sans', sans-serif;
+      
+      /* Dark Theme (Default) */
+      --bg-gradient: linear-gradient(135deg, #090b11 0%, #111424 50%, #07080e 100%);
+      --bg-glass: rgba(15, 20, 35, 0.45);
+      --bg-glass-hover: rgba(25, 32, 56, 0.6);
+      --border-color: rgba(255, 255, 255, 0.08);
+      --border-glow: rgba(99, 102, 241, 0.15);
+      --border-glow-hover: rgba(99, 102, 241, 0.4);
+      --text-primary: #f8fafc;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      
+      --color-primary: #6366f1;
+      --color-primary-glow: rgba(99, 102, 241, 0.3);
+      --color-secondary: #ec4899;
+      --color-accent: #14b8a6;
+      --shadow-color: rgba(0, 0, 0, 0.5);
+      
+      --transition-smooth: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    [data-theme="light"] {
+      --bg-gradient: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+      --bg-glass: rgba(255, 255, 255, 0.65);
+      --bg-glass-hover: rgba(255, 255, 255, 0.85);
+      --border-color: rgba(0, 0, 0, 0.06);
+      --border-glow: rgba(99, 102, 241, 0.1);
+      --border-glow-hover: rgba(99, 102, 241, 0.25);
+      --text-primary: #0f172a;
+      --text-secondary: #475569;
+      --text-muted: #94a3b8;
+      
+      --color-primary: #4f46e5;
+      --color-primary-glow: rgba(79, 70, 229, 0.2);
+      --shadow-color: rgba(148, 163, 184, 0.15);
+    }
+
+    /* Basic Resets & Scrollbar */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font-primary);
+      background: var(--bg-gradient);
+      color: var(--text-primary);
+      min-height: 100vh;
+      overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
+      line-height: 1.6;
+      transition: background 0.5s ease, color 0.3s ease;
+      position: relative;
+    }
+
+    /* Background Ambient Gradients */
+    body::before, body::after {
+      content: '';
+      position: absolute;
+      width: 400px;
+      height: 400px;
+      border-radius: 50%;
+      filter: blur(100px);
+      z-index: -1;
+      opacity: 0.15;
+      pointer-events: none;
+      transition: var(--transition-smooth);
+    }
+
+    body::before {
+      top: 10%;
+      left: 10%;
+      background: var(--color-primary);
+    }
+
+    body::after {
+      bottom: 10%;
+      right: 10%;
+      background: var(--color-secondary);
+    }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 10px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.05);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: var(--border-glow);
+      border-radius: 5px;
+      border: 2px solid transparent;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--color-primary);
+    }
+
+    /* Header & Navigation styling */
+    header {
+      width: 100%;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2.5rem 1.5rem 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: relative;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-family: var(--font-secondary);
+      font-weight: 700;
+      font-size: 1.5rem;
+      letter-spacing: -0.025em;
+      background: linear-gradient(135deg, var(--text-primary) 30%, var(--color-primary) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .brand i {
+      background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      font-size: 1.75rem;
+    }
+
+    .theme-toggle-btn {
+      background: var(--bg-glass);
+      border: 1px solid var(--border-color);
+      color: var(--text-primary);
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      cursor: pointer;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      transition: var(--transition-smooth);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+    }
+
+    .theme-toggle-btn:hover {
+      background: var(--bg-glass-hover);
+      border-color: var(--color-primary);
+      transform: translateY(-2px);
+      box-shadow: 0 0 15px var(--border-glow-hover);
+    }
+
+    /* Main Container */
+    main {
+      flex: 1;
+      width: 100%;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 1.5rem 4rem;
+    }
+
+    /* Hero Section */
+    .hero {
+      text-align: center;
+      padding: 3rem 0;
+      margin-bottom: 2rem;
+      position: relative;
+    }
+
+    .hero h1 {
+      font-family: var(--font-secondary);
+      font-size: 3.5rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      margin-bottom: 1rem;
+      line-height: 1.15;
+    }
+
+    .gradient-text {
+      background: linear-gradient(135deg, var(--color-primary) 0%, #a5b4fc 50%, var(--color-secondary) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero p {
+      font-size: 1.2rem;
+      color: var(--text-secondary);
+      max-width: 600px;
+      margin: 0 auto 2rem;
+      font-weight: 300;
+    }
+
+    /* Repo Stats Badge */
+    .repo-stats {
+      display: inline-flex;
+      align-items: center;
+      gap: 1.5rem;
+      background: var(--bg-glass);
+      border: 1px solid var(--border-color);
+      padding: 0.75rem 1.5rem;
+      border-radius: 50px;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      transition: var(--transition-smooth);
+    }
+
+    .repo-stats:hover {
+      border-color: var(--border-glow-hover);
+      transform: translateY(-1px);
+    }
+
+    .repo-stats a {
+      color: var(--text-primary);
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: var(--transition-smooth);
+    }
+
+    .repo-stats a:hover {
+      color: var(--color-primary);
+    }
+
+    .stat-divider {
+      width: 1px;
+      height: 14px;
+      background: var(--border-color);
+    }
+
+    /* Controls Bar */
+    .controls {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+      margin-bottom: 3rem;
+    }
+
+    .search-wrapper {
+      position: relative;
+      width: 100%;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .search-wrapper i {
+      position: absolute;
+      left: 1.25rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      font-size: 1.1rem;
+      pointer-events: none;
+      transition: var(--transition-smooth);
+    }
+
+    .search-input {
+      width: 100%;
+      padding: 1.1rem 1.5rem 1.1rem 3.25rem;
+      border-radius: 16px;
+      background: var(--bg-glass);
+      border: 1px solid var(--border-color);
+      color: var(--text-primary);
+      font-family: var(--font-primary);
+      font-size: 1rem;
+      transition: var(--transition-smooth);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+    }
+
+    .search-input:focus {
+      outline: none;
+      border-color: var(--color-primary);
+      box-shadow: 0 0 20px var(--color-primary-glow);
+    }
+
+    .search-input:focus + i {
+      color: var(--color-primary);
+    }
+
+    /* Filters Layout */
+    .filter-chips {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin: 0 auto;
+    }
+
+    .filter-chip {
+      background: var(--bg-glass);
+      border: 1px solid var(--border-color);
+      color: var(--text-secondary);
+      padding: 0.5rem 1.25rem;
+      border-radius: 50px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 500;
+      transition: var(--transition-smooth);
+      backdrop-filter: blur(8px);
+    }
+
+    .filter-chip:hover {
+      background: var(--bg-glass-hover);
+      color: var(--text-primary);
+      border-color: var(--text-muted);
+      transform: translateY(-1px);
+    }
+
+    .filter-chip.active {
+      background: var(--color-primary);
+      color: #ffffff;
+      border-color: var(--color-primary);
+      box-shadow: 0 4px 15px var(--color-primary-glow);
+    }
+
+    /* Directory Tools Grid */
+    .tools-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+      gap: 2rem;
+      opacity: 1;
+      transition: opacity 0.3s ease;
+    }
+
+    /* Card Design */
+    .tool-card {
+      background: var(--bg-glass);
+      border: 1px solid var(--border-color);
+      border-radius: 24px;
+      padding: 2rem;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow: hidden;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      transition: var(--transition-smooth);
+      box-shadow: 0 10px 30px -10px var(--shadow-color);
+    }
+
+    .tool-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: radial-gradient(800px circle at var(--mouse-x, 0) var(--mouse-y, 0), rgba(255, 255, 255, 0.04), transparent 40%);
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .tool-card:hover {
+      transform: translateY(-6px);
+      border-color: var(--border-glow-hover);
+      box-shadow: 0 15px 35px -5px var(--shadow-color), 0 0 15px var(--border-glow);
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 1.25rem;
+    }
+
+    .card-icon {
+      width: 52px;
+      height: 52px;
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(236, 72, 153, 0.15) 100%);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 1.5rem;
+      color: var(--color-primary);
+      transition: var(--transition-smooth);
+    }
+
+    .tool-card:hover .card-icon {
+      transform: scale(1.08) rotate(3deg);
+      border-color: var(--color-primary);
+      box-shadow: 0 0 15px var(--color-primary-glow);
+    }
+
+    .card-badge {
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 0.35rem 0.85rem;
+      border-radius: 50px;
+      background: rgba(99, 102, 241, 0.1);
+      border: 1px solid rgba(99, 102, 241, 0.15);
+      color: var(--color-primary);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .card-badge.automation {
+      background: rgba(20, 184, 166, 0.1);
+      border-color: rgba(20, 184, 166, 0.15);
+      color: var(--color-accent);
+    }
+
+    .card-badge.security {
+      background: rgba(236, 72, 153, 0.1);
+      border-color: rgba(236, 72, 153, 0.15);
+      color: var(--color-secondary);
+    }
+
+    .card-body {
+      flex: 1;
+    }
+
+    .card-title {
+      font-family: var(--font-secondary);
+      font-size: 1.35rem;
+      font-weight: 700;
+      line-height: 1.3;
+      margin-bottom: 0.75rem;
+      color: var(--text-primary);
+      transition: var(--transition-smooth);
+    }
+
+    .tool-card:hover .card-title {
+      color: var(--color-primary);
+    }
+
+    .card-desc {
+      font-size: 0.95rem;
+      color: var(--text-secondary);
+      margin-bottom: 1.5rem;
+      font-weight: 400;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .card-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+      padding-top: 1rem;
+      border-top: 1px dashed var(--border-color);
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .meta-item {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+
+    .card-footer {
+      display: flex;
+      gap: 0.75rem;
+      margin-top: auto;
+    }
+
+    .btn {
+      flex: 1;
+      padding: 0.85rem 1.25rem;
+      border-radius: 14px;
+      font-family: var(--font-primary);
+      font-weight: 600;
+      font-size: 0.9rem;
+      cursor: pointer;
+      display: inline-flex;
+      justify-content: center;
+      align-items: center;
+      gap: 0.5rem;
+      transition: var(--transition-smooth);
+      text-decoration: none;
+    }
+
+    .btn-primary {
+      background: var(--color-primary);
+      color: #ffffff;
+      border: 1px solid var(--color-primary);
+      box-shadow: 0 4px 15px var(--color-primary-glow);
+    }
+
+    .btn-primary:hover {
+      background: #4f46e5;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(99, 102, 241, 0.45);
+    }
+
+    /* Skeleton/Loader styling */
+    .skeleton-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+      gap: 2rem;
+    }
+
+    .skeleton-card {
+      background: var(--bg-glass);
+      border: 1px solid var(--border-color);
+      border-radius: 24px;
+      height: 310px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .skeleton-card::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      left: 0;
+      background: linear-gradient(90deg, 
+        rgba(255, 255, 255, 0) 0%, 
+        rgba(255, 255, 255, 0.03) 20%, 
+        rgba(255, 255, 255, 0.07) 60%, 
+        rgba(255, 255, 255, 0) 100%
+      );
+      transform: translateX(-100%);
+      animation: shimmer 1.5s infinite;
+    }
+
+    @keyframes shimmer {
+      100% { transform: translateX(100%); }
+    }
+
+    /* Footer */
+    footer {
+      width: 100%;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 3rem 1.5rem;
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1rem;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+    }
+
+    footer a {
+      color: var(--text-secondary);
+      text-decoration: none;
+      transition: var(--transition-smooth);
+    }
+
+    footer a:hover {
+      color: var(--color-primary);
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+      header {
+        padding: 1.5rem 1rem;
+      }
+      .hero h1 {
+        font-size: 2.5rem;
+      }
+      .tools-grid {
+        grid-template-columns: 1fr;
+      }
+      .skeleton-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">
+      <i class="fa-solid fa-shapes"></i>
+      <span>GeraldLCPD Portal</span>
+    </div>
+    <button class="theme-toggle-btn" id="theme-toggle" aria-label="Toggle dark/light theme">
+      <i class="fa-solid fa-moon"></i>
+    </button>
+  </header>
+
+  <main>
+    <section class="hero">
+      <h1><span class="gradient-text">Developer Tools Directory</span></h1>
+      <p>A collection of productivity utilities, Google Forms automators, and offline secure tools built for fast web workflows.</p>
+      
+      <div class="repo-stats" id="repo-stats-container">
+        <a href="https://github.com/geraldlcpd/geraldlcpd.github.io" target="_blank" rel="noopener">
+          <i class="fa-brands fa-github"></i>
+          <span>geraldlcpd.github.io</span>
+        </a>
+        <div class="stat-divider"></div>
+        <div id="stat-count">Loading status...</div>
+      </div>
+    </section>
+
+    <section class="controls">
+      <div class="search-wrapper">
+        <input type="text" id="search-bar" class="search-input" placeholder="Search for tools by name or details...">
+        <i class="fa-solid fa-magnifying-glass"></i>
+      </div>
+
+      <div class="filter-chips" id="filter-chips">
+        <span class="filter-chip active" data-filter="all">All Tools</span>
+        <span class="filter-chip" data-filter="google-forms">Google Forms</span>
+        <span class="filter-chip" data-filter="security">Security</span>
+        <span class="filter-chip" data-filter="developer-tools">Developer Tools</span>
+      </div>
+    </section>
+
+    <!-- Loading Skeleton State -->
+    <div class="skeleton-grid" id="loading-state">
+      <div class="skeleton-card"></div>
+      <div class="skeleton-card"></div>
+      <div class="skeleton-card"></div>
+    </div>
+
+    <!-- Main Results Grid -->
+    <div class="tools-grid" id="tools-grid" style="display: none;">
+      <!-- JavaScript will inject cards here -->
+    </div>
+  </main>
+
+  <footer>
+    <div>&copy; 2026 GeraldLCPD. All tools run completely locally in your browser.</div>
+    <div>Hosted via <a href="https://pages.github.com/" target="_blank" rel="noopener">GitHub Pages</a> | Source code available on <a href="https://github.com/geraldlcpd/geraldlcpd.github.io" target="_blank" rel="noopener">GitHub</a></div>
+  </footer>
+
+  <script>
+    // Config: Static details that enrich repo items or serve as immediate fallback
+    const KNOWN_TOOLS = [
+      {
+        filename: "tools_font_offline.html",
+        title: "API Key Shield - Strict Offline & Local Fonts",
+        desc: "A secure, strict offline generator and key storage utility using local fonts and offline assets. Protects secrets and tokens from network leakage.",
+        category: "security",
+        icon: "fa-lock",
+        tags: ["Security", "Local Fonts", "Offline"]
+      },
+      {
+        filename: "snap_signature_debugger.html",
+        title: "SNAP Signature Debugger",
+        desc: "A developer tool designed to test, verify, and debug SNAP API payload signatures and cryptographical hashes dynamically.",
+        category: "developer-tools",
+        icon: "fa-terminal",
+        tags: ["Developer Tools", "Cryptography", "Debugging"]
+      },
+      {
+        filename: "muilockerauto.html",
+        title: "Google Forms Pre-fill Automator",
+        desc: "Automate and pre-populate complex Google Forms fields using customizable link formats and field pre-fill protocols.",
+        category: "google-forms",
+        icon: "fa-list-check",
+        tags: ["Google Forms", "Automation", "Workflow"]
+      },
+      {
+        filename: "locker-unlocked.html",
+        title: "Editable Google Forms Pre-fill Generator",
+        desc: "An interactive pre-fill link generator for locked/editable Google Forms that enables fast customized form deployment.",
+        category: "google-forms",
+        icon: "fa-link",
+        tags: ["Google Forms", "Link Generator", "Editable"]
+      }
+    ];
+
+    const REPO_OWNER = 'geraldlcpd';
+    const REPO_NAME = 'geraldlcpd.github.io';
+    const GITHUB_API_URL = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/`;
+    const GITHUB_COMMITS_URL = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/commits?path=`;
+    const GITHUB_REPO_META = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}`;
+
+    const CACHE_KEY = 'geraldlcpd_repo_items';
+    const CACHE_EXPIRY_KEY = 'geraldlcpd_repo_expiry';
+    const CACHE_DURATION = 10 * 60 * 1000; // 10 minutes cache
+
+    // DOM Elements
+    const toolsGrid = document.getElementById('tools-grid');
+    const loadingState = document.getElementById('loading-state');
+    const searchBar = document.getElementById('search-bar');
+    const filterChips = document.querySelectorAll('.filter-chip');
+    const themeToggle = document.getElementById('theme-toggle');
+    const statCount = document.getElementById('stat-count');
+
+    let toolsData = [];
+    let currentFilter = 'all';
+    let searchQuery = '';
+
+    // Initialize Theme
+    function initTheme() {
+      const savedTheme = localStorage.getItem('theme') || 'dark';
+      document.documentElement.setAttribute('data-theme', savedTheme);
+      updateThemeIcon(savedTheme);
+    }
+
+    function updateThemeIcon(theme) {
+      const icon = themeToggle.querySelector('i');
+      if (theme === 'dark') {
+        icon.className = 'fa-solid fa-sun';
+      } else {
+        icon.className = 'fa-solid fa-moon';
+      }
+    }
+
+    themeToggle.addEventListener('click', () => {
+      const currentTheme = document.documentElement.getAttribute('data-theme');
+      const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', newTheme);
+      localStorage.setItem('theme', newTheme);
+      updateThemeIcon(newTheme);
+    });
+
+    // Fetch and Build Directory
+    async function loadDirectory() {
+      try {
+        const cached = localStorage.getItem(CACHE_KEY);
+        const expiry = localStorage.getItem(CACHE_EXPIRY_KEY);
+        
+        if (cached && expiry && Date.now() < parseInt(expiry)) {
+          toolsData = JSON.parse(cached);
+          displayTools(toolsData);
+          updateRepoStats();
+          return;
+        }
+
+        // Fetch directory contents from Github
+        const response = await fetch(GITHUB_API_URL);
+        if (!response.ok) throw new Error('API fetch failed');
+        
+        const contents = await response.json();
+        
+        // Filter relevant HTML files
+        const htmlFiles = contents.filter(item => 
+          item.name.endsWith('.html') && 
+          item.name !== 'index.html' && 
+          item.type === 'file'
+        );
+
+        // Map and enrich with static definitions
+        toolsData = htmlFiles.map(file => {
+          const known = KNOWN_TOOLS.find(k => k.filename === file.name);
+          return {
+            filename: file.name,
+            title: known ? known.title : beautifyFilename(file.name),
+            desc: known ? known.desc : "No description provided. Click below to launch this local tool.",
+            category: known ? known.category : "developer-tools",
+            icon: known ? known.icon : "fa-cube",
+            size: formatBytes(file.size),
+            path: file.path,
+            tags: known ? known.tags : ["General"]
+          };
+        });
+
+        // Save to cache
+        localStorage.setItem(CACHE_KEY, JSON.stringify(toolsData));
+        localStorage.setItem(CACHE_EXPIRY_KEY, (Date.now() + CACHE_DURATION).toString());
+        
+        displayTools(toolsData);
+        updateRepoStats();
+
+      } catch (err) {
+        console.warn('Falling back to curated list due to:', err.message);
+        // Load fallback tools directly
+        toolsData = KNOWN_TOOLS.map(t => ({
+          filename: t.filename,
+          title: t.title,
+          desc: t.desc,
+          category: t.category,
+          icon: t.icon,
+          size: "Local File",
+          path: t.filename,
+          tags: t.tags
+        }));
+        displayTools(toolsData);
+        statCount.textContent = `${toolsData.length} Tools Ready`;
+      }
+    }
+
+    function beautifyFilename(name) {
+      return name
+        .replace(/\.html$/, '')
+        .split(/[_-]/)
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+    }
+
+    function formatBytes(bytes) {
+      if (bytes === 0) return '0 Bytes';
+      const k = 1024;
+      const sizes = ['Bytes', 'KB', 'MB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+    }
+
+    async function updateRepoStats() {
+      try {
+        const res = await fetch(GITHUB_REPO_META);
+        if (res.ok) {
+          const data = await res.json();
+          statCount.innerHTML = `
+            <span><i class="fa-solid fa-code-branch"></i> Main</span>
+            <div class="stat-divider" style="height: 10px;"></div>
+            <span><i class="fa-solid fa-star"></i> ${data.stargazers_count}</span>
+            <div class="stat-divider" style="height: 10px;"></div>
+            <span><i class="fa-solid fa-layer-group"></i> ${toolsData.length} Tools</span>
+          `;
+          return;
+        }
+      } catch (e) {}
+      statCount.textContent = `${toolsData.length} Tools Available`;
+    }
+
+    // Display / Filter Logic
+    function displayTools(tools) {
+      loadingState.style.display = 'none';
+      toolsGrid.style.display = 'grid';
+      
+      const filtered = tools.filter(tool => {
+        const matchesSearch = tool.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                              tool.desc.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                              tool.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()));
+        
+        const matchesCategory = currentFilter === 'all' || tool.category === currentFilter;
+        
+        return matchesSearch && matchesCategory;
+      });
+
+      if (filtered.length === 0) {
+        toolsGrid.innerHTML = `
+          <div style="grid-column: 1 / -1; text-align: center; padding: 4rem 2rem; color: var(--text-muted);">
+            <i class="fa-solid fa-circle-question" style="font-size: 3rem; margin-bottom: 1rem; color: var(--color-primary);"></i>
+            <h3>No Tools Found</h3>
+            <p>Try refining your search query or choosing another filter category.</p>
+          </div>
+        `;
+        return;
+      }
+
+      toolsGrid.innerHTML = filtered.map(tool => {
+        const badgeClass = tool.category === 'google-forms' ? 'automation' : (tool.category === 'security' ? 'security' : '');
+        return `
+          <div class="tool-card" data-category="${tool.category}">
+            <div class="card-header">
+              <div class="card-icon">
+                <i class="fa-solid ${tool.icon}"></i>
+              </div>
+              <span class="card-badge ${badgeClass}">${tool.category.replace('-', ' ')}</span>
+            </div>
+            <div class="card-body">
+              <h3 class="card-title">${tool.title}</h3>
+              <p class="card-desc">${tool.desc}</p>
+            </div>
+            <div class="card-meta">
+              <div class="meta-item">
+                <i class="fa-solid fa-file-code"></i>
+                <span>${tool.filename}</span>
+              </div>
+              <div class="meta-item">
+                <i class="fa-solid fa-weight-hanging"></i>
+                <span>${tool.size}</span>
+              </div>
+            </div>
+            <div class="card-footer">
+              <a href="${tool.path}" class="btn btn-primary">
+                Launch Utility <i class="fa-solid fa-arrow-up-right-from-square"></i>
+              </a>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      // Add spotlight hover effect to cards
+      document.querySelectorAll('.tool-card').forEach(card => {
+        card.addEventListener('mousemove', e => {
+          const rect = card.getBoundingClientRect();
+          const x = e.clientX - rect.left;
+          const y = e.clientY - rect.top;
+          card.style.setProperty('--mouse-x', `${x}px`);
+          card.style.setProperty('--mouse-y', `${y}px`);
+        });
+      });
+    }
+
+    // Filter Chip Controls
+    document.getElementById('filter-chips').addEventListener('click', (e) => {
+      const chip = e.target.closest('.filter-chip');
+      if (!chip) return;
+      
+      document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      
+      currentFilter = chip.dataset.filter;
+      displayTools(toolsData);
+    });
+
+    // Search Bar Input
+    searchBar.addEventListener('input', (e) => {
+      searchQuery = e.target.value;
+      displayTools(toolsData);
+    });
+
+    // Run
+    initTheme();
+    loadDirectory();
+  </script>
+</body>
+</html>
