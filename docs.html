@@ -1,0 +1,983 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Geraldlcpd Portal - Documentation</title>
+  <meta name="description" content="Search, browse, and preview PDF and Markdown documentations inside the repository.">
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- FontAwesome for Premium Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Marked.js for parsing Markdown -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+  <style>
+    /* CSS Variables & Theme Configuration */
+    :root {
+      --font-primary: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --font-secondary: 'Plus Jakarta Sans', sans-serif;
+      
+      /* Dark Theme (Default) */
+      --bg-gradient: linear-gradient(135deg, #090b11 0%, #111424 50%, #07080e 100%);
+      --bg-glass: rgba(15, 20, 35, 0.45);
+      --bg-glass-hover: rgba(25, 32, 56, 0.6);
+      --border-color: rgba(255, 255, 255, 0.08);
+      --border-glow: rgba(99, 102, 241, 0.15);
+      --border-glow-hover: rgba(99, 102, 241, 0.4);
+      --text-primary: #f8fafc;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      
+      --color-primary: #6366f1;
+      --color-primary-glow: rgba(99, 102, 241, 0.3);
+      --color-secondary: #ec4899;
+      --color-accent: #14b8a6;
+      --shadow-color: rgba(0, 0, 0, 0.5);
+      
+      --transition-smooth: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    [data-theme="light"] {
+      --bg-gradient: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+      --bg-glass: rgba(255, 255, 255, 0.65);
+      --bg-glass-hover: rgba(255, 255, 255, 0.85);
+      --border-color: rgba(0, 0, 0, 0.06);
+      --border-glow: rgba(99, 102, 241, 0.1);
+      --border-glow-hover: rgba(99, 102, 241, 0.25);
+      --text-primary: #0f172a;
+      --text-secondary: #475569;
+      --text-muted: #94a3b8;
+      
+      --color-primary: #4f46e5;
+      --color-primary-glow: rgba(79, 70, 229, 0.2);
+      --shadow-color: rgba(148, 163, 184, 0.15);
+    }
+
+    /* Basic Resets & Scrollbar */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font-primary);
+      background: var(--bg-gradient);
+      color: var(--text-primary);
+      min-height: 100vh;
+      overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
+      line-height: 1.6;
+      transition: background 0.5s ease, color 0.3s ease;
+      position: relative;
+    }
+
+    /* Background Ambient Gradients */
+    body::before, body::after {
+      content: '';
+      position: absolute;
+      width: 400px;
+      height: 400px;
+      border-radius: 50%;
+      filter: blur(100px);
+      z-index: -1;
+      opacity: 0.15;
+      pointer-events: none;
+      transition: var(--transition-smooth);
+    }
+
+    body::before {
+      top: 10%;
+      left: 10%;
+      background: var(--color-primary);
+    }
+
+    body::after {
+      bottom: 10%;
+      right: 10%;
+      background: var(--color-secondary);
+    }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.05);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: var(--border-glow);
+      border-radius: 5px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--color-primary);
+    }
+
+    /* Header & Navigation styling */
+    header {
+      width: 100%;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2.5rem 1.5rem 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: relative;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-family: var(--font-secondary);
+      font-weight: 700;
+      font-size: 1.5rem;
+      letter-spacing: -0.025em;
+      background: linear-gradient(135deg, var(--text-primary) 30%, var(--color-primary) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .brand i {
+      background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      font-size: 1.75rem;
+    }
+
+    .header-nav {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: var(--bg-glass);
+      border: 1px solid var(--border-color);
+      padding: 0.35rem;
+      border-radius: 50px;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+    }
+
+    .nav-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 0.85rem;
+      font-weight: 600;
+      padding: 0.5rem 1.25rem;
+      border-radius: 50px;
+      transition: var(--transition-smooth);
+    }
+
+    .nav-link:hover {
+      color: var(--text-primary);
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .nav-link.active {
+      color: #ffffff;
+      background: var(--color-primary);
+      box-shadow: 0 4px 12px var(--color-primary-glow);
+    }
+
+    .theme-switch-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      background: var(--bg-glass);
+      border: 1px solid var(--border-color);
+      padding: 0.4rem 0.75rem;
+      border-radius: 50px;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      transition: var(--transition-smooth);
+    }
+    
+    .theme-switch-wrapper i {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      transition: var(--transition-smooth);
+    }
+    
+    .theme-switch {
+      width: 40px;
+      height: 22px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 50px;
+      position: relative;
+      cursor: pointer;
+      border: 1px solid var(--border-color);
+      transition: var(--transition-smooth);
+    }
+    
+    .theme-switch-handle {
+      width: 16px;
+      height: 16px;
+      background: #ffffff;
+      border-radius: 50%;
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      transition: var(--transition-smooth);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+    
+    [data-theme="light"] .theme-switch-handle {
+      left: 20px;
+      background: var(--color-primary);
+    }
+    
+    [data-theme="light"] .theme-switch-wrapper i.fa-sun {
+      color: #eab308;
+    }
+    
+    [data-theme="dark"] .theme-switch-wrapper i.fa-moon {
+      color: #a5b4fc;
+    }
+
+    .theme-switch-wrapper:hover {
+      border-color: var(--color-primary);
+      box-shadow: 0 0 15px var(--border-glow-hover);
+    }
+
+    /* Main Section Layout */
+    main {
+      flex: 1;
+      width: 100%;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 1.5rem 4rem;
+      display: flex;
+      flex-direction: column;
+      gap: 2rem;
+    }
+
+    /* Document Workspace */
+    .docs-workspace {
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      gap: 2rem;
+      align-items: start;
+    }
+
+    /* Sidebar Styling */
+    .sidebar {
+      background: var(--bg-glass);
+      border: 1px solid var(--border-color);
+      border-radius: 24px;
+      padding: 1.5rem;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      box-shadow: 0 10px 30px -10px var(--shadow-color);
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    .sidebar-title {
+      font-family: var(--font-secondary);
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .search-wrapper {
+      position: relative;
+      width: 100%;
+    }
+
+    .search-wrapper i {
+      position: absolute;
+      left: 1rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      font-size: 0.95rem;
+    }
+
+    .search-input {
+      width: 100%;
+      padding: 0.75rem 1rem 0.75rem 2.5rem;
+      border-radius: 12px;
+      background: rgba(0, 0, 0, 0.2);
+      border: 1px solid var(--border-color);
+      color: var(--text-primary);
+      font-family: var(--font-primary);
+      font-size: 0.9rem;
+      transition: var(--transition-smooth);
+    }
+
+    .search-input:focus {
+      outline: none;
+      border-color: var(--color-primary);
+      box-shadow: 0 0 15px var(--color-primary-glow);
+    }
+
+    /* Document Navigation List */
+    .doc-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      max-height: 500px;
+      overflow-y: auto;
+      padding-right: 0.25rem;
+    }
+
+    .doc-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.85rem 1rem;
+      border-radius: 12px;
+      cursor: pointer;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid transparent;
+      transition: var(--transition-smooth);
+    }
+
+    .doc-item:hover {
+      background: var(--bg-glass-hover);
+      border-color: var(--border-color);
+      transform: translateX(3px);
+    }
+
+    .doc-item.active {
+      background: rgba(99, 102, 241, 0.15);
+      border-color: rgba(99, 102, 241, 0.35);
+      box-shadow: inset 0 0 10px rgba(99, 102, 241, 0.05);
+    }
+
+    .doc-icon {
+      font-size: 1.25rem;
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: rgba(255, 255, 255, 0.05);
+      transition: var(--transition-smooth);
+    }
+
+    .doc-item.active .doc-icon {
+      color: var(--color-primary);
+      background: rgba(99, 102, 241, 0.2);
+    }
+
+    .doc-icon.pdf {
+      color: #ef4444; /* red-500 */
+    }
+
+    .doc-icon.markdown {
+      color: var(--color-accent);
+    }
+
+    .doc-details {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .doc-name {
+      font-weight: 600;
+      font-size: 0.9rem;
+      color: var(--text-primary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      transition: var(--transition-smooth);
+    }
+
+    .doc-item.active .doc-name {
+      color: var(--color-primary);
+    }
+
+    .doc-meta {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      display: flex;
+      justify-content: space-between;
+      margin-top: 0.15rem;
+    }
+
+    /* Preview Workspace */
+    .preview-pane {
+      background: var(--bg-glass);
+      border: 1px solid var(--border-color);
+      border-radius: 24px;
+      padding: 2rem;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      box-shadow: 0 10px 30px -10px var(--shadow-color);
+      min-height: 600px;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    .preview-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 1.25rem;
+      border-bottom: 1px solid var(--border-color);
+      margin-bottom: 1.5rem;
+    }
+
+    .preview-title {
+      font-family: var(--font-secondary);
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .preview-actions {
+      display: flex;
+      gap: 0.75rem;
+    }
+
+    .preview-btn {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border-color);
+      color: var(--text-secondary);
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      transition: var(--transition-smooth);
+      text-decoration: none;
+    }
+
+    .preview-btn:hover {
+      background: var(--bg-glass-hover);
+      color: var(--text-primary);
+      border-color: var(--text-muted);
+    }
+
+    /* Embedded Viewports */
+    .viewport-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      min-height: 500px;
+    }
+
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      flex: 1;
+      text-align: center;
+      color: var(--text-muted);
+      padding: 4rem 2rem;
+    }
+
+    .empty-state i {
+      font-size: 4rem;
+      margin-bottom: 1.5rem;
+      color: var(--color-primary);
+      opacity: 0.8;
+    }
+
+    .empty-state h3 {
+      font-family: var(--font-secondary);
+      color: var(--text-primary);
+      font-size: 1.35rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .pdf-frame {
+      width: 100%;
+      height: 650px;
+      border-radius: 12px;
+      border: 1px solid var(--border-color);
+      background: #1e293b;
+    }
+
+    /* Markdown prose rendering styles */
+    .markdown-body {
+      color: var(--text-secondary);
+      font-size: 1rem;
+      line-height: 1.7;
+      padding: 1rem 0;
+      overflow-y: auto;
+      max-height: 650px;
+    }
+
+    .markdown-body h1, .markdown-body h2, .markdown-body h3, .markdown-body h4 {
+      font-family: var(--font-secondary);
+      color: var(--text-primary);
+      margin-top: 1.5rem;
+      margin-bottom: 1rem;
+      font-weight: 700;
+    }
+
+    .markdown-body h1 { font-size: 1.85rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; }
+    .markdown-body h2 { font-size: 1.45rem; border-bottom: 1px dashed var(--border-color); padding-bottom: 0.35rem; }
+    .markdown-body h3 { font-size: 1.25rem; }
+
+    .markdown-body p {
+      margin-bottom: 1.25rem;
+    }
+
+    .markdown-body a {
+      color: var(--color-primary);
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    .markdown-body a:hover {
+      text-decoration: underline;
+    }
+
+    .markdown-body code {
+      font-family: monospace;
+      padding: 0.2rem 0.4rem;
+      border-radius: 6px;
+      background: rgba(0, 0, 0, 0.3);
+      color: #f43f5e;
+      font-size: 0.85rem;
+    }
+
+    .markdown-body pre {
+      background: rgba(0, 0, 0, 0.45);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 1.25rem;
+      margin-bottom: 1.5rem;
+      overflow-x: auto;
+    }
+
+    .markdown-body pre code {
+      background: transparent;
+      padding: 0;
+      color: #e2e8f0;
+      font-size: 0.85rem;
+    }
+
+    .markdown-body ul, .markdown-body ol {
+      margin-bottom: 1.25rem;
+      padding-left: 1.5rem;
+    }
+
+    .markdown-body li {
+      margin-bottom: 0.35rem;
+    }
+
+    .markdown-body blockquote {
+      border-left: 4px solid var(--color-primary);
+      background: rgba(99, 102, 241, 0.05);
+      padding: 1rem 1.25rem;
+      margin-bottom: 1.25rem;
+      border-radius: 0 12px 12px 0;
+      font-style: italic;
+    }
+
+    .markdown-body img {
+      max-width: 100%;
+      border-radius: 12px;
+      border: 1px solid var(--border-color);
+      margin: 1.5rem 0;
+    }
+
+    /* Skeleton Loader inside preview */
+    .preview-loader {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      padding: 2rem 0;
+    }
+
+    .skeleton-line {
+      height: 16px;
+      background: var(--border-color);
+      border-radius: 8px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .skeleton-line::after {
+      content: '';
+      position: absolute;
+      top: 0; right: 0; bottom: 0; left: 0;
+      background: linear-gradient(90deg, 
+        rgba(255, 255, 255, 0) 0%, 
+        rgba(255, 255, 255, 0.03) 20%, 
+        rgba(255, 255, 255, 0.07) 60%, 
+        rgba(255, 255, 255, 0) 100%
+      );
+      transform: translateX(-100%);
+      animation: shimmer 1.5s infinite;
+    }
+
+    /* Footer styling */
+    footer {
+      width: 100%;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 3rem 1.5rem;
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1rem;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+    }
+
+    footer a {
+      color: var(--text-secondary);
+      text-decoration: none;
+      transition: var(--transition-smooth);
+    }
+
+    footer a:hover {
+      color: var(--color-primary);
+    }
+
+    /* Responsive Design */
+    @media (max-width: 900px) {
+      .docs-workspace {
+        grid-template-columns: 1fr;
+      }
+      .sidebar {
+        max-height: 350px;
+      }
+      .doc-list {
+        max-height: 200px;
+      }
+    }
+
+    @media (max-width: 600px) {
+      header {
+        padding: 1.5rem 1rem;
+        flex-direction: column;
+        gap: 1rem;
+        align-items: center;
+      }
+      .header-nav {
+        width: 100%;
+        justify-content: center;
+      }
+      .preview-pane {
+        padding: 1.25rem;
+      }
+      .preview-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+      }
+      .preview-actions {
+        width: 100%;
+      }
+      .preview-btn {
+        flex: 1;
+        justify-content: center;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">
+      <i class="fa-solid fa-shapes"></i>
+      <span>GeraldLCPD Portal</span>
+    </div>
+    <nav class="header-nav">
+      <a href="index.html" class="nav-link"><i class="fa-solid fa-house"></i> Tools</a>
+      <a href="docs.html" class="nav-link active"><i class="fa-solid fa-book-open"></i> Docs</a>
+    </nav>
+    <div class="theme-switch-wrapper">
+      <i class="fa-solid fa-sun" title="Light Mode"></i>
+      <div class="theme-switch" id="theme-toggle" role="button" aria-label="Toggle theme">
+        <div class="theme-switch-handle"></div>
+      </div>
+      <i class="fa-solid fa-moon" title="Dark Mode"></i>
+    </div>
+  </header>
+
+  <main>
+    <section class="docs-workspace">
+      <!-- Sidebar Column -->
+      <aside class="sidebar">
+        <div class="sidebar-title">
+          <i class="fa-solid fa-folder-open text-indigo-400"></i>
+          <span>Documentations</span>
+        </div>
+        
+        <div class="search-wrapper">
+          <input type="text" id="doc-search" class="search-input" placeholder="Search documentation...">
+          <i class="fa-solid fa-magnifying-glass"></i>
+        </div>
+
+        <ul class="doc-list" id="doc-list-container">
+          <!-- Populated by JavaScript -->
+          <li style="text-align: center; padding: 2rem; color: var(--text-muted);">
+            <i class="fa-solid fa-spinner fa-spin" style="font-size: 1.5rem; margin-bottom: 0.5rem; display: block; color: var(--color-primary);"></i>
+            Loading index...
+          </li>
+        </ul>
+      </aside>
+
+      <!-- Main Viewer Column -->
+      <section class="preview-pane" id="preview-pane-container">
+        <!-- Default Empty View -->
+        <div class="viewport-container" id="viewport-view">
+          <div class="empty-state">
+            <i class="fa-regular fa-folder-open"></i>
+            <h3>No Document Selected</h3>
+            <p>Select a Markdown or PDF document from the sidebar to preview its contents instantly.</p>
+          </div>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <footer>
+    <div>&copy; 2026 GeraldLCPD. All documents are loaded securely.</div>
+    <div>Hosted via <a href="https://pages.github.com/" target="_blank" rel="noopener">GitHub Pages</a> | Source code available on <a href="https://github.com/geraldlcpd/geraldlcpd.github.io" target="_blank" rel="noopener">GitHub</a></div>
+  </footer>
+
+  <script>
+    // Config: Curated local docs database fallback
+    const KNOWN_DOCS = [
+      {
+        filename: "readme_pgp_tools.pdf",
+        title: "API Key Shield & PGP Cryptography Guide",
+        size: "130 KB",
+        path: "docs/readme_pgp_tools.pdf"
+      }
+    ];
+
+    const REPO_OWNER = 'geraldlcpd';
+    const REPO_NAME = 'geraldlcpd.github.io';
+    const DOCS_DIR_API = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/docs`;
+
+    // DOM selectors
+    const docListContainer = document.getElementById('doc-list-container');
+    const docSearch = document.getElementById('doc-search');
+    const previewPane = document.getElementById('preview-pane-container');
+    const themeToggle = document.getElementById('theme-toggle');
+
+    let docsData = [];
+    let activeDoc = null;
+    let searchQuery = '';
+
+    // Init Theme
+    function initTheme() {
+      const savedTheme = localStorage.getItem('theme') || 'dark';
+      document.documentElement.setAttribute('data-theme', savedTheme);
+    }
+
+    themeToggle.addEventListener('click', () => {
+      const currentTheme = document.documentElement.getAttribute('data-theme');
+      const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', newTheme);
+      localStorage.setItem('theme', newTheme);
+    });
+
+    // Scan docs folder
+    async function loadDocsIndex() {
+      try {
+        const response = await fetch(DOCS_DIR_API);
+        if (!response.ok) throw new Error('Docs API fetch failed');
+        
+        const contents = await response.json();
+        
+        // Filter PDF and MD files
+        const docFiles = contents.filter(item => 
+          item.type === 'file' && 
+          (item.name.endsWith('.pdf') || item.name.endsWith('.md'))
+        );
+
+        docsData = docFiles.map(file => {
+          const known = KNOWN_DOCS.find(kd => kd.filename === file.name);
+          return {
+            filename: file.name,
+            title: known ? known.title : beautifyFilename(file.name),
+            size: file.size ? formatBytes(file.size) : (known ? known.size : 'Unknown Size'),
+            path: file.path,
+            downloadUrl: file.download_url
+          };
+        });
+
+        displayDocsList();
+      } catch (err) {
+        console.warn('Docs API failed, falling back to curated docs:', err.message);
+        docsData = KNOWN_DOCS.map(kd => ({
+          filename: kd.filename,
+          title: kd.title,
+          size: kd.size,
+          path: kd.path,
+          downloadUrl: kd.path
+        }));
+        displayDocsList();
+      }
+    }
+
+    function beautifyFilename(name) {
+      return name
+        .replace(/\.(pdf|md)$/i, '')
+        .split(/[_-]/)
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+    }
+
+    function formatBytes(bytes) {
+      if (bytes === 0) return '0 Bytes';
+      const k = 1024;
+      const sizes = ['Bytes', 'KB', 'MB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+    }
+
+    // Display list
+    function displayDocsList() {
+      const filtered = docsData.filter(doc => 
+        doc.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        doc.filename.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+
+      if (filtered.length === 0) {
+        docListContainer.innerHTML = `
+          <li style="text-align: center; padding: 2rem; color: var(--text-muted);">
+            <i class="fa-solid fa-face-frown" style="font-size: 1.5rem; margin-bottom: 0.5rem; display: block;"></i>
+            No matching documents
+          </li>
+        `;
+        return;
+      }
+
+      docListContainer.innerHTML = filtered.map((doc, idx) => {
+        const isPdf = doc.filename.endsWith('.pdf');
+        const iconClass = isPdf ? 'fa-file-pdf pdf' : 'fa-file-lines markdown';
+        const isActive = activeDoc && activeDoc.filename === doc.filename ? 'active' : '';
+        
+        return `
+          <li class="doc-item ${isActive}" onclick="selectDocument(${idx})">
+            <div class="doc-icon">
+              <i class="fa-solid ${iconClass}"></i>
+            </div>
+            <div class="doc-details">
+              <div class="doc-name" title="${doc.title}">${doc.title}</div>
+              <div class="doc-meta">
+                <span>${doc.filename.split('.').pop().toUpperCase()}</span>
+                <span>${doc.size}</span>
+              </div>
+            </div>
+          </li>
+        `;
+      }).join('');
+    }
+
+    // Select and load document preview
+    async function selectDocument(index) {
+      const doc = docsData[index];
+      activeDoc = doc;
+      
+      // Update sidebar active states
+      displayDocsList();
+
+      // Show loader
+      previewPane.innerHTML = `
+        <div class="preview-header">
+          <div class="preview-title">${doc.title}</div>
+        </div>
+        <div class="preview-loader">
+          <div class="skeleton-line" style="width: 40%"></div>
+          <div class="skeleton-line" style="width: 80%"></div>
+          <div class="skeleton-line" style="width: 60%"></div>
+          <div class="skeleton-line" style="width: 90%"></div>
+        </div>
+      `;
+
+      try {
+        const isPdf = doc.filename.endsWith('.pdf');
+        
+        // Build preview layout
+        let previewHtml = `
+          <div class="preview-header">
+            <div class="preview-title">${doc.title}</div>
+            <div class="preview-actions">
+              <a href="${doc.downloadUrl}" download="${doc.filename}" class="preview-btn">
+                <i class="fa-solid fa-download"></i> Download
+              </a>
+              <a href="${doc.downloadUrl}" target="_blank" class="preview-btn">
+                <i class="fa-solid fa-expand"></i> Open Fullscreen
+              </a>
+            </div>
+          </div>
+          <div class="viewport-container">
+        `;
+
+        if (isPdf) {
+          // Native browser PDF embed
+          previewHtml += `
+            <iframe class="pdf-frame" src="${doc.downloadUrl}"></iframe>
+          `;
+        } else {
+          // Fetch raw text for MD file
+          const res = await fetch(doc.downloadUrl);
+          if (!res.ok) throw new Error('Failed to load markdown text');
+          const markdownText = await res.text();
+          
+          // Render using Marked
+          const renderedHtml = marked.parse(markdownText);
+          previewHtml += `
+            <div class="markdown-body">${renderedHtml}</div>
+          `;
+        }
+
+        previewHtml += `</div>`;
+        previewPane.innerHTML = previewHtml;
+
+      } catch (err) {
+        previewPane.innerHTML = `
+          <div class="preview-header">
+            <div class="preview-title">Error Loading Document</div>
+          </div>
+          <div class="viewport-container">
+            <div class="empty-state" style="color: #ef4444;">
+              <i class="fa-solid fa-triangle-exclamation"></i>
+              <h3>Load Failed</h3>
+              <p>Failed to retrieve content for "${doc.filename}". Please check your connection or download the file directly.</p>
+              <a href="${doc.downloadUrl}" download class="preview-btn" style="margin-top: 1rem;">
+                <i class="fa-solid fa-download"></i> Download File
+              </a>
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    // Search bar filter
+    docSearch.addEventListener('input', (e) => {
+      searchQuery = e.target.value;
+      displayDocsList();
+    });
+
+    // Run
+    initTheme();
+    loadDocsIndex();
+  </script>
+</body>
+</html>
