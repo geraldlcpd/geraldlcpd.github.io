@@ -1,976 +1,1400 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SNAP Signature Debugger</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/forge/1.3.1/forge.min.js"></script>
-<style>
-  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Syne:wght@400;600;700;800&display=swap');
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SNAP Signature Debugger</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/forge/1.3.1/forge.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Syne:wght@400;600;700;800&display=swap');
 
-  :root {
-    --bg:        #080c10;
-    --bg1:       #0d1218;
-    --bg2:       #111820;
-    --bg3:       #18222e;
-    --border:    #1e2d3d;
-    --border2:   #243445;
-    --cyan:      #00d4ff;
-    --cyan-dim:  #0099bb;
-    --green:     #00ff88;
-    --green-dim: #00bb66;
-    --amber:     #ffaa00;
-    --red:       #ff4455;
-    --text:      #c8d8e8;
-    --text-dim:  #5a7a9a;
-    --text-xdim: #2a4060;
-    --mono:      'JetBrains Mono', monospace;
-    --sans:      'Syne', sans-serif;
-    --radius:    4px;
-    --glow-c:    0 0 20px rgba(0,212,255,0.15);
-    --glow-g:    0 0 20px rgba(0,255,136,0.15);
-  }
+        :root {
+            /* Dark Mode (default) */
+            --bg: #080c10;
+            --bg1: #0d1218;
+            --bg2: #111820;
+            --bg3: #18222e;
+            --border: #1e2d3d;
+            --border2: #243445;
+            --cyan: #00d4ff;
+            --cyan-dim: #0099bb;
+            --green: #00ff88;
+            --green-dim: #00bb66;
+            --amber: #ffaa00;
+            --red: #ff4455;
+            --text: #c8d8e8;
+            --text-dim: #5a7a9a;
+            --text-xdim: #2a4060;
+            --text-title: #ffffff;
+            --mono: 'JetBrains Mono', monospace;
+            --sans: 'Syne', sans-serif;
+            --radius: 4px;
+            --glow-c: 0 0 20px rgba(0, 212, 255, 0.15);
+            --glow-g: 0 0 20px rgba(0, 255, 136, 0.15);
+        }
 
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body.light-mode {
+            --bg: #f8fafc;
+            --bg1: #ffffff;
+            --bg2: #f1f5f9;
+            --bg3: #e2e8f0;
+            --border: #cbd5e1;
+            --border2: #94a3b8;
+            --cyan: #0284c7;
+            --cyan-dim: #0369a1;
+            --green: #16a34a;
+            --green-dim: #15803d;
+            --amber: #d97706;
+            --red: #dc2626;
+            --text: #334155;
+            --text-dim: #64748b;
+            --text-xdim: #94a3b8;
+            --text-title: #0f172a;
+            --glow-c: 0 0 20px rgba(2, 132, 199, 0.15);
+            --glow-g: 0 0 20px rgba(22, 163, 74, 0.15);
+        }
 
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: var(--mono);
-    font-size: 13px;
-    min-height: 100vh;
-    overflow-x: hidden;
-  }
+        body.light-mode::before {
+            display: none;
+        }
 
-  /* ── Scan-line overlay ── */
-  body::before {
-    content: '';
-    position: fixed; inset: 0;
-    background: repeating-linear-gradient(
-      0deg,
-      transparent,
-      transparent 2px,
-      rgba(0,212,255,0.012) 2px,
-      rgba(0,212,255,0.012) 4px
-    );
-    pointer-events: none;
-    z-index: 9999;
-  }
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
 
-  /* ── Header ── */
-  .header {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    padding: 18px 28px;
-    border-bottom: 1px solid var(--border);
-    background: linear-gradient(90deg, var(--bg1) 0%, var(--bg) 100%);
-    position: relative;
-  }
-  .header::after {
-    content: '';
-    position: absolute;
-    bottom: 0; left: 0; right: 0;
-    height: 1px;
-    background: linear-gradient(90deg, var(--cyan) 0%, transparent 60%);
-    opacity: 0.4;
-  }
-  .header-icon {
-    width: 36px; height: 36px;
-    border: 1px solid var(--cyan-dim);
-    border-radius: 4px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 16px;
-    color: var(--cyan);
-    flex-shrink: 0;
-    box-shadow: inset 0 0 12px rgba(0,212,255,0.1);
-  }
-  .header-title {
-    font-family: var(--sans);
-    font-size: 18px;
-    font-weight: 700;
-    color: #fff;
-    letter-spacing: 0.01em;
-  }
-  .header-sub {
-    font-size: 11px;
-    color: var(--text-dim);
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-  }
-  .header-badge {
-    margin-left: auto;
-    font-size: 10px;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: var(--cyan-dim);
-    border: 1px solid var(--border2);
-    padding: 3px 10px;
-    border-radius: 2px;
-    background: rgba(0,212,255,0.04);
-  }
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: var(--mono);
+            font-size: 13px;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
 
-  /* ── Tab bar ── */
-  .tabbar {
-    display: flex;
-    gap: 0;
-    border-bottom: 1px solid var(--border);
-    background: var(--bg1);
-    padding: 0 28px;
-  }
-  .tab-btn {
-    font-family: var(--mono);
-    font-size: 12px;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: var(--text-dim);
-    background: transparent;
-    border: none;
-    border-bottom: 2px solid transparent;
-    padding: 14px 20px 12px;
-    cursor: pointer;
-    transition: color 0.15s, border-color 0.15s;
-    position: relative;
-  }
-  .tab-btn:hover { color: var(--text); }
-  .tab-btn.active {
-    color: var(--cyan);
-    border-bottom-color: var(--cyan);
-  }
-  .tab-btn .tab-num {
-    font-size: 10px;
-    color: var(--text-xdim);
-    margin-right: 6px;
-  }
-  .tab-btn.active .tab-num { color: var(--cyan-dim); }
+        /* ── Scan-line overlay ── */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background: repeating-linear-gradient(0deg,
+                    transparent,
+                    transparent 2px,
+                    rgba(0, 212, 255, 0.012) 2px,
+                    rgba(0, 212, 255, 0.012) 4px);
+            pointer-events: none;
+            z-index: 9999;
+        }
 
-  /* ── Content panes ── */
-  .pane { display: none; padding: 28px; animation: fadeIn 0.2s ease; }
-  .pane.active { display: block; }
-  @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+        /* ── Header ── */
+        .header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 18px 28px;
+            border-bottom: 1px solid var(--border);
+            background: linear-gradient(90deg, var(--bg1) 0%, var(--bg) 100%);
+            position: relative;
+        }
 
-  /* ── Section labels ── */
-  .section-label {
-    font-size: 10px;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: var(--text-dim);
-    margin-bottom: 10px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-  .section-label::after {
-    content: '';
-    flex: 1;
-    height: 1px;
-    background: var(--border);
-  }
+        .header::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, var(--cyan) 0%, transparent 60%);
+            opacity: 0.4;
+        }
 
-  /* ── Card ── */
-  .card {
-    background: var(--bg1);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 20px;
-    margin-bottom: 16px;
-    position: relative;
-  }
-  .card-title {
-    font-family: var(--sans);
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--cyan);
-    margin-bottom: 14px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-  .card-title .dot {
-    width: 6px; height: 6px;
-    border-radius: 50%;
-    background: var(--cyan);
-    box-shadow: 0 0 6px var(--cyan);
-    flex-shrink: 0;
-  }
-  .card-title .dot.green { background: var(--green); box-shadow: 0 0 6px var(--green); }
-  .card-title .dot.amber { background: var(--amber); box-shadow: 0 0 6px var(--amber); }
+        .header-icon {
+            width: 36px;
+            height: 36px;
+            border: 1px solid var(--cyan-dim);
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            color: var(--cyan);
+            flex-shrink: 0;
+            box-shadow: inset 0 0 12px rgba(0, 212, 255, 0.1);
+            transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), border-color 0.3s, box-shadow 0.3s;
+        }
 
-  /* ── Form rows ── */
-  .field { margin-bottom: 14px; }
-  .field:last-child { margin-bottom: 0; }
-  .field label {
-    display: block;
-    font-size: 11px;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--text-dim);
-    margin-bottom: 6px;
-  }
-  .field label .req { color: var(--amber); margin-left: 2px; }
-  .field label .hint {
-    text-transform: none;
-    letter-spacing: 0;
-    color: var(--text-xdim);
-    font-size: 10px;
-    margin-left: 6px;
-  }
+        .header:hover .header-icon {
+            transform: rotate(180deg);
+            border-color: var(--cyan);
+            box-shadow: inset 0 0 15px rgba(0, 212, 255, 0.2), var(--glow-c);
+        }
 
-  input[type=text], input[type=password], textarea, select {
-    width: 100%;
-    background: var(--bg2);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    color: var(--text);
-    font-family: var(--mono);
-    font-size: 12px;
-    padding: 9px 12px;
-    outline: none;
-    transition: border-color 0.15s, box-shadow 0.15s;
-    resize: vertical;
-  }
-  input:focus, textarea:focus, select:focus {
-    border-color: var(--cyan-dim);
-    box-shadow: 0 0 0 2px rgba(0,212,255,0.08);
-  }
-  textarea { min-height: 80px; }
-  textarea.tall { min-height: 140px; }
-  textarea.key-area { min-height: 160px; font-size: 11px; line-height: 1.5; }
+        .header-title {
+            font-family: var(--sans);
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text-title);
+            letter-spacing: 0.01em;
+        }
 
-  select {
-    appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%235a7a9a' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 10px center;
-    padding-right: 32px;
-    cursor: pointer;
-  }
+        .header-sub {
+            font-size: 11px;
+            color: var(--text-dim);
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
 
-  /* ── Buttons ── */
-  .btn-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
+        .header-badge {
+            font-size: 10px;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: var(--cyan-dim);
+            border: 1px solid var(--border2);
+            padding: 3px 10px;
+            border-radius: 2px;
+            background: rgba(0, 212, 255, 0.04);
+        }
 
-  .btn {
-    font-family: var(--mono);
-    font-size: 12px;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    border: none;
-    border-radius: var(--radius);
-    padding: 10px 20px;
-    cursor: pointer;
-    transition: all 0.15s;
-    display: inline-flex;
-    align-items: center;
-    gap: 7px;
-  }
-  .btn-primary {
-    background: var(--cyan);
-    color: var(--bg);
-    font-weight: 700;
-  }
-  .btn-primary:hover { background: #22e8ff; box-shadow: var(--glow-c); }
-  .btn-primary:active { transform: scale(0.98); }
+        /* ── Tab bar ── */
+        .tabbar {
+            display: flex;
+            gap: 0;
+            border-bottom: 1px solid var(--border);
+            background: var(--bg1);
+            padding: 0 28px;
+        }
 
-  .btn-green {
-    background: var(--green);
-    color: var(--bg);
-    font-weight: 700;
-  }
-  .btn-green:hover { background: #22ffaa; box-shadow: var(--glow-g); }
-  .btn-green:active { transform: scale(0.98); }
+        .tab-btn {
+            font-family: var(--mono);
+            font-size: 12px;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: var(--text-dim);
+            background: transparent;
+            border: none;
+            border-bottom: 2px solid transparent;
+            padding: 14px 20px 12px;
+            cursor: pointer;
+            transition: color 0.25s ease, border-color 0.25s ease, transform 0.2s ease;
+            position: relative;
+        }
 
-  .btn-ghost {
-    background: transparent;
-    color: var(--text-dim);
-    border: 1px solid var(--border2);
-  }
-  .btn-ghost:hover { color: var(--text); border-color: var(--text-dim); }
+        .tab-btn:hover {
+            color: var(--text);
+            transform: translateY(-1px);
+        }
 
-  .btn-danger {
-    background: transparent;
-    color: var(--red);
-    border: 1px solid rgba(255,68,85,0.3);
-  }
-  .btn-danger:hover { background: rgba(255,68,85,0.08); }
+        .tab-btn.active {
+            color: var(--cyan);
+            border-bottom-color: var(--cyan);
+        }
 
-  /* ── Output / result box ── */
-  .result-box {
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 14px;
-    font-family: var(--mono);
-    font-size: 11.5px;
-    line-height: 1.7;
-    word-break: break-all;
-    min-height: 56px;
-    position: relative;
-  }
-  .result-box.success { border-color: rgba(0,255,136,0.35); background: rgba(0,255,136,0.03); }
-  .result-box.error   { border-color: rgba(255,68,85,0.35);  background: rgba(255,68,85,0.03);  }
-  .result-box.warn    { border-color: rgba(255,170,0,0.35);  background: rgba(255,170,0,0.03);  }
+        .tab-btn .tab-num {
+            font-size: 10px;
+            color: var(--text-xdim);
+            margin-right: 6px;
+        }
 
-  .result-label {
-    font-size: 10px;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    margin-bottom: 8px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-  .result-label.ok  { color: var(--green); }
-  .result-label.err { color: var(--red);   }
-  .result-label.wrn { color: var(--amber); }
-  .result-label.inf { color: var(--cyan);  }
+        .tab-btn.active .tab-num {
+            color: var(--cyan-dim);
+        }
 
-  .copy-btn {
-    position: absolute;
-    top: 10px; right: 10px;
-    background: var(--bg2);
-    border: 1px solid var(--border);
-    color: var(--text-dim);
-    font-family: var(--mono);
-    font-size: 10px;
-    padding: 3px 9px;
-    border-radius: 2px;
-    cursor: pointer;
-    letter-spacing: 0.06em;
-    transition: all 0.12s;
-  }
-  .copy-btn:hover { color: var(--cyan); border-color: var(--cyan-dim); }
+        /* ── Content panes ── */
+        .pane {
+            display: none;
+            padding: 28px;
+            animation: fadeIn 0.2s ease;
+        }
 
-  /* ── String-to-sign display ── */
-  .sts-box {
-    background: var(--bg);
-    border: 1px solid var(--border2);
-    border-left: 3px solid var(--cyan-dim);
-    border-radius: var(--radius);
-    padding: 12px 14px;
-    font-size: 11px;
-    color: var(--text-dim);
-    word-break: break-all;
-    line-height: 1.7;
-    margin-bottom: 12px;
-  }
-  .sts-box .sts-part { color: var(--cyan); }
-  .sts-box .sts-sep  { color: var(--text-xdim); }
+        .pane.active {
+            display: block;
+        }
 
-  /* ── Verdict banner ── */
-  .verdict {
-    padding: 12px 16px;
-    border-radius: var(--radius);
-    font-size: 13px;
-    font-weight: 700;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-top: 12px;
-    letter-spacing: 0.03em;
-  }
-  .verdict.valid   { background: rgba(0,255,136,0.08); border: 1px solid rgba(0,255,136,0.3); color: var(--green); }
-  .verdict.invalid { background: rgba(255,68,85,0.08);  border: 1px solid rgba(255,68,85,0.3);  color: var(--red);   }
-  .verdict .v-icon { font-size: 18px; }
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(4px);
+            }
 
-  /* ── Two-column grid ── */
-  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-  @media (max-width: 900px) { .grid2 { grid-template-columns: 1fr; } }
+            to {
+                opacity: 1;
+                transform: none;
+            }
+        }
 
-  /* ── Divider ── */
-  .divider {
-    height: 1px;
-    background: var(--border);
-    margin: 20px 0;
-    position: relative;
-  }
-  .divider::before {
-    content: attr(data-label);
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    transform: translate(-50%, -50%);
-    background: var(--bg);
-    padding: 0 12px;
-    font-size: 10px;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: var(--text-xdim);
-  }
+        /* ── Section labels ── */
+        .section-label {
+            font-size: 10px;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: var(--text-dim);
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
 
-  /* ── Scrollbar ── */
-  ::-webkit-scrollbar { width: 6px; height: 6px; }
-  ::-webkit-scrollbar-track { background: var(--bg1); }
-  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
-  ::-webkit-scrollbar-thumb:hover { background: var(--text-xdim); }
+        .section-label::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--border);
+        }
 
-  /* ── Inline code chip ── */
-  code {
-    background: var(--bg2);
-    border: 1px solid var(--border);
-    padding: 1px 6px;
-    border-radius: 2px;
-    font-size: 11px;
-    color: var(--cyan);
-  }
+        /* ── Card ── */
+        .card {
+            background: var(--bg1);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px;
+            margin-bottom: 16px;
+            position: relative;
+        }
 
-  /* ── Hash display ── */
-  .hash-row {
-    display: flex;
-    align-items: flex-start;
-    gap: 10px;
-    padding: 8px 0;
-    border-bottom: 1px solid var(--border);
-    font-size: 11px;
-  }
-  .hash-row:last-child { border-bottom: none; }
-  .hash-key { color: var(--text-dim); min-width: 140px; flex-shrink: 0; }
-  .hash-val { color: var(--text); word-break: break-all; flex: 1; }
-  .hash-val.highlight { color: var(--green); }
+        .card-title {
+            font-family: var(--sans);
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--cyan);
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
 
-  /* ── Info strip ── */
-  .info-strip {
-    background: rgba(0,212,255,0.04);
-    border: 1px solid var(--border);
-    border-left: 3px solid var(--cyan-dim);
-    padding: 10px 14px;
-    border-radius: var(--radius);
-    font-size: 11px;
-    color: var(--text-dim);
-    line-height: 1.6;
-    margin-bottom: 14px;
-  }
+        .card-title .dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--cyan);
+            box-shadow: 0 0 6px var(--cyan);
+            flex-shrink: 0;
+            animation: pulse-cyan 2s infinite ease-in-out;
+        }
 
-  /* ── Tab panel header ── */
-  .pane-header {
-    margin-bottom: 24px;
-  }
-  .pane-header h2 {
-    font-family: var(--sans);
-    font-size: 20px;
-    font-weight: 700;
-    color: #fff;
-    margin-bottom: 4px;
-  }
-  .pane-header p {
-    font-size: 11.5px;
-    color: var(--text-dim);
-    line-height: 1.6;
-  }
+        .card-title .dot.green {
+            background: var(--green);
+            box-shadow: 0 0 6px var(--green);
+            animation: pulse-green 2s infinite ease-in-out;
+        }
 
-  .formula-box {
-    background: var(--bg2);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 10px 14px;
-    font-size: 11px;
-    color: var(--amber);
-    line-height: 1.7;
-    margin-bottom: 14px;
-    font-style: italic;
-  }
-</style>
+        .card-title .dot.amber {
+            background: var(--amber);
+            box-shadow: 0 0 6px var(--amber);
+            animation: pulse-amber 2s infinite ease-in-out;
+        }
+
+        @keyframes pulse-cyan {
+            0%, 100% { transform: scale(1); opacity: 0.8; box-shadow: 0 0 4px var(--cyan); }
+            50% { transform: scale(1.3); opacity: 1; box-shadow: 0 0 10px var(--cyan); }
+        }
+        @keyframes pulse-green {
+            0%, 100% { transform: scale(1); opacity: 0.8; box-shadow: 0 0 4px var(--green); }
+            50% { transform: scale(1.3); opacity: 1; box-shadow: 0 0 10px var(--green); }
+        }
+        @keyframes pulse-amber {
+            0%, 100% { transform: scale(1); opacity: 0.8; box-shadow: 0 0 4px var(--amber); }
+            50% { transform: scale(1.3); opacity: 1; box-shadow: 0 0 10px var(--amber); }
+        }
+
+        /* ── Form rows ── */
+        .field {
+            margin-bottom: 14px;
+        }
+
+        .field:last-child {
+            margin-bottom: 0;
+        }
+
+        .field label {
+            display: block;
+            font-size: 11px;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--text-dim);
+            margin-bottom: 6px;
+        }
+
+        .field label .req {
+            color: var(--amber);
+            margin-left: 2px;
+        }
+
+        .field label .hint {
+            text-transform: none;
+            letter-spacing: 0;
+            color: var(--text-xdim);
+            font-size: 10px;
+            margin-left: 6px;
+        }
+
+        input[type=text],
+        input[type=password],
+        textarea,
+        select {
+            width: 100%;
+            background: var(--bg2);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            color: var(--text);
+            font-family: var(--mono);
+            font-size: 12px;
+            padding: 9px 12px;
+            outline: none;
+            transition: border-color 0.15s, box-shadow 0.15s;
+            resize: vertical;
+        }
+
+        input:focus,
+        textarea:focus,
+        select:focus {
+            border-color: var(--cyan-dim);
+            box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.08);
+        }
+
+        textarea {
+            min-height: 80px;
+        }
+
+        textarea.tall {
+            min-height: 140px;
+        }
+
+        textarea.key-area {
+            min-height: 160px;
+            font-size: 11px;
+            line-height: 1.5;
+        }
+
+        select {
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%235a7a9a' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 10px center;
+            padding-right: 32px;
+            cursor: pointer;
+        }
+
+        /* ── Buttons ── */
+        .btn-row {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 16px;
+        }
+
+        .btn {
+            font-family: var(--mono);
+            font-size: 12px;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            border: none;
+            border-radius: var(--radius);
+            padding: 10px 20px;
+            cursor: pointer;
+            transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.2s, box-shadow 0.2s, color 0.2s, border-color 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+        }
+
+        .btn:hover {
+            transform: translateY(-1.5px);
+        }
+
+        .btn:active {
+            transform: translateY(0.5px) scale(0.98);
+        }
+
+        .btn-primary {
+            background: var(--cyan);
+            color: var(--bg);
+            font-weight: 700;
+        }
+
+        .btn-primary:hover {
+            background: #22e8ff;
+            box-shadow: var(--glow-c);
+        }
+
+        .btn-green {
+            background: var(--green);
+            color: var(--bg);
+            font-weight: 700;
+        }
+
+        .btn-green:hover {
+            background: #22ffaa;
+            box-shadow: var(--glow-g);
+        }
+
+        .btn-ghost {
+            background: transparent;
+            color: var(--text-dim);
+            border: 1px solid var(--border2);
+        }
+
+        .btn-ghost:hover {
+            color: var(--text);
+            border-color: var(--text-dim);
+        }
+
+        .btn-danger {
+            background: transparent;
+            color: var(--red);
+            border: 1px solid rgba(255, 68, 85, 0.3);
+        }
+
+        .btn-danger:hover {
+            background: rgba(255, 68, 85, 0.08);
+        }
+
+        /* ── Output / result box ── */
+        .result-box {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 14px;
+            font-family: var(--mono);
+            font-size: 11.5px;
+            line-height: 1.7;
+            word-break: break-all;
+            min-height: 56px;
+            position: relative;
+        }
+
+        .result-box.success {
+            border-color: rgba(0, 255, 136, 0.35);
+            background: rgba(0, 255, 136, 0.03);
+        }
+
+        .result-box.error {
+            border-color: rgba(255, 68, 85, 0.35);
+            background: rgba(255, 68, 85, 0.03);
+        }
+
+        .result-box.warn {
+            border-color: rgba(255, 170, 0, 0.35);
+            background: rgba(255, 170, 0, 0.03);
+        }
+
+        .result-label {
+            font-size: 10px;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .result-label.ok {
+            color: var(--green);
+        }
+
+        .result-label.err {
+            color: var(--red);
+        }
+
+        .result-label.wrn {
+            color: var(--amber);
+        }
+
+        .result-label.inf {
+            color: var(--cyan);
+        }
+
+        .copy-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: var(--bg2);
+            border: 1px solid var(--border);
+            color: var(--text-dim);
+            font-family: var(--mono);
+            font-size: 10px;
+            padding: 3px 9px;
+            border-radius: 2px;
+            cursor: pointer;
+            letter-spacing: 0.06em;
+            transition: all 0.12s;
+        }
+
+        .copy-btn:hover {
+            color: var(--cyan);
+            border-color: var(--cyan-dim);
+        }
+
+        /* ── String-to-sign display ── */
+        .sts-box {
+            background: var(--bg);
+            border: 1px solid var(--border2);
+            border-left: 3px solid var(--cyan-dim);
+            border-radius: var(--radius);
+            padding: 12px 14px;
+            font-size: 11px;
+            color: var(--text-dim);
+            word-break: break-all;
+            line-height: 1.7;
+            margin-bottom: 12px;
+        }
+
+        .sts-box .sts-part {
+            color: var(--cyan);
+        }
+
+        .sts-box .sts-sep {
+            color: var(--text-xdim);
+        }
+
+        /* ── Verdict banner ── */
+        .verdict {
+            padding: 12px 16px;
+            border-radius: var(--radius);
+            font-size: 13px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 12px;
+            letter-spacing: 0.03em;
+        }
+
+        .verdict.valid {
+            background: rgba(0, 255, 136, 0.08);
+            border: 1px solid rgba(0, 255, 136, 0.3);
+            color: var(--green);
+        }
+
+        .verdict.invalid {
+            background: rgba(255, 68, 85, 0.08);
+            border: 1px solid rgba(255, 68, 85, 0.3);
+            color: var(--red);
+        }
+
+        .verdict .v-icon {
+            font-size: 18px;
+        }
+
+        /* ── Two-column grid ── */
+        .grid2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        @media (max-width: 900px) {
+            .grid2 {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* ── Divider ── */
+        .divider {
+            height: 1px;
+            background: var(--border);
+            margin: 20px 0;
+            position: relative;
+        }
+
+        .divider::before {
+            content: attr(data-label);
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            background: var(--bg);
+            padding: 0 12px;
+            font-size: 10px;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--text-xdim);
+        }
+
+        /* ── Scrollbar ── */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg1);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border2);
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-xdim);
+        }
+
+        /* ── Inline code chip ── */
+        code {
+            background: var(--bg2);
+            border: 1px solid var(--border);
+            padding: 1px 6px;
+            border-radius: 2px;
+            font-size: 11px;
+            color: var(--cyan);
+        }
+
+        /* ── Hash display ── */
+        .hash-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border);
+            font-size: 11px;
+        }
+
+        .hash-row:last-child {
+            border-bottom: none;
+        }
+
+        .hash-key {
+            color: var(--text-dim);
+            min-width: 140px;
+            flex-shrink: 0;
+        }
+
+        .hash-val {
+            color: var(--text);
+            word-break: break-all;
+            flex: 1;
+        }
+
+        .hash-val.highlight {
+            color: var(--green);
+        }
+
+        /* ── Info strip ── */
+        .info-strip {
+            background: rgba(0, 212, 255, 0.04);
+            border: 1px solid var(--border);
+            border-left: 3px solid var(--cyan-dim);
+            padding: 10px 14px;
+            border-radius: var(--radius);
+            font-size: 11px;
+            color: var(--text-dim);
+            line-height: 1.6;
+            margin-bottom: 14px;
+        }
+
+        /* ── Tab panel header ── */
+        .pane-header {
+            margin-bottom: 24px;
+        }
+
+        .pane-header h2 {
+            font-family: var(--sans);
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text-title);
+            margin-bottom: 4px;
+        }
+
+        .pane-header p {
+            font-size: 11.5px;
+            color: var(--text-dim);
+            line-height: 1.6;
+        }
+
+        .formula-box {
+            background: var(--bg2);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 10px 14px;
+            font-size: 11px;
+            color: var(--amber);
+            line-height: 1.7;
+            margin-bottom: 14px;
+            font-style: italic;
+        }
+
+        /* ── Diagram Drawer ── */
+        .drawer {
+            position: fixed;
+            inset: 0;
+            z-index: 10000;
+            display: none;
+            justify-content: flex-end;
+        }
+        .drawer.active {
+            display: flex;
+        }
+        .drawer-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+        }
+        .drawer-content {
+            position: relative;
+            width: 100%;
+            max-width: 480px;
+            height: 100%;
+            background: var(--bg1);
+            border-left: 1px solid var(--border);
+            box-shadow: -8px 0 24px rgba(0, 0, 0, 0.3);
+            display: flex;
+            flex-direction: column;
+            animation: slideInRight 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+            z-index: 10001;
+        }
+        @keyframes slideInRight {
+            from { transform: translateX(100%); }
+            to { transform: translateX(0); }
+        }
+        .drawer-header {
+            padding: 18px 24px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--bg);
+        }
+        .drawer-header h3 {
+            font-family: var(--sans);
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--text-title);
+        }
+        .drawer-close {
+            background: transparent;
+            border: none;
+            color: var(--text-dim);
+            font-size: 18px;
+            cursor: pointer;
+            transition: color 0.15s;
+        }
+        .drawer-close:hover {
+            color: var(--red);
+        }
+        .drawer-body {
+            padding: 24px;
+            overflow-y: auto;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        /* ── Flow diagram styling ── */
+        .flow-node {
+            background: var(--bg2);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 12px 14px;
+            position: relative;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .flow-node-title {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--cyan);
+            margin-bottom: 4px;
+            font-weight: 700;
+        }
+        .flow-node-title.green {
+            color: var(--green);
+        }
+        .flow-node-content {
+            font-size: 12px;
+            color: var(--text);
+            line-height: 1.5;
+        }
+        .flow-arrow {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: var(--text-xdim);
+            font-size: 14px;
+            margin: 4px 0;
+            font-weight: bold;
+        }
+        .flow-combine {
+            border-left: 2px dashed var(--border);
+            margin-left: 14px;
+            padding-left: 14px;
+            margin-bottom: 8px;
+        }
+    </style>
 </head>
+
 <body>
 
-<div class="header">
-  <div class="header-icon">⬡</div>
-  <div>
-    <div class="header-title">SNAP Signature Debugger</div>
-    <div class="header-sub">Standar Nasional Open API Pembayaran — Cryptographic Tool</div>
-  </div>
-  <div class="header-badge">Offline · No Network Required</div>
-</div>
+    <div class="header">
+        <div class="header-icon">⬡</div>
+        <div>
+            <div class="header-title">SNAP Signature Debugger</div>
+            <div class="header-sub">Standar Nasional Open API Pembayaran — Cryptographic Tool</div>
+        </div>
+        <div style="margin-left: auto; display: flex; align-items: center; gap: 12px;">
+            <button class="btn btn-ghost" id="theme-toggle" onclick="toggleTheme()" style="padding: 4px 10px; font-size: 11px; height: 26px; display: flex; align-items: center; gap: 6px; border-color: var(--border2); color: var(--text-dim); background: var(--bg2);">
+                <span id="theme-icon">☀</span> <span id="theme-text">Light Mode</span>
+            </button>
+            <div class="header-badge">Offline · No Network Required</div>
+        </div>
+    </div>
 
-<div class="tabbar">
-  <button class="tab-btn active" onclick="switchTab('token',this)">
-    <span class="tab-num">01</span>Token Signature
-  </button>
-  <button class="tab-btn" onclick="switchTab('endpoint',this)">
-    <span class="tab-num">02</span>Endpoint Signature
-  </button>
-</div>
+    <div class="tabbar">
+        <button class="tab-btn active" onclick="switchTab('token',this)">
+            <span class="tab-num">01</span>Token Signature
+        </button>
+        <button class="tab-btn" onclick="switchTab('endpoint',this)">
+            <span class="tab-num">02</span>Endpoint Signature
+        </button>
+    </div>
 
-<!-- ═══════════════════════════════════════════════════════════════════════════
+    <!-- ═══════════════════════════════════════════════════════════════════════════
      TAB 1 — TOKEN SIGNATURE  (SHA256withRSA / PKCS#1 v1.5)
      ═══════════════════════════════════════════════════════════════════════════ -->
-<div class="pane active" id="pane-token">
+    <div class="pane active" id="pane-token">
 
-  <div class="pane-header">
-    <h2>Token Signature <span style="color:var(--cyan);font-size:14px">SHA256withRSA</span></h2>
-    <p>Generate or verify the <code>X-SIGNATURE</code> for the B2B Access Token endpoint using RSA PKCS#1 v1.5 + SHA-256.</p>
-  </div>
-
-  <div class="info-strip">
-    <strong style="color:var(--cyan)">Algorithm:</strong> SHA256withRSA (PKCS#1 v1.5) &nbsp;|&nbsp;
-    <strong style="color:var(--cyan)">String to Sign:</strong> <code>clientId + "|" + X-TIMESTAMP</code> &nbsp;|&nbsp;
-    Output: Base64-encoded signature
-  </div>
-
-  <div class="formula-box">
-    stringToSign = clientId + "|" + timestamp<br>
-    X-SIGNATURE &nbsp;= Base64( RSA_PKCS1v15_SHA256( privateKey, stringToSign ) )
-  </div>
-
-  <div class="grid2">
-
-    <!-- LEFT: GENERATE -->
-    <div>
-      <div class="section-label">Generate Signature</div>
-
-      <div class="card">
-        <div class="card-title"><span class="dot"></span> Inputs</div>
-
-        <div class="field">
-          <label>Client ID <span class="req">*</span></label>
-          <input type="text" id="t-client-id" placeholder="YOUR_CLIENT_ID" oninput="buildTokenSts()">
+        <div class="pane-header" style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;">
+            <div style="flex:1">
+                <h2>Token Signature <span style="color:var(--cyan);font-size:14px">SHA256withRSA</span></h2>
+                <p>Generate or verify the <code>X-SIGNATURE</code> for the B2B Access Token endpoint using RSA PKCS#1 v1.5 + SHA-256.</p>
+            </div>
+            <button class="btn btn-ghost" onclick="openDiagramDrawer('token')" style="font-size: 11px; padding: 4px 10px; height: 26px; border-color: var(--border2); color: var(--text-dim); background: var(--bg2); white-space: nowrap;">
+                ℹ Show Flow Diagram
+            </button>
         </div>
 
-        <div class="field">
-          <label>X-TIMESTAMP <span class="req">*</span>
-            <span class="hint">ISO 8601 with offset</span>
-          </label>
-          <div style="display:flex;gap:8px">
-            <input type="text" id="t-timestamp" placeholder="2024-01-01T10:00:00+07:00" oninput="buildTokenSts()" style="flex:1">
-            <button class="btn btn-ghost" onclick="stampNow('t-timestamp')">Now</button>
-          </div>
+        <div class="info-strip">
+            <strong style="color:var(--cyan)">Algorithm:</strong> SHA256withRSA (PKCS#1 v1.5) &nbsp;|&nbsp;
+            <strong style="color:var(--cyan)">String to Sign:</strong> <code>clientId + "|" + X-TIMESTAMP</code>
+            &nbsp;|&nbsp;
+            Output: Base64-encoded signature
         </div>
 
-        <div class="field">
-          <label>Private Key (PEM) <span class="req">*</span>
-            <span class="hint">RSA private key for signing</span>
-          </label>
-          <textarea class="key-area" id="t-private-key" placeholder="-----BEGIN RSA PRIVATE KEY-----&#10;...&#10;-----END RSA PRIVATE KEY-----"></textarea>
+        <div class="formula-box">
+            stringToSign = clientId + "|" + timestamp<br>
+            X-SIGNATURE &nbsp;= Base64( RSA_PKCS1v15_SHA256( privateKey, stringToSign ) )
         </div>
 
-        <div style="margin-bottom:12px">
-          <div class="section-label" style="margin-bottom:8px">String to Sign Preview</div>
-          <div class="sts-box" id="t-sts-preview">
-            <span style="color:var(--text-xdim)">Fill in Client ID and Timestamp above…</span>
-          </div>
+        <div class="grid2">
+
+            <!-- LEFT: GENERATE -->
+            <div>
+                <div class="section-label">Generate Signature</div>
+
+                <div class="card">
+                    <div class="card-title"><span class="dot"></span> Inputs</div>
+
+                    <div class="field">
+                        <label>Client ID <span class="req">*</span></label>
+                        <input type="text" id="t-client-id" placeholder="YOUR_CLIENT_ID" oninput="buildTokenSts()">
+                    </div>
+
+                    <div class="field">
+                        <label>X-TIMESTAMP <span class="req">*</span>
+                            <span class="hint">ISO 8601 with offset</span>
+                        </label>
+                        <div style="display:flex;gap:8px">
+                            <input type="text" id="t-timestamp" placeholder="2024-01-01T10:00:00+07:00"
+                                oninput="buildTokenSts()" style="flex:1">
+                            <button class="btn btn-ghost" onclick="stampNow('t-timestamp')">Now</button>
+                        </div>
+                    </div>
+
+                    <div class="field">
+                        <label>Private Key (PEM) <span class="req">*</span>
+                            <span class="hint">RSA private key for signing</span>
+                        </label>
+                        <textarea class="key-area" id="t-private-key"
+                            placeholder="-----BEGIN RSA PRIVATE KEY-----&#10;...&#10;-----END RSA PRIVATE KEY-----"></textarea>
+                    </div>
+
+                    <div style="margin-bottom:12px">
+                        <div class="section-label" style="margin-bottom:8px">String to Sign Preview</div>
+                        <div class="sts-box" id="t-sts-preview">
+                            <span style="color:var(--text-xdim)">Fill in Client ID and Timestamp above…</span>
+                        </div>
+                    </div>
+
+                    <div class="btn-row">
+                        <button class="btn btn-primary" onclick="generateTokenSig()">⚡ Generate Signature</button>
+                        <button class="btn btn-ghost" onclick="loadTokenSample()">Load Sample</button>
+                        <button class="btn btn-ghost" onclick="clearToken()">Clear</button>
+                    </div>
+                </div>
+
+                <!-- Generate output -->
+                <div id="t-gen-output" style="display:none">
+                    <div class="section-label">Result</div>
+                    <div class="card">
+                        <div id="t-gen-details"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RIGHT: VERIFY -->
+            <div>
+                <div class="section-label">Verify Signature</div>
+
+                <div class="card">
+                    <div class="card-title"><span class="dot amber"></span> Verification Inputs</div>
+
+                    <div class="field">
+                        <label>Client ID <span class="req">*</span></label>
+                        <input type="text" id="tv-client-id" placeholder="YOUR_CLIENT_ID" oninput="buildVerifySts()">
+                    </div>
+
+                    <div class="field">
+                        <label>X-TIMESTAMP <span class="req">*</span></label>
+                        <div style="display:flex;gap:8px">
+                            <input type="text" id="tv-timestamp" placeholder="2024-01-01T10:00:00+07:00"
+                                oninput="buildVerifySts()" style="flex:1">
+                            <button class="btn btn-ghost" onclick="stampNow('tv-timestamp')">Now</button>
+                        </div>
+                    </div>
+
+                    <div class="field">
+                        <label>Public Key (PEM) <span class="req">*</span>
+                            <span class="hint">RSA public key for verification</span>
+                        </label>
+                        <textarea class="key-area" id="tv-public-key"
+                            placeholder="-----BEGIN PUBLIC KEY-----&#10;...&#10;-----END PUBLIC KEY-----"></textarea>
+                    </div>
+
+                    <div class="field">
+                        <label>Signature to Verify <span class="req">*</span>
+                            <span class="hint">Base64 or Hex — auto-detected</span>
+                        </label>
+                        <textarea id="tv-signature"
+                            placeholder="Base64 or Hex-encoded signature string (auto-detected)…"
+                            style="min-height:64px"></textarea>
+                    </div>
+
+                    <div style="margin-bottom:12px">
+                        <div class="section-label" style="margin-bottom:8px">String to Sign Preview</div>
+                        <div class="sts-box" id="tv-sts-preview">
+                            <span style="color:var(--text-xdim)">Fill in Client ID and Timestamp above…</span>
+                        </div>
+                    </div>
+
+                    <div class="btn-row">
+                        <button class="btn btn-green" onclick="verifyTokenSig()">🔍 Verify Signature</button>
+                        <button class="btn btn-ghost" onclick="clearVerify()">Clear</button>
+                    </div>
+                </div>
+
+                <!-- Verify output -->
+                <div id="t-verify-output" style="display:none">
+                    <div id="t-verdict"></div>
+                </div>
+            </div>
+
+        </div><!-- /grid2 -->
+
+        <!-- UTILITY: copy generated sig to verify panel -->
+        <div id="t-copy-to-verify" style="display:none;margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn btn-ghost" onclick="copyGenToVerify('base64')" style="font-size:11px">
+                ↓ Copy Base64 → Verify Panel
+            </button>
+            <button class="btn btn-ghost" onclick="copyGenToVerify('hex')"
+                style="font-size:11px;color:var(--amber);border-color:rgba(255,170,0,0.3)">
+                ↓ Copy Hex → Verify Panel
+            </button>
         </div>
 
-        <div class="btn-row">
-          <button class="btn btn-primary" onclick="generateTokenSig()">⚡ Generate Signature</button>
-          <button class="btn btn-ghost" onclick="clearToken()">Clear</button>
-        </div>
-      </div>
-
-      <!-- Generate output -->
-      <div id="t-gen-output" style="display:none">
-        <div class="section-label">Result</div>
-        <div class="card">
-          <div id="t-gen-details"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- RIGHT: VERIFY -->
-    <div>
-      <div class="section-label">Verify Signature</div>
-
-      <div class="card">
-        <div class="card-title"><span class="dot amber"></span> Verification Inputs</div>
-
-        <div class="field">
-          <label>Client ID <span class="req">*</span></label>
-          <input type="text" id="tv-client-id" placeholder="YOUR_CLIENT_ID" oninput="buildVerifySts()">
-        </div>
-
-        <div class="field">
-          <label>X-TIMESTAMP <span class="req">*</span></label>
-          <div style="display:flex;gap:8px">
-            <input type="text" id="tv-timestamp" placeholder="2024-01-01T10:00:00+07:00" oninput="buildVerifySts()" style="flex:1">
-            <button class="btn btn-ghost" onclick="stampNow('tv-timestamp')">Now</button>
-          </div>
-        </div>
-
-        <div class="field">
-          <label>Public Key (PEM) <span class="req">*</span>
-            <span class="hint">RSA public key for verification</span>
-          </label>
-          <textarea class="key-area" id="tv-public-key" placeholder="-----BEGIN PUBLIC KEY-----&#10;...&#10;-----END PUBLIC KEY-----"></textarea>
-        </div>
-
-        <div class="field">
-          <label>Signature to Verify <span class="req">*</span>
-            <span class="hint">Base64 or Hex — auto-detected</span>
-          </label>
-          <textarea id="tv-signature" placeholder="Base64 or Hex-encoded signature string (auto-detected)…" style="min-height:64px"></textarea>
-        </div>
-
-        <div style="margin-bottom:12px">
-          <div class="section-label" style="margin-bottom:8px">String to Sign Preview</div>
-          <div class="sts-box" id="tv-sts-preview">
-            <span style="color:var(--text-xdim)">Fill in Client ID and Timestamp above…</span>
-          </div>
-        </div>
-
-        <div class="btn-row">
-          <button class="btn btn-green" onclick="verifyTokenSig()">🔍 Verify Signature</button>
-          <button class="btn btn-ghost" onclick="clearVerify()">Clear</button>
-        </div>
-      </div>
-
-      <!-- Verify output -->
-      <div id="t-verify-output" style="display:none">
-        <div id="t-verdict"></div>
-      </div>
-    </div>
-
-  </div><!-- /grid2 -->
-
-  <!-- UTILITY: copy generated sig to verify panel -->
-  <div id="t-copy-to-verify" style="display:none;margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
-    <button class="btn btn-ghost" onclick="copyGenToVerify('base64')" style="font-size:11px">
-      ↓ Copy Base64 → Verify Panel
-    </button>
-    <button class="btn btn-ghost" onclick="copyGenToVerify('hex')" style="font-size:11px;color:var(--amber);border-color:rgba(255,170,0,0.3)">
-      ↓ Copy Hex → Verify Panel
-    </button>
-  </div>
-
-</div><!-- /pane-token -->
+    </div><!-- /pane-token -->
 
 
-<!-- ═══════════════════════════════════════════════════════════════════════════
+    <!-- ═══════════════════════════════════════════════════════════════════════════
      TAB 2 — ENDPOINT SIGNATURE  (HMAC-SHA512)
      ═══════════════════════════════════════════════════════════════════════════ -->
-<div class="pane" id="pane-endpoint">
+    <div class="pane" id="pane-endpoint">
 
-  <div class="pane-header">
-    <h2>Endpoint Signature <span style="color:var(--green);font-size:14px">HMAC-SHA512</span></h2>
-    <p>Generate the <code>X-SIGNATURE</code> for any SNAP service endpoint using HMAC-SHA512.</p>
-  </div>
-
-  <div class="info-strip">
-    <strong style="color:var(--green)">Algorithm:</strong> HMAC-SHA512 with Base64 output &nbsp;|&nbsp;
-    <strong style="color:var(--green)">Key:</strong> clientSecret &nbsp;|&nbsp;
-    Output: Base64-encoded HMAC digest
-  </div>
-
-  <div class="formula-box">
-    bodyHash &nbsp;&nbsp;&nbsp;= Lowercase( HexEncode( SHA-256( minify(requestBody) ) ) )<br>
-    stringToSign = HTTPMethod + ":" + endpointUrl + ":" + accessToken + ":" + bodyHash + ":" + timestamp<br>
-    X-SIGNATURE &nbsp;= Base64( HMAC_SHA512( clientSecret, stringToSign ) )
-  </div>
-
-  <div class="grid2">
-
-    <!-- LEFT: GENERATE -->
-    <div>
-      <div class="section-label">Generate Signature</div>
-
-      <div class="card">
-        <div class="card-title"><span class="dot green"></span> Inputs</div>
-
-        <div class="field">
-          <label>HTTP Method <span class="req">*</span></label>
-          <select id="e-method" onchange="buildEndpointSts()">
-            <option value="POST">POST</option>
-            <option value="GET">GET</option>
-            <option value="PUT">PUT</option>
-            <option value="DELETE">DELETE</option>
-            <option value="PATCH">PATCH</option>
-          </select>
+        <div class="pane-header" style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;">
+            <div style="flex:1">
+                <h2>Endpoint Signature <span style="color:var(--green);font-size:14px">HMAC-SHA512</span></h2>
+                <p>Generate the <code>X-SIGNATURE</code> for any SNAP service endpoint using HMAC-SHA512.</p>
+            </div>
+            <button class="btn btn-ghost" onclick="openDiagramDrawer('endpoint')" style="font-size: 11px; padding: 4px 10px; height: 26px; border-color: var(--border2); color: var(--text-dim); background: var(--bg2); white-space: nowrap;">
+                ℹ Show Flow Diagram
+            </button>
         </div>
 
-        <div class="field">
-          <label>Endpoint URL (path only) <span class="req">*</span>
-            <span class="hint">e.g. /api/v2.0/balance-inquiry</span>
-          </label>
-          <input type="text" id="e-endpoint" placeholder="/api/v2.0/balance-inquiry" oninput="buildEndpointSts()">
+        <div class="info-strip">
+            <strong style="color:var(--green)">Algorithm:</strong> HMAC-SHA512 with Base64 output &nbsp;|&nbsp;
+            <strong style="color:var(--green)">Key:</strong> clientSecret &nbsp;|&nbsp;
+            Output: Base64-encoded HMAC digest
         </div>
 
-        <div class="field">
-          <label>Access Token <span class="req">*</span>
-            <span class="hint">Bearer token from token endpoint</span>
-          </label>
-          <textarea id="e-access-token" placeholder="eyJhbGci..." style="min-height:64px" oninput="buildEndpointSts()"></textarea>
+        <div class="formula-box">
+            bodyHash &nbsp;&nbsp;&nbsp;= Lowercase( HexEncode( SHA-256( minify(requestBody) ) ) )<br>
+            stringToSign = HTTPMethod + ":" + endpointUrl + ":" + accessToken + ":" + bodyHash + ":" + timestamp<br>
+            X-SIGNATURE &nbsp;= Base64( HMAC_SHA512( clientSecret, stringToSign ) )
         </div>
 
-        <div class="field">
-          <label>Request Body (JSON) <span class="req">*</span>
-            <span class="hint">Will be minified before hashing</span>
-          </label>
-          <textarea class="tall" id="e-body" placeholder='{"partnerReferenceNo":"REF-001","accountNo":"1234567890"}' oninput="buildEndpointSts()"></textarea>
-        </div>
+        <div class="grid2">
 
-        <div class="field">
-          <label>X-TIMESTAMP <span class="req">*</span></label>
-          <div style="display:flex;gap:8px">
-            <input type="text" id="e-timestamp" placeholder="2024-01-01T10:00:00+07:00" oninput="buildEndpointSts()" style="flex:1">
-            <button class="btn btn-ghost" onclick="stampNow('e-timestamp')">Now</button>
-          </div>
-        </div>
+            <!-- LEFT: GENERATE -->
+            <div>
+                <div class="section-label">Generate Signature</div>
 
-        <div class="field">
-          <label>Client Secret <span class="req">*</span></label>
-          <input type="password" id="e-client-secret" placeholder="YOUR_CLIENT_SECRET" oninput="buildEndpointSts()">
-        </div>
+                <div class="card">
+                    <div class="card-title"><span class="dot green"></span> Inputs</div>
 
-        <div style="margin-bottom:12px">
-          <div class="section-label" style="margin-bottom:8px">String to Sign Preview</div>
-          <div class="sts-box" id="e-sts-preview">
-            <span style="color:var(--text-xdim)">Fill in the fields above…</span>
-          </div>
-        </div>
+                    <div class="field">
+                        <label>HTTP Method <span class="req">*</span></label>
+                        <select id="e-method" onchange="buildEndpointSts()">
+                            <option value="POST">POST</option>
+                            <option value="GET">GET</option>
+                            <option value="PUT">PUT</option>
+                            <option value="DELETE">DELETE</option>
+                            <option value="PATCH">PATCH</option>
+                        </select>
+                    </div>
 
-        <div class="btn-row">
-          <button class="btn btn-green" onclick="generateEndpointSig()">⚡ Generate Signature</button>
-          <button class="btn btn-ghost" onclick="clearEndpoint()">Clear</button>
-        </div>
-      </div>
+                    <div class="field">
+                        <label>Endpoint URL (path only) <span class="req">*</span>
+                            <span class="hint">e.g. /api/v2.0/balance-inquiry</span>
+                        </label>
+                        <input type="text" id="e-endpoint" placeholder="/api/v2.0/balance-inquiry"
+                            oninput="buildEndpointSts()">
+                    </div>
 
-      <!-- Generate output -->
-      <div id="e-gen-output" style="display:none">
-        <div class="section-label">Result</div>
-        <div class="card">
-          <div id="e-gen-details"></div>
-        </div>
-      </div>
-    </div>
+                    <div class="field">
+                        <label>Access Token <span class="req">*</span>
+                            <span class="hint">Bearer token from token endpoint</span>
+                        </label>
+                        <textarea id="e-access-token" placeholder="eyJhbGci..." style="min-height:64px"
+                            oninput="buildEndpointSts()"></textarea>
+                    </div>
 
-    <!-- RIGHT: INTERMEDIATE VALUES -->
-    <div>
-      <div class="section-label">Intermediate Computation</div>
+                    <div class="field">
+                        <label>Request Body (JSON) <span class="req">*</span>
+                            <span class="hint">Will be minified before hashing</span>
+                        </label>
+                        <textarea class="tall" id="e-body"
+                            placeholder='{"partnerReferenceNo":"REF-001","accountNo":"1234567890"}'
+                            oninput="buildEndpointSts()"></textarea>
+                    </div>
 
-      <div class="card" id="e-intermediate-card">
-        <div class="card-title"><span class="dot amber"></span> Step-by-Step Breakdown</div>
-        <div id="e-intermediate">
-          <div style="color:var(--text-xdim);font-size:12px;padding:20px 0;text-align:center">
-            Fill in the fields on the left and click Generate to see the computation steps here.
-          </div>
-        </div>
-      </div>
+                    <div class="field">
+                        <label>X-TIMESTAMP <span class="req">*</span></label>
+                        <div style="display:flex;gap:8px">
+                            <input type="text" id="e-timestamp" placeholder="2024-01-01T10:00:00+07:00"
+                                oninput="buildEndpointSts()" style="flex:1">
+                            <button class="btn btn-ghost" onclick="stampNow('e-timestamp')">Now</button>
+                        </div>
+                    </div>
 
-      <div class="section-label" style="margin-top:4px">Quick Verify</div>
-      <div class="card">
-        <div class="card-title"><span class="dot"></span> Compare Signatures</div>
-        <div class="field">
-          <label>Expected X-SIGNATURE
-            <span class="hint">Paste the signature to compare against</span>
-          </label>
-          <textarea id="e-expected-sig" placeholder="Base64 or Hex-encoded HMAC-SHA512 signature to compare (auto-detected)…" style="min-height:64px"></textarea>
-        </div>
-        <div class="btn-row">
-          <button class="btn btn-primary" onclick="compareEndpointSig()">🔍 Compare</button>
-          <button class="btn btn-ghost" onclick="document.getElementById('e-expected-sig').value='';document.getElementById('e-compare-result').style.display='none'">Clear</button>
-        </div>
-        <div id="e-compare-result" style="display:none;margin-top:12px"></div>
-      </div>
-    </div>
+                    <div class="field">
+                        <label>Client Secret <span class="req">*</span></label>
+                        <input type="password" id="e-client-secret" placeholder="YOUR_CLIENT_SECRET"
+                            oninput="buildEndpointSts()">
+                    </div>
 
-  </div><!-- /grid2 -->
+                    <div style="margin-bottom:12px">
+                        <div class="section-label" style="margin-bottom:8px">String to Sign Preview</div>
+                        <div class="sts-box" id="e-sts-preview">
+                            <span style="color:var(--text-xdim)">Fill in the fields above…</span>
+                        </div>
+                    </div>
 
-</div><!-- /pane-endpoint -->
+                    <div class="btn-row">
+                        <button class="btn btn-green" onclick="generateEndpointSig()">⚡ Generate Signature</button>
+                        <button class="btn btn-ghost" onclick="loadEndpointSample()">Load Sample</button>
+                        <button class="btn btn-ghost" onclick="clearEndpoint()">Clear</button>
+                    </div>
+                </div>
+
+                <!-- Generate output -->
+                <div id="e-gen-output" style="display:none">
+                    <div class="section-label">Result</div>
+                    <div class="card">
+                        <div id="e-gen-details"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RIGHT: INTERMEDIATE VALUES -->
+            <div>
+                <div class="section-label">Intermediate Computation</div>
+
+                <div class="card" id="e-intermediate-card">
+                    <div class="card-title"><span class="dot amber"></span> Step-by-Step Breakdown</div>
+                    <div id="e-intermediate">
+                        <div style="color:var(--text-xdim);font-size:12px;padding:20px 0;text-align:center">
+                            Fill in the fields on the left and click Generate to see the computation steps here.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section-label" style="margin-top:4px">Quick Verify</div>
+                <div class="card">
+                    <div class="card-title"><span class="dot"></span> Compare Signatures</div>
+                    <div class="field">
+                        <label>Expected X-SIGNATURE
+                            <span class="hint">Paste the signature to compare against</span>
+                        </label>
+                        <textarea id="e-expected-sig"
+                            placeholder="Base64 or Hex-encoded HMAC-SHA512 signature to compare (auto-detected)…"
+                            style="min-height:64px"></textarea>
+                    </div>
+                    <div class="btn-row">
+                        <button class="btn btn-primary" onclick="compareEndpointSig()">🔍 Compare</button>
+                        <button class="btn btn-ghost"
+                            onclick="document.getElementById('e-expected-sig').value='';document.getElementById('e-compare-result').style.display='none'">Clear</button>
+                    </div>
+                    <div id="e-compare-result" style="display:none;margin-top:12px"></div>
+                </div>
+            </div>
+
+        </div><!-- /grid2 -->
+
+    </div><!-- /pane-endpoint -->
 
 
-<script>
-// ─────────────────────────────────────────────────────────────────────────────
-//  UTILITIES
-// ─────────────────────────────────────────────────────────────────────────────
+    <script>
+        // ─────────────────────────────────────────────────────────────────────────────
+        //  UTILITIES
+        // ─────────────────────────────────────────────────────────────────────────────
 
-function switchTab(id, btn) {
-  document.querySelectorAll('.pane').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  document.getElementById('pane-' + id).classList.add('active');
-  btn.classList.add('active');
-}
+        function toggleTheme() {
+            const body = document.body;
+            const icon = document.getElementById('theme-icon');
+            const text = document.getElementById('theme-text');
+            if (body.classList.contains('light-mode')) {
+                body.classList.remove('light-mode');
+                icon.textContent = '☀';
+                text.textContent = 'Light Mode';
+                localStorage.setItem('theme', 'dark');
+            } else {
+                body.classList.add('light-mode');
+                icon.textContent = '🌙';
+                text.textContent = 'Dark Mode';
+                localStorage.setItem('theme', 'light');
+            }
+        }
 
-function stampNow(fieldId) {
-  const now = new Date();
-  const pad = n => String(n).padStart(2, '0');
-  const off = -now.getTimezoneOffset();
-  const sign = off >= 0 ? '+' : '-';
-  const hh = pad(Math.floor(Math.abs(off) / 60));
-  const mm = pad(Math.abs(off) % 60);
-  const ts = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}${sign}${hh}:${mm}`;
-  document.getElementById(fieldId).value = ts;
-  if (fieldId.startsWith('t')) buildTokenSts();
-  if (fieldId.startsWith('tv')) buildVerifySts();
-  if (fieldId.startsWith('e')) buildEndpointSts();
-}
+        document.addEventListener('DOMContentLoaded', () => {
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme === 'light') {
+                document.body.classList.add('light-mode');
+                const icon = document.getElementById('theme-icon');
+                const text = document.getElementById('theme-text');
+                if (icon && text) {
+                    icon.textContent = '🌙';
+                    text.textContent = 'Dark Mode';
+                }
+            }
+        });
 
-function copyText(text, btn) {
-  navigator.clipboard.writeText(text).then(() => {
-    const orig = btn.textContent;
-    btn.textContent = 'Copied!';
-    btn.style.color = 'var(--green)';
-    setTimeout(() => { btn.textContent = orig; btn.style.color = ''; }, 1500);
-  });
-}
+        function switchTab(id, btn) {
+            document.querySelectorAll('.pane').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('pane-' + id).classList.add('active');
+            btn.classList.add('active');
+        }
 
-function sanitizePem(pem) {
-  return pem.trim().replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-}
+        function stampNow(fieldId) {
+            const now = new Date();
+            const pad = n => String(n).padStart(2, '0');
+            const off = -now.getTimezoneOffset();
+            const sign = off >= 0 ? '+' : '-';
+            const hh = pad(Math.floor(Math.abs(off) / 60));
+            const mm = pad(Math.abs(off) % 60);
+            const ts = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}${sign}${hh}:${mm}`;
+            document.getElementById(fieldId).value = ts;
+            if (fieldId.startsWith('t')) buildTokenSts();
+            if (fieldId.startsWith('tv')) buildVerifySts();
+            if (fieldId.startsWith('e')) buildEndpointSts();
+        }
 
-function minifyJson(str) {
-  // If empty or whitespace → empty string (per SNAP spec)
-  const s = str.trim();
-  if (!s || s === '{}') return '{}';
-  try {
-    return JSON.stringify(JSON.parse(s));
-  } catch {
-    return s; // return as-is if not valid JSON
-  }
-}
+        function copyText(text, btn) {
+            navigator.clipboard.writeText(text).then(() => {
+                const orig = btn.textContent;
+                btn.textContent = 'Copied!';
+                btn.style.color = 'var(--green)';
+                setTimeout(() => { btn.textContent = orig; btn.style.color = ''; }, 1500);
+            });
+        }
 
-async function sha256hex(str) {
-  const enc = new TextEncoder().encode(str);
-  const buf = await crypto.subtle.digest('SHA-256', enc);
-  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
-}
+        function sanitizePem(pem) {
+            return pem.trim().replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+        }
 
-async function hmacSha512both(secret, message) {
-  const enc = new TextEncoder();
-  const keyMat = await crypto.subtle.importKey(
-    'raw', enc.encode(secret), { name: 'HMAC', hash: 'SHA-512' },
-    false, ['sign']
-  );
-  const sigBuf = await crypto.subtle.sign('HMAC', keyMat, enc.encode(message));
-  const bytes  = new Uint8Array(sigBuf);
-  const b64    = btoa(String.fromCharCode(...bytes));
-  const hex    = Array.from(bytes).map(b => b.toString(16).padStart(2,'0')).join('');
-  return { base64: b64, hex };
-}
+        function minifyJson(str) {
+            // If empty or whitespace → empty string (per SNAP spec)
+            const s = str.trim();
+            if (!s || s === '{}') return '{}';
+            try {
+                return JSON.stringify(JSON.parse(s));
+            } catch {
+                return s; // return as-is if not valid JSON
+            }
+        }
 
-// ── Format detection & conversion helpers ───────────────────────────────────
-function isHex(s) {
-  return /^[0-9a-fA-F]+$/.test(s.replace(/\s/g,'')) && s.replace(/\s/g,'').length % 2 === 0;
-}
-function isBase64(s) {
-  return /^[A-Za-z0-9+/]+=*$/.test(s.replace(/\s/g,''));
-}
-function detectFormat(s) {
-  const clean = s.replace(/\s/g,'');
-  // Hex: only hex chars and even length
-  if (/^[0-9a-fA-F]+$/.test(clean) && clean.length % 2 === 0 && clean.length > 32) return 'hex';
-  return 'base64';
-}
-function hexToBase64(hex) {
-  const bytes = hex.match(/.{1,2}/g).map(b => parseInt(b, 16));
-  return btoa(String.fromCharCode(...bytes));
-}
-function base64ToHex(b64) {
-  const bin = atob(b64);
-  return Array.from(bin).map(c => c.charCodeAt(0).toString(16).padStart(2,'0')).join('');
-}
-// Normalise any signature (hex or base64) to raw forge byte-string for RSA verify
-function sigToForgeBytes(sigStr) {
-  const clean = sigStr.replace(/\s/g,'');
-  if (detectFormat(clean) === 'hex') {
-    return forge.util.hexToBytes(clean);
-  }
-  return forge.util.decode64(clean);
-}
+        async function sha256hex(str) {
+            const enc = new TextEncoder().encode(str);
+            const buf = await crypto.subtle.digest('SHA-256', enc);
+            return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+        }
 
-// RSA SHA256 sign (PKCS#1 v1.5) via forge — returns both Base64 and Hex
-function rsaSha256Sign(privatePem, message) {
-  try {
-    const key = forge.pki.privateKeyFromPem(sanitizePem(privatePem));
-    const md = forge.md.sha256.create();
-    md.update(message, 'utf8');
-    const sigBytes = key.sign(md);
-    const sigB64   = forge.util.encode64(sigBytes);
-    const sigHex   = forge.util.bytesToHex(sigBytes);
-    return { ok: true, sig: sigB64, sigBase64: sigB64, sigHex };
-  } catch (e) {
-    return { ok: false, error: e.message };
-  }
-}
+        async function hmacSha512both(secret, message) {
+            const enc = new TextEncoder();
+            const keyMat = await crypto.subtle.importKey(
+                'raw', enc.encode(secret), { name: 'HMAC', hash: 'SHA-512' },
+                false, ['sign']
+            );
+            const sigBuf = await crypto.subtle.sign('HMAC', keyMat, enc.encode(message));
+            const bytes = new Uint8Array(sigBuf);
+            const b64 = btoa(String.fromCharCode(...bytes));
+            const hex = Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+            return { base64: b64, hex };
+        }
 
-// RSA SHA256 verify (PKCS#1 v1.5) via forge — accepts Base64 OR Hex signature
-function rsaSha256Verify(publicPem, message, sigStr) {
-  try {
-    const key      = forge.pki.publicKeyFromPem(sanitizePem(publicPem));
-    const md       = forge.md.sha256.create();
-    md.update(message, 'utf8');
-    const clean    = sigStr.trim().replace(/\s/g,'');
-    const fmt      = detectFormat(clean);
-    const sigBytes = sigToForgeBytes(clean);
-    const result   = key.verify(md.digest().bytes(), sigBytes);
-    return { ok: true, valid: result, detectedFormat: fmt };
-  } catch (e) {
-    return { ok: false, error: e.message };
-  }
-}
+        // ── Format detection & conversion helpers ───────────────────────────────────
+        function isHex(s) {
+            return /^[0-9a-fA-F]+$/.test(s.replace(/\s/g, '')) && s.replace(/\s/g, '').length % 2 === 0;
+        }
+        function isBase64(s) {
+            return /^[A-Za-z0-9+/]+=*$/.test(s.replace(/\s/g, ''));
+        }
+        function detectFormat(s) {
+            const clean = s.replace(/\s/g, '');
+            // Hex: only hex chars and even length
+            if (/^[0-9a-fA-F]+$/.test(clean) && clean.length % 2 === 0 && clean.length > 32) return 'hex';
+            return 'base64';
+        }
+        function hexToBase64(hex) {
+            const bytes = hex.match(/.{1,2}/g).map(b => parseInt(b, 16));
+            return btoa(String.fromCharCode(...bytes));
+        }
+        function base64ToHex(b64) {
+            const bin = atob(b64);
+            return Array.from(bin).map(c => c.charCodeAt(0).toString(16).padStart(2, '0')).join('');
+        }
+        // Normalise any signature (hex or base64) to raw forge byte-string for RSA verify
+        function sigToForgeBytes(sigStr) {
+            const clean = sigStr.replace(/\s/g, '');
+            if (detectFormat(clean) === 'hex') {
+                return forge.util.hexToBytes(clean);
+            }
+            return forge.util.decode64(clean);
+        }
 
-function escapeHtml(s) {
-  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-}
+        // RSA SHA256 sign (PKCS#1 v1.5) via forge — returns both Base64 and Hex
+        function rsaSha256Sign(privatePem, message) {
+            try {
+                const key = forge.pki.privateKeyFromPem(sanitizePem(privatePem));
+                const md = forge.md.sha256.create();
+                md.update(message, 'utf8');
+                const sigBytes = key.sign(md);
+                const sigB64 = forge.util.encode64(sigBytes);
+                const sigHex = forge.util.bytesToHex(sigBytes);
+                return { ok: true, sig: sigB64, sigBase64: sigB64, sigHex };
+            } catch (e) {
+                return { ok: false, error: e.message };
+            }
+        }
 
-// ─────────────────────────────────────────────────────────────────────────────
-//  TAB 1 — TOKEN SIGNATURE
-// ─────────────────────────────────────────────────────────────────────────────
+        // RSA SHA256 verify (PKCS#1 v1.5) via forge — accepts Base64 OR Hex signature
+        function rsaSha256Verify(publicPem, message, sigStr) {
+            try {
+                const key = forge.pki.publicKeyFromPem(sanitizePem(publicPem));
+                const md = forge.md.sha256.create();
+                md.update(message, 'utf8');
+                const clean = sigStr.trim().replace(/\s/g, '');
+                const fmt = detectFormat(clean);
+                const sigBytes = sigToForgeBytes(clean);
+                const result = key.verify(md.digest().bytes(), sigBytes);
+                return { ok: true, valid: result, detectedFormat: fmt };
+            } catch (e) {
+                return { ok: false, error: e.message };
+            }
+        }
 
-// Keep a reference to last generated token sig for cross-panel copy
-let lastTokenSig = '';
-let lastTokenSigHex = '';
-let lastTokenSts = '';
+        function escapeHtml(s) {
+            return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
 
-function buildTokenSts() {
-  const clientId  = document.getElementById('t-client-id').value;
-  const timestamp = document.getElementById('t-timestamp').value;
-  const preview   = document.getElementById('t-sts-preview');
+        // ─────────────────────────────────────────────────────────────────────────────
+        //  TAB 1 — TOKEN SIGNATURE
+        // ─────────────────────────────────────────────────────────────────────────────
 
-  if (!clientId && !timestamp) {
-    preview.innerHTML = '<span style="color:var(--text-xdim)">Fill in Client ID and Timestamp above…</span>';
-    lastTokenSts = '';
-    return;
-  }
-  const sts = `${clientId}|${timestamp}`;
-  lastTokenSts = sts;
-  preview.innerHTML =
-    `<span class="sts-part">${escapeHtml(clientId)}</span>` +
-    `<span class="sts-sep"> | </span>` +
-    `<span class="sts-part">${escapeHtml(timestamp)}</span>`;
-}
+        // Keep a reference to last generated token sig for cross-panel copy
+        let lastTokenSig = '';
+        let lastTokenSigHex = '';
+        let lastTokenSts = '';
 
-function buildVerifySts() {
-  const clientId  = document.getElementById('tv-client-id').value;
-  const timestamp = document.getElementById('tv-timestamp').value;
-  const preview   = document.getElementById('tv-sts-preview');
+        function buildTokenSts() {
+            const clientId = document.getElementById('t-client-id').value;
+            const timestamp = document.getElementById('t-timestamp').value;
+            const preview = document.getElementById('t-sts-preview');
 
-  if (!clientId && !timestamp) {
-    preview.innerHTML = '<span style="color:var(--text-xdim)">Fill in Client ID and Timestamp above…</span>';
-    return;
-  }
-  const sts = `${clientId}|${timestamp}`;
-  preview.innerHTML =
-    `<span class="sts-part">${escapeHtml(clientId)}</span>` +
-    `<span class="sts-sep"> | </span>` +
-    `<span class="sts-part">${escapeHtml(timestamp)}</span>`;
-}
+            if (!clientId && !timestamp) {
+                preview.innerHTML = '<span style="color:var(--text-xdim)">Fill in Client ID and Timestamp above…</span>';
+                lastTokenSts = '';
+                return;
+            }
+            const sts = `${clientId}|${timestamp}`;
+            lastTokenSts = sts;
+            preview.innerHTML =
+                `<span class="sts-part">${escapeHtml(clientId)}</span>` +
+                `<span class="sts-sep"> | </span>` +
+                `<span class="sts-part">${escapeHtml(timestamp)}</span>`;
+        }
 
-function generateTokenSig() {
-  const clientId   = document.getElementById('t-client-id').value.trim();
-  const timestamp  = document.getElementById('t-timestamp').value.trim();
-  const privateKey = document.getElementById('t-private-key').value.trim();
+        function buildVerifySts() {
+            const clientId = document.getElementById('tv-client-id').value;
+            const timestamp = document.getElementById('tv-timestamp').value;
+            const preview = document.getElementById('tv-sts-preview');
 
-  const out     = document.getElementById('t-gen-output');
-  const details = document.getElementById('t-gen-details');
+            if (!clientId && !timestamp) {
+                preview.innerHTML = '<span style="color:var(--text-xdim)">Fill in Client ID and Timestamp above…</span>';
+                return;
+            }
+            const sts = `${clientId}|${timestamp}`;
+            preview.innerHTML =
+                `<span class="sts-part">${escapeHtml(clientId)}</span>` +
+                `<span class="sts-sep"> | </span>` +
+                `<span class="sts-part">${escapeHtml(timestamp)}</span>`;
+        }
 
-  if (!clientId || !timestamp || !privateKey) {
-    details.innerHTML = renderError('All fields are required: Client ID, Timestamp, and Private Key.');
-    out.style.display = 'block';
-    document.getElementById('t-copy-to-verify').style.display = 'none';
-    return;
-  }
+        function generateTokenSig() {
+            const clientId = document.getElementById('t-client-id').value.trim();
+            const timestamp = document.getElementById('t-timestamp').value.trim();
+            const privateKey = document.getElementById('t-private-key').value.trim();
 
-  const stringToSign = `${clientId}|${timestamp}`;
-  const result = rsaSha256Sign(privateKey, stringToSign);
+            const out = document.getElementById('t-gen-output');
+            const details = document.getElementById('t-gen-details');
 
-  if (!result.ok) {
-    details.innerHTML = renderError(`RSA signing failed: ${result.error}`);
-    out.style.display = 'block';
-    document.getElementById('t-copy-to-verify').style.display = 'none';
-    return;
-  }
+            if (!clientId || !timestamp || !privateKey) {
+                details.innerHTML = renderError('All fields are required: Client ID, Timestamp, and Private Key.');
+                out.style.display = 'block';
+                document.getElementById('t-copy-to-verify').style.display = 'none';
+                return;
+            }
 
-  lastTokenSig    = result.sigBase64;
-  lastTokenSigHex = result.sigHex;
+            const stringToSign = `${clientId}|${timestamp}`;
+            const result = rsaSha256Sign(privateKey, stringToSign);
 
-  details.innerHTML = `
+            if (!result.ok) {
+                details.innerHTML = renderError(`RSA signing failed: ${result.error}`);
+                out.style.display = 'block';
+                document.getElementById('t-copy-to-verify').style.display = 'none';
+                return;
+            }
+
+            lastTokenSig = result.sigBase64;
+            lastTokenSigHex = result.sigHex;
+
+            details.innerHTML = `
     <div class="result-label ok">✔ Signature Generated</div>
     <div class="hash-row"><div class="hash-key">Algorithm</div><div class="hash-val">SHA256withRSA (PKCS#1 v1.5)</div></div>
     <div class="hash-row"><div class="hash-key">String to Sign</div><div class="hash-val highlight">${escapeHtml(stringToSign)}</div></div>
@@ -985,44 +1409,44 @@ function generateTokenSig() {
       <button class="copy-btn" style="top:10px" onclick="copyText(lastTokenSigHex, this)">Copy</button>
     </div>
   `;
-  out.style.display = 'block';
-  document.getElementById('t-copy-to-verify').style.display = 'block';
-}
+            out.style.display = 'block';
+            document.getElementById('t-copy-to-verify').style.display = 'block';
+        }
 
-function verifyTokenSig() {
-  const clientId  = document.getElementById('tv-client-id').value.trim();
-  const timestamp = document.getElementById('tv-timestamp').value.trim();
-  const publicKey = document.getElementById('tv-public-key').value.trim();
-  const signature = document.getElementById('tv-signature').value.trim();
+        function verifyTokenSig() {
+            const clientId = document.getElementById('tv-client-id').value.trim();
+            const timestamp = document.getElementById('tv-timestamp').value.trim();
+            const publicKey = document.getElementById('tv-public-key').value.trim();
+            const signature = document.getElementById('tv-signature').value.trim();
 
-  const out     = document.getElementById('t-verify-output');
-  const verdict = document.getElementById('t-verdict');
+            const out = document.getElementById('t-verify-output');
+            const verdict = document.getElementById('t-verdict');
 
-  if (!clientId || !timestamp || !publicKey || !signature) {
-    verdict.innerHTML = renderWarn('All fields are required: Client ID, Timestamp, Public Key, and Signature.');
-    out.style.display = 'block';
-    return;
-  }
+            if (!clientId || !timestamp || !publicKey || !signature) {
+                verdict.innerHTML = renderWarn('All fields are required: Client ID, Timestamp, Public Key, and Signature.');
+                out.style.display = 'block';
+                return;
+            }
 
-  const stringToSign = `${clientId}|${timestamp}`;
-  const result = rsaSha256Verify(publicKey, stringToSign, signature);
+            const stringToSign = `${clientId}|${timestamp}`;
+            const result = rsaSha256Verify(publicKey, stringToSign, signature);
 
-  if (!result.ok) {
-    verdict.innerHTML = renderError(`Verification error: ${result.error}`);
-    out.style.display = 'block';
-    return;
-  }
+            if (!result.ok) {
+                verdict.innerHTML = renderError(`Verification error: ${result.error}`);
+                out.style.display = 'block';
+                return;
+            }
 
-  const fmtLabel = result.detectedFormat === 'hex'
-    ? '<span style="color:var(--amber)">Hex</span>'
-    : '<span style="color:var(--cyan)">Base64</span>';
-  const clean = signature.trim().replace(/\s/g,'');
-  const altFmt = result.detectedFormat === 'hex'
-    ? { label:'Base64', val: hexToBase64(clean) }
-    : { label:'Hex',    val: base64ToHex(clean) };
+            const fmtLabel = result.detectedFormat === 'hex'
+                ? '<span style="color:var(--amber)">Hex</span>'
+                : '<span style="color:var(--cyan)">Base64</span>';
+            const clean = signature.trim().replace(/\s/g, '');
+            const altFmt = result.detectedFormat === 'hex'
+                ? { label: 'Base64', val: hexToBase64(clean) }
+                : { label: 'Hex', val: base64ToHex(clean) };
 
-  if (result.valid) {
-    verdict.innerHTML = `
+            if (result.valid) {
+                verdict.innerHTML = `
       <div class="verdict valid">
         <span class="v-icon">✔</span>
         SIGNATURE VALID — The signature is authentic and matches the string to sign.
@@ -1034,13 +1458,13 @@ function verifyTokenSig() {
         <div class="hash-row" style="position:relative;padding-right:80px">
           <div class="hash-key">As ${altFmt.label}</div>
           <div class="hash-val" style="word-break:break-all;color:var(--text-dim)">${escapeHtml(altFmt.val)}</div>
-          <button class="copy-btn" onclick="copyText('${altFmt.val.replace(/'/g,"\'")}',this)">Copy</button>
+          <button class="copy-btn" onclick="copyText('${altFmt.val.replace(/'/g, "\'")}',this)">Copy</button>
         </div>
         <div class="hash-row"><div class="hash-key">Status</div><div class="hash-val" style="color:var(--green)">✔ Verified OK</div></div>
       </div>
     `;
-  } else {
-    verdict.innerHTML = `
+            } else {
+                verdict.innerHTML = `
       <div class="verdict invalid">
         <span class="v-icon">✘</span>
         SIGNATURE INVALID — Signature does not match. Wrong key, message, or corrupted signature.
@@ -1052,119 +1476,119 @@ function verifyTokenSig() {
         <div class="hash-row"><div class="hash-key">Possible Causes</div><div class="hash-val" style="color:var(--red)">Wrong public key, tampered clientId/timestamp, or signature truncated/corrupted.</div></div>
       </div>
     `;
-  }
-  out.style.display = 'block';
-}
+            }
+            out.style.display = 'block';
+        }
 
-function copyGenToVerify(fmt) {
-  const sig = (fmt === 'hex') ? lastTokenSigHex : lastTokenSig;
-  if (!sig) return;
-  document.getElementById('tv-signature').value = sig;
-  const cid = document.getElementById('t-client-id').value;
-  const ts  = document.getElementById('t-timestamp').value;
-  if (!document.getElementById('tv-client-id').value && cid)
-    document.getElementById('tv-client-id').value = cid;
-  if (!document.getElementById('tv-timestamp').value && ts)
-    document.getElementById('tv-timestamp').value = ts;
-  buildVerifySts();
-  const btn = event.target;
-  const orig = btn.textContent;
-  btn.textContent = '✔ Copied!';
-  setTimeout(() => { btn.textContent = orig; }, 2000);
-}
+        function copyGenToVerify(fmt) {
+            const sig = (fmt === 'hex') ? lastTokenSigHex : lastTokenSig;
+            if (!sig) return;
+            document.getElementById('tv-signature').value = sig;
+            const cid = document.getElementById('t-client-id').value;
+            const ts = document.getElementById('t-timestamp').value;
+            if (!document.getElementById('tv-client-id').value && cid)
+                document.getElementById('tv-client-id').value = cid;
+            if (!document.getElementById('tv-timestamp').value && ts)
+                document.getElementById('tv-timestamp').value = ts;
+            buildVerifySts();
+            const btn = event.target;
+            const orig = btn.textContent;
+            btn.textContent = '✔ Copied!';
+            setTimeout(() => { btn.textContent = orig; }, 2000);
+        }
 
-function clearToken() {
-  ['t-client-id','t-timestamp','t-private-key'].forEach(id => document.getElementById(id).value = '');
-  document.getElementById('t-sts-preview').innerHTML = '<span style="color:var(--text-xdim)">Fill in Client ID and Timestamp above…</span>';
-  document.getElementById('t-gen-output').style.display = 'none';
-  document.getElementById('t-copy-to-verify').style.display = 'none';
-  lastTokenSig = ''; lastTokenSigHex = '';
-}
+        function clearToken() {
+            ['t-client-id', 't-timestamp', 't-private-key'].forEach(id => document.getElementById(id).value = '');
+            document.getElementById('t-sts-preview').innerHTML = '<span style="color:var(--text-xdim)">Fill in Client ID and Timestamp above…</span>';
+            document.getElementById('t-gen-output').style.display = 'none';
+            document.getElementById('t-copy-to-verify').style.display = 'none';
+            lastTokenSig = ''; lastTokenSigHex = '';
+        }
 
-function clearVerify() {
-  ['tv-client-id','tv-timestamp','tv-public-key','tv-signature'].forEach(id => document.getElementById(id).value = '');
-  document.getElementById('tv-sts-preview').innerHTML = '<span style="color:var(--text-xdim)">Fill in Client ID and Timestamp above…</span>';
-  document.getElementById('t-verify-output').style.display = 'none';
-}
+        function clearVerify() {
+            ['tv-client-id', 'tv-timestamp', 'tv-public-key', 'tv-signature'].forEach(id => document.getElementById(id).value = '');
+            document.getElementById('tv-sts-preview').innerHTML = '<span style="color:var(--text-xdim)">Fill in Client ID and Timestamp above…</span>';
+            document.getElementById('t-verify-output').style.display = 'none';
+        }
 
-// ─────────────────────────────────────────────────────────────────────────────
-//  TAB 2 — ENDPOINT SIGNATURE
-// ─────────────────────────────────────────────────────────────────────────────
+        // ─────────────────────────────────────────────────────────────────────────────
+        //  TAB 2 — ENDPOINT SIGNATURE
+        // ─────────────────────────────────────────────────────────────────────────────
 
-let lastEndpointSig = '';
-let lastEndpointSigHex = '';
+        let lastEndpointSig = '';
+        let lastEndpointSigHex = '';
 
-async function buildEndpointSts() {
-  const method    = document.getElementById('e-method').value;
-  const endpoint  = document.getElementById('e-endpoint').value;
-  const token     = document.getElementById('e-access-token').value.trim();
-  const body      = document.getElementById('e-body').value;
-  const timestamp = document.getElementById('e-timestamp').value;
-  const preview   = document.getElementById('e-sts-preview');
+        async function buildEndpointSts() {
+            const method = document.getElementById('e-method').value;
+            const endpoint = document.getElementById('e-endpoint').value;
+            const token = document.getElementById('e-access-token').value.trim();
+            const body = document.getElementById('e-body').value;
+            const timestamp = document.getElementById('e-timestamp').value;
+            const preview = document.getElementById('e-sts-preview');
 
-  const hasAny = method || endpoint || token || body || timestamp;
-  if (!hasAny) {
-    preview.innerHTML = '<span style="color:var(--text-xdim)">Fill in the fields above…</span>';
-    return;
-  }
+            const hasAny = method || endpoint || token || body || timestamp;
+            if (!hasAny) {
+                preview.innerHTML = '<span style="color:var(--text-xdim)">Fill in the fields above…</span>';
+                return;
+            }
 
-  const minBody   = minifyJson(body || '{}');
-  const bodyHash  = body.trim() ? await sha256hex(minBody) : await sha256hex('{}');
+            const minBody = minifyJson(body || '{}');
+            const bodyHash = body.trim() ? await sha256hex(minBody) : await sha256hex('{}');
 
-  const parts = [
-    { val: method,    label: 'HTTPMethod' },
-    { val: endpoint,  label: 'EndpointURL' },
-    { val: token ? token.substring(0,20)+'…' : '', label: 'AccessToken' },
-    { val: bodyHash,  label: 'SHA256(body)' },
-    { val: timestamp, label: 'Timestamp' },
-  ];
+            const parts = [
+                { val: method, label: 'HTTPMethod' },
+                { val: endpoint, label: 'EndpointURL' },
+                { val: token ? token.substring(0, 20) + '…' : '', label: 'AccessToken' },
+                { val: bodyHash, label: 'SHA256(body)' },
+                { val: timestamp, label: 'Timestamp' },
+            ];
 
-  preview.innerHTML = parts.map((p, i) =>
-    `<span style="color:var(--text-xdim);font-size:10px">${p.label}:</span> ` +
-    `<span class="sts-part">${escapeHtml(p.val || '…')}</span>` +
-    (i < parts.length - 1 ? '<span class="sts-sep"> : </span>' : '')
-  ).join('');
-}
+            preview.innerHTML = parts.map((p, i) =>
+                `<span style="color:var(--text-xdim);font-size:10px">${p.label}:</span> ` +
+                `<span class="sts-part">${escapeHtml(p.val || '…')}</span>` +
+                (i < parts.length - 1 ? '<span class="sts-sep"> : </span>' : '')
+            ).join('');
+        }
 
-async function generateEndpointSig() {
-  const method    = document.getElementById('e-method').value;
-  const endpoint  = document.getElementById('e-endpoint').value.trim();
-  const token     = document.getElementById('e-access-token').value.trim();
-  const body      = document.getElementById('e-body').value;
-  const timestamp = document.getElementById('e-timestamp').value.trim();
-  const secret    = document.getElementById('e-client-secret').value.trim();
+        async function generateEndpointSig() {
+            const method = document.getElementById('e-method').value;
+            const endpoint = document.getElementById('e-endpoint').value.trim();
+            const token = document.getElementById('e-access-token').value.trim();
+            const body = document.getElementById('e-body').value;
+            const timestamp = document.getElementById('e-timestamp').value.trim();
+            const secret = document.getElementById('e-client-secret').value.trim();
 
-  const out     = document.getElementById('e-gen-output');
-  const details = document.getElementById('e-gen-details');
-  const inter   = document.getElementById('e-intermediate');
+            const out = document.getElementById('e-gen-output');
+            const details = document.getElementById('e-gen-details');
+            const inter = document.getElementById('e-intermediate');
 
-  if (!endpoint || !token || !timestamp || !secret) {
-    details.innerHTML = renderError('Required fields: Endpoint URL, Access Token, Timestamp, Client Secret.');
-    out.style.display = 'block';
-    return;
-  }
+            if (!endpoint || !token || !timestamp || !secret) {
+                details.innerHTML = renderError('Required fields: Endpoint URL, Access Token, Timestamp, Client Secret.');
+                out.style.display = 'block';
+                return;
+            }
 
-  const rawBody   = body.trim() || '{}';
-  const minBody   = minifyJson(rawBody);
-  const bodyHash  = await sha256hex(minBody);
-  const sts       = `${method}:${endpoint}:${token}:${bodyHash}:${timestamp}`;
-  const sigPair   = await hmacSha512both(secret, sts);
+            const rawBody = body.trim() || '{}';
+            const minBody = minifyJson(rawBody);
+            const bodyHash = await sha256hex(minBody);
+            const sts = `${method}:${endpoint}:${token}:${bodyHash}:${timestamp}`;
+            const sigPair = await hmacSha512both(secret, sts);
 
-  lastEndpointSig    = sigPair.base64;
-  lastEndpointSigHex = sigPair.hex;
+            lastEndpointSig = sigPair.base64;
+            lastEndpointSigHex = sigPair.hex;
 
-  // Intermediate steps panel
-  inter.innerHTML = `
-    <div class="hash-row"><div class="hash-key">1. Raw Body</div><div class="hash-val" style="font-size:10.5px">${escapeHtml(rawBody.length > 200 ? rawBody.substring(0,200)+'…' : rawBody)}</div></div>
-    <div class="hash-row"><div class="hash-key">2. Minified Body</div><div class="hash-val" style="font-size:10.5px">${escapeHtml(minBody.length > 200 ? minBody.substring(0,200)+'…' : minBody)}</div></div>
+            // Intermediate steps panel
+            inter.innerHTML = `
+    <div class="hash-row"><div class="hash-key">1. Raw Body</div><div class="hash-val" style="font-size:10.5px">${escapeHtml(rawBody.length > 200 ? rawBody.substring(0, 200) + '…' : rawBody)}</div></div>
+    <div class="hash-row"><div class="hash-key">2. Minified Body</div><div class="hash-val" style="font-size:10.5px">${escapeHtml(minBody.length > 200 ? minBody.substring(0, 200) + '…' : minBody)}</div></div>
     <div class="hash-row"><div class="hash-key">3. SHA-256(body)<br><span style="font-size:10px;color:var(--text-xdim)">hex, lowercase</span></div><div class="hash-val highlight" style="font-size:10.5px">${bodyHash}</div></div>
-    <div class="hash-row"><div class="hash-key">4. String to Sign</div><div class="hash-val" style="font-size:10.5px;color:var(--amber)">${escapeHtml(method)}:<wbr>${escapeHtml(endpoint)}:<wbr>${escapeHtml(token.substring(0,20))}…:<wbr>${bodyHash}:<wbr>${escapeHtml(timestamp)}</div></div>
+    <div class="hash-row"><div class="hash-key">4. String to Sign</div><div class="hash-val" style="font-size:10.5px;color:var(--amber)">${escapeHtml(method)}:<wbr>${escapeHtml(endpoint)}:<wbr>${escapeHtml(token.substring(0, 20))}…:<wbr>${bodyHash}:<wbr>${escapeHtml(timestamp)}</div></div>
     <div class="hash-row"><div class="hash-key">5a. HMAC-SHA512<br><span style="font-size:10px;color:var(--text-xdim)">(Base64)</span></div><div class="hash-val highlight" style="word-break:break-all">${escapeHtml(sigPair.base64)}</div></div>
     <div class="hash-row"><div class="hash-key">5b. HMAC-SHA512<br><span style="font-size:10px;color:var(--text-xdim)">(Hex)</span></div><div class="hash-val" style="word-break:break-all;color:var(--amber)">${escapeHtml(sigPair.hex)}</div></div>
   `;
 
-  // Main result
-  details.innerHTML = `
+            // Main result
+            details.innerHTML = `
     <div class="result-label ok">✔ Signature Generated</div>
     <div class="hash-row"><div class="hash-key">Algorithm</div><div class="hash-val">HMAC-SHA512</div></div>
     <div class="hash-row"><div class="hash-key">Body Hash (SHA-256)</div><div class="hash-val">${bodyHash}</div></div>
@@ -1179,38 +1603,38 @@ async function generateEndpointSig() {
       <button class="copy-btn" style="top:10px" onclick="copyText(lastEndpointSigHex, this)">Copy</button>
     </div>
   `;
-  out.style.display = 'block';
-}
+            out.style.display = 'block';
+        }
 
-async function compareEndpointSig() {
-  const expected = document.getElementById('e-expected-sig').value.trim();
-  const result   = document.getElementById('e-compare-result');
+        async function compareEndpointSig() {
+            const expected = document.getElementById('e-expected-sig').value.trim();
+            const result = document.getElementById('e-compare-result');
 
-  if (!expected) {
-    result.innerHTML = renderWarn('Paste an expected signature to compare against.');
-    result.style.display = 'block';
-    return;
-  }
+            if (!expected) {
+                result.innerHTML = renderWarn('Paste an expected signature to compare against.');
+                result.style.display = 'block';
+                return;
+            }
 
-  if (!lastEndpointSig) {
-    result.innerHTML = renderWarn('Generate a signature first using the form on the left.');
-    result.style.display = 'block';
-    return;
-  }
+            if (!lastEndpointSig) {
+                result.innerHTML = renderWarn('Generate a signature first using the form on the left.');
+                result.style.display = 'block';
+                return;
+            }
 
-  // Normalise both inputs to hex for format-agnostic comparison
-  const cleanStr  = s => s.replace(/\s/g,'');
-  const toHexNorm = s => { const c = cleanStr(s); return detectFormat(c) === 'hex' ? c.toLowerCase() : base64ToHex(c); };
+            // Normalise both inputs to hex for format-agnostic comparison
+            const cleanStr = s => s.replace(/\s/g, '');
+            const toHexNorm = s => { const c = cleanStr(s); return detectFormat(c) === 'hex' ? c.toLowerCase() : base64ToHex(c); };
 
-  const aHex = toHexNorm(lastEndpointSig);      // always base64 from generation
-  const bHex = toHexNorm(expected);
-  const bFmt = detectFormat(cleanStr(expected));
-  const fmtLabel = bFmt === 'hex'
-    ? '<span style="color:var(--amber)">Hex</span>'
-    : '<span style="color:var(--cyan)">Base64</span>';
+            const aHex = toHexNorm(lastEndpointSig);      // always base64 from generation
+            const bHex = toHexNorm(expected);
+            const bFmt = detectFormat(cleanStr(expected));
+            const fmtLabel = bFmt === 'hex'
+                ? '<span style="color:var(--amber)">Hex</span>'
+                : '<span style="color:var(--cyan)">Base64</span>';
 
-  if (aHex === bHex) {
-    result.innerHTML = `
+            if (aHex === bHex) {
+                result.innerHTML = `
       <div class="verdict valid">
         <span class="v-icon">✔</span>
         SIGNATURES MATCH — Identical after normalising to ${bFmt === 'hex' ? 'Hex' : 'Base64'}.
@@ -1218,18 +1642,18 @@ async function compareEndpointSig() {
       <div style="margin-top:10px;font-size:11px;color:var(--text-dim)">
         Input format detected: ${fmtLabel}
       </div>`;
-  } else {
-    // Show first differing nibble in hex representation
-    let diffAt = -1;
-    const minLen = Math.min(aHex.length, bHex.length);
-    for (let i = 0; i < minLen; i++) {
-      if (aHex[i] !== bHex[i]) { diffAt = Math.floor(i/2); break; }
-    }
-    const diffMsg = diffAt >= 0
-      ? `First difference at byte ${diffAt} (hex char position ${diffAt*2}).`
-      : `Lengths differ after normalisation (computed: ${aHex.length/2} bytes, expected: ${bHex.length/2} bytes).`;
+            } else {
+                // Show first differing nibble in hex representation
+                let diffAt = -1;
+                const minLen = Math.min(aHex.length, bHex.length);
+                for (let i = 0; i < minLen; i++) {
+                    if (aHex[i] !== bHex[i]) { diffAt = Math.floor(i / 2); break; }
+                }
+                const diffMsg = diffAt >= 0
+                    ? `First difference at byte ${diffAt} (hex char position ${diffAt * 2}).`
+                    : `Lengths differ after normalisation (computed: ${aHex.length / 2} bytes, expected: ${bHex.length / 2} bytes).`;
 
-    result.innerHTML = `
+                result.innerHTML = `
       <div class="verdict invalid">
         <span class="v-icon">✘</span>
         SIGNATURES DO NOT MATCH
@@ -1241,38 +1665,261 @@ async function compareEndpointSig() {
         <div class="hash-row"><div class="hash-key">Expected (Hex)</div><div class="hash-val" style="font-size:10.5px;word-break:break-all;color:var(--amber)">${escapeHtml(bHex)}</div></div>
       </div>
     `;
-  }
-  result.style.display = 'block';
-}
+            }
+            result.style.display = 'block';
+        }
 
-function clearEndpoint() {
-  ['e-endpoint','e-access-token','e-body','e-timestamp','e-client-secret','e-expected-sig'].forEach(id => {
-    document.getElementById(id).value = '';
-  });
-  document.getElementById('e-method').value = 'POST';
-  document.getElementById('e-sts-preview').innerHTML = '<span style="color:var(--text-xdim)">Fill in the fields above…</span>';
-  document.getElementById('e-gen-output').style.display = 'none';
-  document.getElementById('e-compare-result').style.display = 'none';
-  document.getElementById('e-intermediate').innerHTML = `
+        const SAMPLE_PRIVATE_KEY = `-----BEGIN RSA PRIVATE KEY-----
+MIIEowIBAAKCAQEAuQzeoY5/o4UcKejXEfwXJ8KjSVTyVXetuh0QaP+KrSdm8PfM
+p440Pwd2nvOLrQhvQkj48jJA1RA+DVhrawZd0L7ukwFjo+gNZ3g4Dk2nrTcBTZUX
+RdOXS8EvmOUYK45aMK6p2q8uw0S9mjBvwWlbbd0KcaVXlsl4hTjqiHxoLlnK7mLc
+uL32OasjVeK9X4GP0hbGGo9NDjsxo6ELVzS338K9Xhn7T8Mi3DEGURvfnw0AScWf
+Vn/ygdd9aM/Sf5vWZxoInuw/AYuk1iKyk5HixdL1RKPyo/w3qtH1TXTZxtd6oDV4
+h6yOn84Hkd7sjoAp9Mdf61Vxo688QTSLOMb6+QIDAQABAoIBABoXDmyIwsYzRj1C
+btBCUqFwd8UnDOOv8/aBkoa7QLoZDBJ9XYViL0uTqc3PWKoUvlsCHtdG7o0btSP8
+i2iThTahNNHVKE87sGgeMwkROcraLnzZwGY/5tzvZ96OrlG1yFGEzr3eZSFy16id
+m6QRTqq2t3o+bZL85NkjpS2JHMcr9BLrEnQePVlKcCMMzLuxNO70UaXchu4JMFq7
+lVbjx437mvQ/df0ki+/UicD3d+XHOfEzZm0KJYiU7D00RJfd18cOcuhm++ae1X0s
+M2+32UwfXHSvTrzVKavGKKNndTIqOf0T1pqyDD4xcPMUa4qZzSUtTQJ2+jHXwMgE
+NSI/mWECgYEA8aAWWYDL/BsvoFUUrZRBzq06GCptUFGI1wiNFinE75dHLroK8Mfh
+N2oflzwzwLQleBWShGZdeGgCkWR3wdgdck+oovmREZX7YmoVJTTfUQX4bY5GdHdi
+jZJfdJr4S8QSadzKc9gKLYmMf4PhsSGlXyRYQPXKRIkrxBDF3ZlsuXsCgYEAxA8n
+WVmdthZJmh+yzixi+ourreCrDYLYFAOV1vcaRT36T+tcjg91gWDEQe9qM9QZaPCr
+6X++qlgLwZ+z/3kaN6B3/fKoaY1mQTPuD89sgFng8RpxyhVw7FdmMKPa9XldqfB4
+4UN0FbiQdfnkcjLbdtbLQ8I7sruYc/v8Y2oG0RsCgYEAgUlyjAOhokz9p+G+hb5t
+k+QW0LVq9m4aNU0rCO/io3yjpvn/PqUE+jy7mJWq73K1FdMdKeEIJJQqw5cpiTxV
+TUQYbNPy7qD8+MTgeZ8X2ufB7QUS5+C1iCEJGICPWSMZ4zEz1taDY6hU2Co+CiSB
+sy3kVyXtS8zF8Uw0Q4WDqp8CgYAxi+rTx7P1ejhrfKtBMzJoQrfGH0rbBT/5/tX1
+F0lKSllhrQcc14dIhN3UE97w7h7lyDyJq8DRZ6LA8c0ZOM+JU0I/qP0qf5Nh0u/M
+iwzOeug/xgEPos+Ayq2GiUIiWuNyuNSziMpjWtsXFWnH+lY/+BQyMXnIt2PVm86y
+iO7kFQKBgHJg58DMXyalck3mo7J4yZoZxxDFe1BRpJgZliALX/9o7Nls4Ia5ZZN0
+N4ItTOeUmCCgjiJFfbbxx3IVWyO4g10y1lcJ7zl75qH2507bG5AgczTd0PzMzsPR
+elaexBdlA8oQE8hc0+lmVRWIYhg0PqO5QC5esgF+TzpRkMV/3kz7
+-----END RSA PRIVATE KEY-----`;
+
+        const SAMPLE_PUBLIC_KEY = `-----BEGIN PUBLIC KEY-----
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAuQzeoY5/o4UcKejXEfwX
+J8KjSVTyVXetuh0QaP+KrSdm8PfMp440Pwd2nvOLrQhvQkj48jJA1RA+DVhrawZd
+0L7ukwFjo+gNZ3g4Dk2nrTcBTZUXRdOXS8EvmOUYK45aMK6p2q8uw0S9mjBvwWlb
+bd0KcaVXlsl4hTjqiHxoLlnK7mLcuL32OasjVeK9X4GP0hbGGo9NDjsxo6ELVzS3
+38K9Xhn7T8Mi3DEGURvfnw0AScWfVn/ygdd9aM/Sf5vWZxoInuw/AYuk1iKyk5Hi
+xdL1RKPyo/w3qtH1TXTZxtd6oDV4h6yOn84Hkd7sjoAp9Mdf61Vxo688QTSLOMb6
++QIDAQAB
+-----END PUBLIC KEY-----`;
+
+        function loadTokenSample() {
+            document.getElementById('t-client-id').value = 'DEV-CLIENT-09876';
+            document.getElementById('t-timestamp').value = '2026-07-07T10:00:00+07:00';
+            document.getElementById('t-private-key').value = SAMPLE_PRIVATE_KEY.trim();
+
+            document.getElementById('tv-client-id').value = 'DEV-CLIENT-09876';
+            document.getElementById('tv-timestamp').value = '2026-07-07T10:00:00+07:00';
+            document.getElementById('tv-public-key').value = SAMPLE_PUBLIC_KEY.trim();
+
+            buildTokenSts();
+            buildVerifySts();
+        }
+
+        function loadEndpointSample() {
+            document.getElementById('e-method').value = 'POST';
+            document.getElementById('e-endpoint').value = '/api/v1.0/transfer-rtgs';
+            document.getElementById('e-access-token').value = 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzbmFwIiwiZXhwIjoyNTk5OTk5OTk5fQ.mockSignatureHere...';
+            document.getElementById('e-body').value = JSON.stringify({
+                partnerReferenceNo: "2026070700000001",
+                amount: {
+                    value: "1000000.00",
+                    currency: "IDR"
+                },
+                beneficiaryAccountNo: "9876543210",
+                sourceAccountNo: "1234567890"
+            }, null, 2);
+            document.getElementById('e-timestamp').value = '2026-07-07T10:00:00+07:00';
+            document.getElementById('e-client-secret').value = 'super-secure-client-secret-998877';
+
+            buildEndpointSts();
+        }
+
+        function clearEndpoint() {
+            ['e-endpoint', 'e-access-token', 'e-body', 'e-timestamp', 'e-client-secret', 'e-expected-sig'].forEach(id => {
+                document.getElementById(id).value = '';
+            });
+            document.getElementById('e-method').value = 'POST';
+            document.getElementById('e-sts-preview').innerHTML = '<span style="color:var(--text-xdim)">Fill in the fields above…</span>';
+            document.getElementById('e-gen-output').style.display = 'none';
+            document.getElementById('e-compare-result').style.display = 'none';
+            document.getElementById('e-intermediate').innerHTML = `
     <div style="color:var(--text-xdim);font-size:12px;padding:20px 0;text-align:center">
       Fill in the fields on the left and click Generate to see the computation steps here.
     </div>`;
-  lastEndpointSig = ''; lastEndpointSigHex = '';
-}
+            lastEndpointSig = ''; lastEndpointSigHex = '';
+        }
 
-// ─────────────────────────────────────────────────────────────────────────────
-//  SHARED RENDER HELPERS
-// ─────────────────────────────────────────────────────────────────────────────
+        // ─────────────────────────────────────────────────────────────────────────────
+        //  SHARED RENDER HELPERS
+        // ─────────────────────────────────────────────────────────────────────────────
 
-function renderError(msg) {
-  return `<div class="result-label err">✘ Error</div>
+        function renderError(msg) {
+            return `<div class="result-label err">✘ Error</div>
           <div class="result-box error">${escapeHtml(msg)}</div>`;
-}
+        }
 
-function renderWarn(msg) {
-  return `<div class="result-label wrn">⚠ Warning</div>
+        function renderWarn(msg) {
+            return `<div class="result-label wrn">⚠ Warning</div>
           <div class="result-box warn">${escapeHtml(msg)}</div>`;
-}
-</script>
+        }
+        async function openDiagramDrawer(type) {
+            const drawer = document.getElementById('diagram-drawer');
+            const title = document.getElementById('drawer-title');
+            const body = document.getElementById('drawer-body-content');
+
+            if (type === 'token') {
+                const clientId = document.getElementById('t-client-id').value.trim() || '[Client ID]';
+                const timestamp = document.getElementById('t-timestamp').value.trim() || '[Timestamp]';
+                const previewSts = `${clientId}|${timestamp}`;
+                
+                title.textContent = 'Token Signature Process Flow';
+                body.innerHTML = `
+                    <div style="font-size:11.5px;color:var(--text-dim);margin-bottom:16px;">
+                        Visual representation of the <strong>SHA256withRSA</strong> signing flow for B2B Access Tokens.
+                    </div>
+                    
+                    <div class="flow-node">
+                        <div class="flow-node-title">1. Inputs Collection</div>
+                        <div class="flow-node-content">
+                            <strong>Client ID:</strong> <code>${escapeHtml(clientId)}</code><br>
+                            <strong>X-TIMESTAMP:</strong> <code>${escapeHtml(timestamp)}</code>
+                        </div>
+                    </div>
+                    <div class="flow-arrow">↓</div>
+                    
+                    <div class="flow-node">
+                        <div class="flow-node-title">2. Build String-To-Sign</div>
+                        <div class="flow-node-content">
+                            Concatenate variables using a pipe character (<code>|</code>) delimiter:<br>
+                            <code style="word-break:break-all;">${escapeHtml(previewSts)}</code>
+                        </div>
+                    </div>
+                    <div class="flow-arrow">↓</div>
+                    
+                    <div class="flow-node">
+                        <div class="flow-node-title">3. Hash & Signature generation</div>
+                        <div class="flow-node-content">
+                            Compute SHA-256 hash of the String-to-Sign, and sign using the client's <strong>RSA Private Key</strong> under <strong>PKCS#1 v1.5</strong> padding.
+                        </div>
+                    </div>
+                    <div class="flow-arrow">↓</div>
+                    
+                    <div class="flow-node">
+                        <div class="flow-node-title">4. Encoding</div>
+                        <div class="flow-node-content">
+                            Encode the raw signature bytes using <strong>Base64</strong>.
+                        </div>
+                    </div>
+                    <div class="flow-arrow">↓</div>
+                    
+                    <div class="flow-node" style="border-color: var(--cyan); background: rgba(0, 212, 255, 0.03);">
+                        <div class="flow-node-title">5. Output X-SIGNATURE</div>
+                        <div class="flow-node-content">
+                            Resulting token signature to be passed in HTTP Header:<br>
+                            <code style="word-break:break-all;font-size:10.5px;">${escapeHtml(lastTokenSig || 'X-SIGNATURE (click Generate to compute)')}</code>
+                        </div>
+                    </div>
+                `;
+            } else if (type === 'endpoint') {
+                const method = document.getElementById('e-method').value;
+                const endpoint = document.getElementById('e-endpoint').value.trim() || '[Endpoint URL]';
+                const token = document.getElementById('e-access-token').value.trim() || '[Access Token]';
+                const rawBody = document.getElementById('e-body').value || '{}';
+                const timestamp = document.getElementById('e-timestamp').value.trim() || '[Timestamp]';
+                const secret = document.getElementById('e-client-secret').value.trim() || '[Client Secret]';
+                
+                const minBody = minifyJson(rawBody);
+                const bodyHash = await sha256hex(minBody);
+                const truncatedToken = token.length > 15 ? token.substring(0, 15) + '…' : token;
+                const truncatedSecret = secret.length > 8 ? secret.substring(0, 8) + '…' : secret;
+                const displaySts = `${method}:${endpoint}:${truncatedToken}:${bodyHash}:${timestamp}`;
+                
+                title.textContent = 'Endpoint Signature Process Flow';
+                body.innerHTML = `
+                    <div style="font-size:11.5px;color:var(--text-dim);margin-bottom:16px;">
+                        Visual representation of the <strong>HMAC-SHA512</strong> signing flow for service endpoints.
+                    </div>
+                    
+                    <div class="flow-combine">
+                        <div class="flow-node">
+                            <div class="flow-node-title green">1a. Request Body Minification</div>
+                            <div class="flow-node-content">
+                                Minify JSON string:<br>
+                                <code style="word-break:break-all;">${escapeHtml(minBody.length > 80 ? minBody.substring(0, 80) + '…' : minBody)}</code>
+                            </div>
+                        </div>
+                        <div class="flow-arrow">↓</div>
+                        <div class="flow-node">
+                            <div class="flow-node-title green">1b. Hash Body (SHA-256)</div>
+                            <div class="flow-node-content">
+                                Hash the minified body using SHA-256 (hex lowercase):<br>
+                                <code>${escapeHtml(bodyHash)}</code>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flow-arrow">↓</div>
+                    
+                    <div class="flow-node">
+                        <div class="flow-node-title green">2. Build String-To-Sign</div>
+                        <div class="flow-node-content">
+                            Concatenate parameters in order, separated by colons (<code>:</code>):<br>
+                            <code style="word-break:break-all;">${escapeHtml(displaySts)}</code>
+                        </div>
+                    </div>
+                    <div class="flow-arrow">↓</div>
+                    
+                    <div class="flow-node">
+                        <div class="flow-node-title green">3. HMAC Computation</div>
+                        <div class="flow-node-content">
+                            Compute HMAC-SHA512 using client secret: <code>${escapeHtml(truncatedSecret)}</code>
+                        </div>
+                    </div>
+                    <div class="flow-arrow">↓</div>
+                    
+                    <div class="flow-node">
+                        <div class="flow-node-title green">4. Base64 Encode</div>
+                        <div class="flow-node-content">
+                            Encode the computed HMAC digest using <strong>Base64</strong>.
+                        </div>
+                    </div>
+                    <div class="flow-arrow">↓</div>
+                    
+                    <div class="flow-node" style="border-color: var(--green); background: rgba(0, 255, 136, 0.03);">
+                        <div class="flow-node-title green">5. Output X-SIGNATURE</div>
+                        <div class="flow-node-content">
+                            Final signature passed in HTTP Header:<br>
+                            <code style="word-break:break-all;font-size:10.5px;">${escapeHtml(lastEndpointSig || 'X-SIGNATURE (click Generate to compute)')}</code>
+                        </div>
+                    </div>
+                `;
+            }
+
+            drawer.classList.add('active');
+        }
+
+        function closeDiagramDrawer() {
+            document.getElementById('diagram-drawer').classList.remove('active');
+        }
+    </script>
+
+    <!-- ── DIAGRAM DRAWER ── -->
+    <div id="diagram-drawer" class="drawer">
+        <div class="drawer-overlay" onclick="closeDiagramDrawer()"></div>
+        <div class="drawer-content">
+            <div class="drawer-header">
+                <h3 id="drawer-title">Process Flow Diagram</h3>
+                <button class="drawer-close" onclick="closeDiagramDrawer()">✕</button>
+            </div>
+            <div class="drawer-body" id="drawer-body-content">
+                <!-- Content populated dynamically -->
+            </div>
+        </div>
+    </div>
 </body>
+
 </html>
