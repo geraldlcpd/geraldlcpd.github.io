@@ -30,7 +30,33 @@
       });
     }
 
+    function checkHostedEnvironment() {
+      const protocol = window.location.protocol;
+      const hostname = window.location.hostname;
+      const isLocalDev = hostname === 'localhost' || hostname === '127.0.0.1';
+      const isHosted = (protocol === 'http:' || protocol === 'https:') && !isLocalDev;
+
+      if (isHosted) {
+        const domainEl = document.getElementById('hosted-domain-name');
+        if (domainEl) {
+          domainEl.textContent = hostname || window.location.host;
+        }
+        const modal = document.getElementById('hosted-warning-modal');
+        if (modal) {
+          modal.style.setProperty('display', 'flex', 'important');
+        }
+      }
+    }
+
+    function closeHostedWarningModal() {
+      const modal = document.getElementById('hosted-warning-modal');
+      if (modal) {
+        modal.style.display = 'none';
+      }
+    }
+
     window.addEventListener('DOMContentLoaded', () => {
+      checkHostedEnvironment();
       Promise.all([
         loadLocalScript('openpgp.min.js', 'openpgp'),
         loadLocalScript('jszip.min.js', 'JSZip')
@@ -2525,6 +2551,32 @@ gpg --decrypt encrypted_message.asc
       <button onclick="closeHelpModal()" style="position: absolute; top: 0.75rem; right: 0.75rem; background: none; border: none; color: var(--text-muted); font-size: 1.1rem; cursor: pointer;">✕</button>
       <h3 id="help-title" style="font-size: 1.15rem; font-weight: 600; color: var(--accent); margin-bottom: 0.75rem; margin-top: 0;">Help Topic</h3>
       <p id="help-text" style="font-size: 0.875rem; line-height: 1.5; color: var(--text-main); margin: 0;"></p>
+    </div>
+  </div>
+
+  <!-- WEB HOSTING WARNING MODAL -->
+  <div id="hosted-warning-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.75); z-index: 100004; align-items: center; justify-content: center; backdrop-filter: blur(5px); padding: 1.5rem;">
+    <div class="modal-card" style="max-width: 480px; width: 100%; padding: 2rem; background: #0f172a; border: 1px solid #f59e0b; border-radius: 12px; position: relative; box-shadow: 0 15px 40px rgba(0,0,0,0.5); text-align: left; display: flex; flex-direction: column; gap: 1rem;">
+      <div style="display: flex; align-items: center; gap: 0.75rem;">
+        <span style="font-size: 1.8rem; line-height: 1;">🌐</span>
+        <h3 style="font-size: 1.25rem; font-weight: 700; color: #f59e0b; margin: 0;">Hosted Web Environment Detected</h3>
+      </div>
+      
+      <p style="font-size: 0.875rem; line-height: 1.55; color: #cbd5e1; margin: 0;">
+        This offline utility is currently being served online from a web hosting server (<strong id="hosted-domain-name" style="color: #f1f5f9;"></strong>).
+      </p>
+      
+      <div style="background: rgba(245, 158, 11, 0.1); border-left: 3px solid #f59e0b; padding: 0.75rem 1rem; border-radius: 4px;">
+        <p style="font-size: 0.825rem; line-height: 1.45; color: #fbbf24; margin: 0;">
+          <strong>Security Notice:</strong> All PGP operations still run 100% locally in your browser. However, for maximum privacy and air-gapped security, we recommend downloading and saving this HTML file locally onto your disk to run offline directly via <code style="font-family: monospace; background: rgba(0,0,0,0.3); padding: 0.15rem 0.35rem; border-radius: 3px;">file://</code>.
+        </p>
+      </div>
+
+      <div style="display: flex; gap: 0.75rem; justify-content: flex-end; margin-top: 0.5rem;">
+        <button onclick="closeHostedWarningModal()" style="padding: 0.6rem 1.25rem; background: #f59e0b; color: #0f172a; border: none; border-radius: 6px; font-weight: 600; font-size: 0.875rem; cursor: pointer; transition: opacity 0.2s;" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">
+          I Understand, Continue Tool
+        </button>
+      </div>
     </div>
   </div>
 </body>
