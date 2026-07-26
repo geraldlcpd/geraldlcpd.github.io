@@ -2778,18 +2778,23 @@ gpg --decrypt encrypted_message.asc
       <!-- Quick Download Links for Local Installation -->
       <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 8px; padding: 0.85rem; display: flex; flex-direction: column; gap: 0.6rem;">
         <span style="font-size: 0.8rem; font-weight: 600; color: #f59e0b; text-transform: uppercase; letter-spacing: 0.03em;">📥 Save Files Locally for Air-Gapped Use:</span>
-        <div style="display: flex; flex-direction: column; gap: 0.4rem;">
+        <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+          <!-- HTML Application Tool -->
           <button onclick="downloadHostedFile('tools_font_offline.html', 'tools_font_offline.html')" style="display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #f1f5f9; padding: 0.5rem 0.75rem; border-radius: 6px; font-size: 0.8rem; font-family: monospace; cursor: pointer; text-align: left; transition: background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.12)'" onmouseout="this.style.background='rgba(255,255,255,0.05)'">
             <span>📄 tools_font_offline.html <span style="color: #94a3b8; font-family: sans-serif; font-size: 0.75rem;">(HTML Application)</span></span>
             <span style="color: #6366f1; font-weight: 600; font-family: sans-serif;">Save HTML ↓</span>
           </button>
-          <button onclick="downloadHostedFile('openpgp.min.js', 'openpgp.min.js')" style="display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #f1f5f9; padding: 0.5rem 0.75rem; border-radius: 6px; font-size: 0.8rem; font-family: monospace; cursor: pointer; text-align: left; transition: background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.12)'" onmouseout="this.style.background='rgba(255,255,255,0.05)'">
-            <span>📦 openpgp.min.js <span style="color: #94a3b8; font-family: sans-serif; font-size: 0.75rem;">(OpenPGP Library)</span></span>
-            <span style="color: #6366f1; font-weight: 600; font-family: sans-serif;">Save JS ↓</span>
+          
+          <!-- Official OpenPGP.js -->
+          <button onclick="downloadHostedFile('https://cdn.jsdelivr.net/npm/openpgp/dist/openpgp.min.js', 'openpgp.min.js')" style="display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #f1f5f9; padding: 0.5rem 0.75rem; border-radius: 6px; font-size: 0.8rem; font-family: monospace; cursor: pointer; text-align: left; transition: background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.12)'" onmouseout="this.style.background='rgba(255,255,255,0.05)'">
+            <span>📦 openpgp.min.js <span style="color: #34d399; font-family: sans-serif; font-size: 0.75rem;">(Official OpenPGP.js Source)</span></span>
+            <span style="color: #34d399; font-weight: 600; font-family: sans-serif;">Save JS (jsDelivr) ↓</span>
           </button>
-          <button onclick="downloadHostedFile('jszip.min.js', 'jszip.min.js')" style="display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #f1f5f9; padding: 0.5rem 0.75rem; border-radius: 6px; font-size: 0.8rem; font-family: monospace; cursor: pointer; text-align: left; transition: background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.12)'" onmouseout="this.style.background='rgba(255,255,255,0.05)'">
-            <span>📦 jszip.min.js <span style="color: #94a3b8; font-family: sans-serif; font-size: 0.75rem;">(JSZip Library)</span></span>
-            <span style="color: #6366f1; font-weight: 600; font-family: sans-serif;">Save JS ↓</span>
+          
+          <!-- Official JSZip -->
+          <button onclick="downloadHostedFile('https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js', 'jszip.min.js')" style="display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #f1f5f9; padding: 0.5rem 0.75rem; border-radius: 6px; font-size: 0.8rem; font-family: monospace; cursor: pointer; text-align: left; transition: background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.12)'" onmouseout="this.style.background='rgba(255,255,255,0.05)'">
+            <span>📦 jszip.min.js <span style="color: #34d399; font-family: sans-serif; font-size: 0.75rem;">(Official JSZip Source)</span></span>
+            <span style="color: #34d399; font-weight: 600; font-family: sans-serif;">Save JS (Cloudflare) ↓</span>
           </button>
         </div>
       </div>
