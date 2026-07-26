@@ -5,7 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="Content-Security-Policy"
-    content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'none'; connect-src 'none';">
+    content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'none'; connect-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com;">
   <title>PGP Offline Tools - Strict Offline & Local Fonts</title>
 
   <!-- Standalone Vendor Libraries (Local Only Loader) -->
@@ -57,10 +57,18 @@
       }
     }
 
-    function downloadHostedFile(url, filename) {
+    function downloadHostedFile(url, filename, btnEl) {
+      let origText = '';
+      if (btnEl) {
+        origText = btnEl.innerHTML;
+        btnEl.disabled = true;
+        btnEl.style.opacity = '0.7';
+        btnEl.innerHTML = `<span>⏳ Downloading ${filename}...</span><span style="font-weight: 600; font-family: sans-serif;">Fetching...</span>`;
+      }
+
       fetch(url)
         .then(response => {
-          if (!response.ok) throw new Error('Network response was not ok');
+          if (!response.ok) throw new Error('HTTP status ' + response.status);
           return response.blob();
         })
         .then(blob => {
@@ -71,13 +79,26 @@
           document.body.appendChild(a);
           a.click();
           document.body.removeChild(a);
-          URL.revokeObjectURL(blobUrl);
+          setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+          
+          if (btnEl) {
+            btnEl.disabled = false;
+            btnEl.style.opacity = '1';
+            btnEl.innerHTML = `<span>✔ Saved ${filename}!</span><span style="color: #34d399; font-weight: 600; font-family: sans-serif;">Downloaded</span>`;
+            setTimeout(() => { btnEl.innerHTML = origText; }, 2500);
+          }
         })
         .catch(err => {
+          console.error("Download error:", err);
+          if (btnEl) {
+            btnEl.disabled = false;
+            btnEl.style.opacity = '1';
+            btnEl.innerHTML = origText;
+          }
+          // Fallback forcing direct download anchor without target=_blank to avoid opening tabs where possible
           const a = document.createElement('a');
           a.href = url;
           a.download = filename;
-          a.target = '_blank';
           document.body.appendChild(a);
           a.click();
           document.body.removeChild(a);
@@ -2780,19 +2801,19 @@ gpg --decrypt encrypted_message.asc
         <span style="font-size: 0.8rem; font-weight: 600; color: #f59e0b; text-transform: uppercase; letter-spacing: 0.03em;">📥 Save Files Locally for Air-Gapped Use:</span>
         <div style="display: flex; flex-direction: column; gap: 0.5rem;">
           <!-- HTML Application Tool -->
-          <button onclick="downloadHostedFile('tools_font_offline.html', 'tools_font_offline.html')" style="display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #f1f5f9; padding: 0.5rem 0.75rem; border-radius: 6px; font-size: 0.8rem; font-family: monospace; cursor: pointer; text-align: left; transition: background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.12)'" onmouseout="this.style.background='rgba(255,255,255,0.05)'">
+          <button onclick="downloadHostedFile('tools_font_offline.html', 'tools_font_offline.html', this)" style="display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #f1f5f9; padding: 0.5rem 0.75rem; border-radius: 6px; font-size: 0.8rem; font-family: monospace; cursor: pointer; text-align: left; transition: background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.12)'" onmouseout="this.style.background='rgba(255,255,255,0.05)'">
             <span>📄 tools_font_offline.html <span style="color: #94a3b8; font-family: sans-serif; font-size: 0.75rem;">(HTML Application)</span></span>
             <span style="color: #6366f1; font-weight: 600; font-family: sans-serif;">Save HTML ↓</span>
           </button>
           
           <!-- Official OpenPGP.js -->
-          <button onclick="downloadHostedFile('https://cdn.jsdelivr.net/npm/openpgp/dist/openpgp.min.js', 'openpgp.min.js')" style="display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #f1f5f9; padding: 0.5rem 0.75rem; border-radius: 6px; font-size: 0.8rem; font-family: monospace; cursor: pointer; text-align: left; transition: background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.12)'" onmouseout="this.style.background='rgba(255,255,255,0.05)'">
+          <button onclick="downloadHostedFile('https://cdn.jsdelivr.net/npm/openpgp/dist/openpgp.min.js', 'openpgp.min.js', this)" style="display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #f1f5f9; padding: 0.5rem 0.75rem; border-radius: 6px; font-size: 0.8rem; font-family: monospace; cursor: pointer; text-align: left; transition: background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.12)'" onmouseout="this.style.background='rgba(255,255,255,0.05)'">
             <span>📦 openpgp.min.js <span style="color: #34d399; font-family: sans-serif; font-size: 0.75rem;">(Official OpenPGP.js Source)</span></span>
             <span style="color: #34d399; font-weight: 600; font-family: sans-serif;">Save JS (jsDelivr) ↓</span>
           </button>
           
           <!-- Official JSZip -->
-          <button onclick="downloadHostedFile('https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js', 'jszip.min.js')" style="display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #f1f5f9; padding: 0.5rem 0.75rem; border-radius: 6px; font-size: 0.8rem; font-family: monospace; cursor: pointer; text-align: left; transition: background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.12)'" onmouseout="this.style.background='rgba(255,255,255,0.05)'">
+          <button onclick="downloadHostedFile('https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js', 'jszip.min.js', this)" style="display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #f1f5f9; padding: 0.5rem 0.75rem; border-radius: 6px; font-size: 0.8rem; font-family: monospace; cursor: pointer; text-align: left; transition: background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.12)'" onmouseout="this.style.background='rgba(255,255,255,0.05)'">
             <span>📦 jszip.min.js <span style="color: #34d399; font-family: sans-serif; font-size: 0.75rem;">(Official JSZip Source)</span></span>
             <span style="color: #34d399; font-weight: 600; font-family: sans-serif;">Save JS (Cloudflare) ↓</span>
           </button>
