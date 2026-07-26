@@ -57,6 +57,33 @@
       }
     }
 
+    function downloadHostedFile(url, filename) {
+      fetch(url)
+        .then(response => {
+          if (!response.ok) throw new Error('Network response was not ok');
+          return response.blob();
+        })
+        .then(blob => {
+          const blobUrl = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = blobUrl;
+          a.download = filename;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(blobUrl);
+        })
+        .catch(err => {
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = filename;
+          a.target = '_blank';
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+        });
+    }
+
     window.addEventListener('DOMContentLoaded', () => {
       checkHostedEnvironment();
       Promise.all([
@@ -2742,13 +2769,32 @@ gpg --decrypt encrypted_message.asc
         style="background: rgba(245, 158, 11, 0.1); border-left: 3px solid #f59e0b; padding: 0.75rem 1rem; border-radius: 4px;">
         <p style="font-size: 0.825rem; line-height: 1.45; color: #fbbf24; margin: 0;">
           <strong>Security Notice:</strong> All PGP operations still run 100% locally in your browser. However, for
-          maximum privacy and security, we recommend downloading and saving this HTML file locally onto your disk to run
+          maximum privacy and security, we recommend downloading and saving this HTML file and required JS libraries locally onto your disk to run
           offline directly via <code
             style="font-family: monospace; background: rgba(0,0,0,0.3); padding: 0.15rem 0.35rem; border-radius: 3px;">file://</code>.
         </p>
       </div>
 
-      <div style="display: flex; gap: 0.75rem; justify-content: flex-end; margin-top: 0.5rem;">
+      <!-- Quick Download Links for Local Installation -->
+      <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 8px; padding: 0.85rem; display: flex; flex-direction: column; gap: 0.6rem;">
+        <span style="font-size: 0.8rem; font-weight: 600; color: #f59e0b; text-transform: uppercase; letter-spacing: 0.03em;">📥 Save Files Locally for Air-Gapped Use:</span>
+        <div style="display: flex; flex-direction: column; gap: 0.4rem;">
+          <button onclick="downloadHostedFile('tools_font_offline.html', 'tools_font_offline.html')" style="display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #f1f5f9; padding: 0.5rem 0.75rem; border-radius: 6px; font-size: 0.8rem; font-family: monospace; cursor: pointer; text-align: left; transition: background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.12)'" onmouseout="this.style.background='rgba(255,255,255,0.05)'">
+            <span>📄 tools_font_offline.html <span style="color: #94a3b8; font-family: sans-serif; font-size: 0.75rem;">(HTML Application)</span></span>
+            <span style="color: #6366f1; font-weight: 600; font-family: sans-serif;">Save HTML ↓</span>
+          </button>
+          <button onclick="downloadHostedFile('openpgp.min.js', 'openpgp.min.js')" style="display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #f1f5f9; padding: 0.5rem 0.75rem; border-radius: 6px; font-size: 0.8rem; font-family: monospace; cursor: pointer; text-align: left; transition: background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.12)'" onmouseout="this.style.background='rgba(255,255,255,0.05)'">
+            <span>📦 openpgp.min.js <span style="color: #94a3b8; font-family: sans-serif; font-size: 0.75rem;">(OpenPGP Library)</span></span>
+            <span style="color: #6366f1; font-weight: 600; font-family: sans-serif;">Save JS ↓</span>
+          </button>
+          <button onclick="downloadHostedFile('jszip.min.js', 'jszip.min.js')" style="display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #f1f5f9; padding: 0.5rem 0.75rem; border-radius: 6px; font-size: 0.8rem; font-family: monospace; cursor: pointer; text-align: left; transition: background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.12)'" onmouseout="this.style.background='rgba(255,255,255,0.05)'">
+            <span>📦 jszip.min.js <span style="color: #94a3b8; font-family: sans-serif; font-size: 0.75rem;">(JSZip Library)</span></span>
+            <span style="color: #6366f1; font-weight: 600; font-family: sans-serif;">Save JS ↓</span>
+          </button>
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 0.75rem; justify-content: flex-end; margin-top: 0.25rem;">
         <button onclick="closeHostedWarningModal()"
           style="padding: 0.6rem 1.25rem; background: #f59e0b; color: #0f172a; border: none; border-radius: 6px; font-weight: 600; font-size: 0.875rem; cursor: pointer; transition: opacity 0.2s;"
           onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">
