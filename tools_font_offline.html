@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="en" data-theme="dark">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'none'; connect-src 'none';">
+  <meta http-equiv="Content-Security-Policy"
+    content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'none'; connect-src 'none';">
   <title>PGP Offline Tools - Strict Offline & Local Fonts</title>
-  
+
   <!-- Standalone Vendor Libraries (Local Only Loader) -->
   <script>
     function loadLocalScript(src, globalVarName) {
@@ -346,7 +348,9 @@
       text-decoration: underline;
     }
 
-    input, textarea, select {
+    input,
+    textarea,
+    select {
       background: var(--input-bg);
       border: 1px solid var(--input-border);
       color: var(--text-main);
@@ -358,7 +362,9 @@
       transition: border-color 0.2s, box-shadow 0.2s;
     }
 
-    input:focus, textarea:focus, select:focus {
+    input:focus,
+    textarea:focus,
+    select:focus {
       border-color: var(--input-focus);
       box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
     }
@@ -503,9 +509,20 @@
     }
 
     @keyframes pulse {
-      0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
-      70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
-      100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+      0% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+      }
+
+      70% {
+        transform: scale(1);
+        box-shadow: 0 0 0 6px rgba(16, 185, 129, 0);
+      }
+
+      100% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+      }
     }
 
     .file-input-wrapper {
@@ -573,6 +590,7 @@
       width: 100%;
       text-align: center;
     }
+
     .mono-preview {
       background: var(--mono-bg);
       color: var(--mono-text);
@@ -588,6 +606,7 @@
       word-break: break-all;
       box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.05);
     }
+
     /* Bottom Console Panel styles */
     .bottom-console-wrapper {
       width: 100%;
@@ -595,6 +614,7 @@
       margin-top: 2rem;
       margin-bottom: 2rem;
     }
+
     .console-card {
       background: var(--card-bg);
       backdrop-filter: blur(16px);
@@ -604,6 +624,7 @@
       box-shadow: var(--shadow);
       overflow: hidden;
     }
+
     .console-header {
       padding: 0.75rem 1.25rem;
       background: rgba(0, 0, 0, 0.2);
@@ -614,6 +635,7 @@
       cursor: pointer;
       user-select: none;
     }
+
     .console-header h3 {
       font-size: 0.95rem;
       font-weight: 600;
@@ -623,26 +645,32 @@
       color: var(--accent);
       margin: 0;
     }
+
     .console-header-actions {
       display: flex;
       align-items: center;
       gap: 0.75rem;
     }
+
     .console-toggle-icon {
       transition: transform var(--transition-speed);
       font-size: 0.8rem;
     }
+
     .console-card.collapsed .console-toggle-icon {
       transform: rotate(-90deg);
     }
+
     .console-body {
       max-height: 220px;
       transition: max-height var(--transition-speed) ease-in-out;
       overflow: hidden;
     }
+
     .console-card.collapsed .console-body {
       max-height: 0;
     }
+
     .console-log {
       height: 220px;
       background: var(--mono-bg);
@@ -652,6 +680,7 @@
       max-height: none;
       box-shadow: none;
     }
+
     /* Collapsible Key Accordions using details/summary */
     .key-details {
       border: 1px solid var(--mono-border);
@@ -660,9 +689,11 @@
       margin-bottom: 0.75rem;
       overflow: hidden;
     }
+
     .key-details[open] {
       background: var(--mono-bg);
     }
+
     .key-summary {
       padding: 0.6rem 1rem;
       font-size: 0.85rem;
@@ -675,34 +706,41 @@
       justify-content: space-between;
       align-items: center;
     }
+
     .key-summary::-webkit-details-marker {
       display: none;
     }
+
     .key-summary::after {
       content: "▶";
       font-size: 0.7rem;
       color: var(--text-muted);
       transition: transform var(--transition-speed);
     }
+
     .key-details[open] .key-summary::after {
       transform: rotate(90deg);
     }
+
     .key-details-content {
       padding: 0 1rem 1rem 1rem;
       position: relative;
     }
+
     /* Output Tabs styling */
     .output-tab-container {
       display: flex;
       flex-direction: column;
       height: 100%;
     }
+
     .output-tabs {
       display: flex;
       border-bottom: 1px solid var(--card-border);
       gap: 1rem;
       margin-bottom: 1rem;
     }
+
     .output-tab {
       padding: 0.5rem 0.25rem;
       font-weight: 600;
@@ -715,25 +753,31 @@
       transition: all var(--transition-speed);
       margin-bottom: -1px;
     }
+
     .output-tab.active {
       color: var(--accent);
       border-bottom-color: var(--accent);
     }
+
     .output-tab:disabled {
       opacity: 0.4;
       cursor: not-allowed;
     }
+
     .output-tab-content {
       display: none;
       flex-direction: column;
       gap: 1rem;
     }
+
     .output-tab-content.active {
       display: flex;
     }
+
     .offline-banner summary::-webkit-details-marker {
       display: none;
     }
+
     .offline-banner summary {
       display: flex;
       align-items: center;
@@ -743,6 +787,7 @@
       cursor: pointer;
       user-select: none;
     }
+
     .offline-banner summary::after {
       content: "▶";
       font-size: 0.7rem;
@@ -750,9 +795,11 @@
       margin-left: auto;
       transition: transform var(--transition-speed);
     }
+
     .offline-banner[open] summary::after {
       transform: rotate(90deg);
     }
+
     .welcome-btn-option {
       background: rgba(99, 102, 241, 0.05) !important;
       color: var(--text-main) !important;
@@ -768,11 +815,13 @@
       width: 100% !important;
       justify-content: flex-start !important;
     }
+
     .welcome-btn-option:hover {
       background: rgba(99, 102, 241, 0.15) !important;
       transform: translateY(-2px) !important;
       box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15) !important;
     }
+
     .help-btn {
       display: inline-flex;
       align-items: center;
@@ -791,59 +840,89 @@
       vertical-align: middle;
       padding: 0;
     }
+
     .help-btn:hover {
       background: var(--primary);
       color: #fff;
       border-color: var(--primary);
     }
+
     @keyframes flash-red-anim {
-      0%, 100% { color: var(--error); filter: drop-shadow(0 0 2px var(--error)); }
-      50% { color: var(--text-muted); filter: none; }
+
+      0%,
+      100% {
+        color: var(--error);
+        filter: drop-shadow(0 0 2px var(--error));
+      }
+
+      50% {
+        color: var(--text-muted);
+        filter: none;
+      }
     }
   </style>
 </head>
+
 <body>
 
   <!-- WELCOME POPUP MODAL -->
-  <div id="welcome-modal" style="display: flex; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.85); z-index: 99999; align-items: center; justify-content: center; backdrop-filter: blur(8px); padding: 2rem;">
-    <div class="modal-card" style="max-width: 550px; padding: 2.5rem; border-color: var(--primary); box-shadow: 0 10px 40px rgba(99, 102, 241, 0.2); text-align: left; display: flex; flex-direction: column; gap: 1.5rem; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 16px; position: relative;">
+  <div id="welcome-modal"
+    style="display: flex; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.85); z-index: 99999; align-items: center; justify-content: center; backdrop-filter: blur(8px); padding: 2rem;">
+    <div class="modal-card"
+      style="max-width: 550px; padding: 2.5rem; border-color: var(--primary); box-shadow: 0 10px 40px rgba(99, 102, 241, 0.2); text-align: left; display: flex; flex-direction: column; gap: 1.5rem; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 16px; position: relative;">
       <!-- Close Button -->
-      <button onclick="document.getElementById('welcome-modal').style.display='none'" style="position: absolute; top: 1rem; right: 1rem; background: none; border: none; color: var(--text-muted); font-size: 1.25rem; cursor: pointer; transition: color var(--transition-speed);" onmouseover="this.style.color='var(--error)'" onmouseout="this.style.color='var(--text-muted)'">✕</button>
-      
-      <h3 style="font-size: 1.5rem; font-weight: 700; color: var(--primary); border-bottom: 1px solid var(--card-border); padding-bottom: 0.75rem; text-align: center; display: flex; align-items: center; justify-content: center; gap: 0.5rem; margin: 0;">
+      <button onclick="document.getElementById('welcome-modal').style.display='none'"
+        style="position: absolute; top: 1rem; right: 1rem; background: none; border: none; color: var(--text-muted); font-size: 1.25rem; cursor: pointer; transition: color var(--transition-speed);"
+        onmouseover="this.style.color='var(--error)'" onmouseout="this.style.color='var(--text-muted)'">✕</button>
+
+      <h3
+        style="font-size: 1.5rem; font-weight: 700; color: var(--primary); border-bottom: 1px solid var(--card-border); padding-bottom: 0.75rem; text-align: center; display: flex; align-items: center; justify-content: center; gap: 0.5rem; margin: 0;">
         🛡️ PGP Offline Tools
       </h3>
       <p style="font-size: 0.95rem; line-height: 1.6; color: var(--text-main); text-align: center; margin: 0;">
         Welcome! This secure tool runs entirely inside your browser using local resources. What would you like to do?
       </p>
-      
+
       <div style="display: grid; grid-template-columns: 1fr; gap: 1.25rem; margin-top: 0.5rem; width: 100%;">
         <!-- Option: Encrypt -->
         <button class="welcome-btn-option" onclick="selectWelcomeAction('encrypt')">
-          <strong style="color: var(--accent); font-size: 1.1rem; display: flex; align-items: center; gap: 0.5rem;">🔒 Encrypt & Package</strong>
-          <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: normal; line-height: 1.4;">Lock and package your API credentials (keys, secrets, client IDs) securely before sharing. The encrypted package can only be opened by the recipient.</span>
+          <strong style="color: var(--accent); font-size: 1.1rem; display: flex; align-items: center; gap: 0.5rem;">🔒
+            Encrypt & Package</strong>
+          <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: normal; line-height: 1.4;">Lock and
+            package your API credentials (keys, secrets, client IDs) securely before sharing. The encrypted package can
+            only be opened by the recipient.</span>
         </button>
 
         <!-- Option: Decrypt -->
         <button class="welcome-btn-option" onclick="selectWelcomeAction('decrypt')">
-          <strong style="color: var(--success); font-size: 1.1rem; display: flex; align-items: center; gap: 0.5rem;">🔓 Decrypt received file</strong>
-          <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: normal; line-height: 1.4;">Open and read an encrypted credential package or message file that was securely sent to you, using your private key.</span>
+          <strong style="color: var(--success); font-size: 1.1rem; display: flex; align-items: center; gap: 0.5rem;">🔓
+            Decrypt received file</strong>
+          <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: normal; line-height: 1.4;">Open and
+            read an encrypted credential package or message file that was securely sent to you, using your private
+            key.</span>
         </button>
       </div>
     </div>
   </div>
 
   <!-- COMPACT AUTO-WIPE BANNER -->
-  <div id="wipe-banner" style="display: none; position: fixed; bottom: 1rem; right: 1rem; background: var(--card-bg); border: 1px solid var(--primary); border-radius: 8px; padding: 0.75rem 1rem; box-shadow: var(--shadow); z-index: 999; align-items: center; gap: 0.75rem; font-size: 0.85rem; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);">
+  <div id="wipe-banner"
+    style="display: none; position: fixed; bottom: 1rem; right: 1rem; background: var(--card-bg); border: 1px solid var(--primary); border-radius: 8px; padding: 0.75rem 1rem; box-shadow: var(--shadow); z-index: 999; align-items: center; gap: 0.75rem; font-size: 0.85rem; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);">
     <span style="color: var(--primary); font-weight: 600;">Auto-Wipe Timer:</span>
-    <span id="wipe-countdown" style="font-family: Consolas, monospace; font-weight: 700; color: var(--accent);">60s</span>
-    <button onclick="triggerImmediateWipe()" style="background: var(--error); border: none; color: #fff; padding: 0.15rem 0.35rem; border-radius: 4px; font-size: 0.7rem; cursor: pointer;">Wipe Now</button>
+    <span id="wipe-countdown"
+      style="font-family: Consolas, monospace; font-weight: 700; color: var(--accent);">60s</span>
+    <button onclick="triggerImmediateWipe()"
+      style="background: var(--error); border: none; color: #fff; padding: 0.15rem 0.35rem; border-radius: 4px; font-size: 0.7rem; cursor: pointer;">Wipe
+      Now</button>
   </div>
 
   <!-- AUTO-WIPE WARNING MODAL -->
-  <div id="wipe-warning-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.85); z-index: 10000; align-items: center; justify-content: center; backdrop-filter: blur(5px); padding: 2rem;">
-    <div class="modal-card" style="max-width: 400px; padding: 2.5rem; border-color: var(--primary); box-shadow: 0 10px 40px rgba(99, 102, 241, 0.15);">
-      <h3 style="font-size: 1.25rem; font-weight: 600; color: var(--primary); border-bottom: 1px solid var(--card-border); padding-bottom: 0.5rem; text-align: center;">
+  <div id="wipe-warning-modal"
+    style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.85); z-index: 10000; align-items: center; justify-content: center; backdrop-filter: blur(5px); padding: 2rem;">
+    <div class="modal-card"
+      style="max-width: 400px; padding: 2.5rem; border-color: var(--primary); box-shadow: 0 10px 40px rgba(99, 102, 241, 0.15);">
+      <h3
+        style="font-size: 1.25rem; font-weight: 600; color: var(--primary); border-bottom: 1px solid var(--card-border); padding-bottom: 0.5rem; text-align: center;">
         Security Notice: Auto-Wipe
       </h3>
       <p style="font-size: 0.9rem; line-height: 1.5; color: var(--text-main); text-align: left;">
@@ -853,48 +932,66 @@
         Wiping in: <span id="modal-wipe-countdown">30</span>s
       </div>
       <div style="display: flex; flex-direction: column; gap: 0.75rem;">
-        <button class="btn" onclick="triggerImmediateWipe()" style="background: var(--error); width: 100%; padding: 0.6rem 1.2rem; font-size: 0.9rem;">Wipe Now</button>
-        <button class="btn" onclick="suspendWipe()" style="background: var(--primary); width: 100%; padding: 0.6rem 1.2rem; font-size: 0.9rem;">Suspend (+120s)</button>
-        <button class="btn btn-secondary" onclick="cancelWipeSession()" style="width: 100%; border-style: solid; color: var(--text-main); border-color: var(--card-border); padding: 0.6rem 1.2rem; font-size: 0.9rem;">Skip Auto-Wipe</button>
+        <button class="btn" onclick="triggerImmediateWipe()"
+          style="background: var(--error); width: 100%; padding: 0.6rem 1.2rem; font-size: 0.9rem;">Wipe Now</button>
+        <button class="btn" onclick="suspendWipe()"
+          style="background: var(--primary); width: 100%; padding: 0.6rem 1.2rem; font-size: 0.9rem;">Suspend
+          (+120s)</button>
+        <button class="btn btn-secondary" onclick="cancelWipeSession()"
+          style="width: 100%; border-style: solid; color: var(--text-main); border-color: var(--card-border); padding: 0.6rem 1.2rem; font-size: 0.9rem;">Skip
+          Auto-Wipe</button>
       </div>
     </div>
   </div>
 
   <!-- KEY CONFIRMATION MODAL -->
-  <div id="key-confirm-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.85); z-index: 10001; align-items: center; justify-content: center; backdrop-filter: blur(5px); padding: 2rem;">
-    <div class="modal-card" style="max-width: 450px; padding: 2.5rem; border-color: var(--primary); box-shadow: 0 10px 40px rgba(99, 102, 241, 0.15); background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 16px; text-align: left; display: flex; flex-direction: column; gap: 1.5rem;">
-      <h3 style="font-size: 1.25rem; font-weight: 600; color: var(--primary); border-bottom: 1px solid var(--card-border); padding-bottom: 0.5rem; text-align: center;">
+  <div id="key-confirm-modal"
+    style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.85); z-index: 10001; align-items: center; justify-content: center; backdrop-filter: blur(5px); padding: 2rem;">
+    <div class="modal-card"
+      style="max-width: 450px; padding: 2.5rem; border-color: var(--primary); box-shadow: 0 10px 40px rgba(99, 102, 241, 0.15); background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 16px; text-align: left; display: flex; flex-direction: column; gap: 1.5rem;">
+      <h3
+        style="font-size: 1.25rem; font-weight: 600; color: var(--primary); border-bottom: 1px solid var(--card-border); padding-bottom: 0.5rem; text-align: center;">
         Confirm Recipient Key
       </h3>
       <p style="font-size: 0.9rem; line-height: 1.5; color: var(--text-main);">
         Please verify that the public key details below match the intended recipient before encrypting your credentials:
       </p>
-      <div id="modal-key-details" style="background: var(--mono-bg); border: 1px solid var(--mono-border); padding: 1rem; border-radius: 8px; font-family: Consolas, monospace; font-size: 0.85rem; color: var(--text-main); word-break: break-all;">
+      <div id="modal-key-details"
+        style="background: var(--mono-bg); border: 1px solid var(--mono-border); padding: 1rem; border-radius: 8px; font-family: Consolas, monospace; font-size: 0.85rem; color: var(--text-main); word-break: break-all;">
         <!-- Filled dynamically -->
       </div>
       <div style="display: flex; gap: 1rem;">
-        <button class="btn" id="confirm-proceed-btn" style="flex: 1; padding: 0.6rem 1.2rem; font-size: 0.9rem;">Proceed</button>
-        <button class="btn btn-secondary" onclick="closeKeyConfirmModal()" style="flex: 1; border-style: solid; color: var(--text-main); border-color: var(--card-border); padding: 0.6rem 1.2rem; font-size: 0.9rem;">Cancel</button>
+        <button class="btn" id="confirm-proceed-btn"
+          style="flex: 1; padding: 0.6rem 1.2rem; font-size: 0.9rem;">Proceed</button>
+        <button class="btn btn-secondary" onclick="closeKeyConfirmModal()"
+          style="flex: 1; border-style: solid; color: var(--text-main); border-color: var(--card-border); padding: 0.6rem 1.2rem; font-size: 0.9rem;">Cancel</button>
       </div>
     </div>
   </div>
 
   <!-- PASSPHRASE PROMPT MODAL -->
-  <div id="passphrase-prompt-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.85); z-index: 10002; align-items: center; justify-content: center; backdrop-filter: blur(5px); padding: 2rem;">
-    <div class="modal-card" style="max-width: 400px; padding: 2.5rem; border-color: var(--primary); box-shadow: 0 10px 40px rgba(99, 102, 241, 0.15); background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 16px; text-align: left; display: flex; flex-direction: column; gap: 1.5rem;">
-      <h3 style="font-size: 1.25rem; font-weight: 600; color: var(--primary); border-bottom: 1px solid var(--card-border); padding-bottom: 0.5rem; text-align: center;">
+  <div id="passphrase-prompt-modal"
+    style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.85); z-index: 10002; align-items: center; justify-content: center; backdrop-filter: blur(5px); padding: 2rem;">
+    <div class="modal-card"
+      style="max-width: 400px; padding: 2.5rem; border-color: var(--primary); box-shadow: 0 10px 40px rgba(99, 102, 241, 0.15); background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 16px; text-align: left; display: flex; flex-direction: column; gap: 1.5rem;">
+      <h3
+        style="font-size: 1.25rem; font-weight: 600; color: var(--primary); border-bottom: 1px solid var(--card-border); padding-bottom: 0.5rem; text-align: center;">
         Passphrase Required
       </h3>
       <p style="font-size: 0.9rem; line-height: 1.5; color: var(--text-main);">
         This PGP Private Key is encrypted. Please enter the passphrase to decrypt it:
       </p>
       <div class="form-group" style="margin-bottom: 0.25rem;">
-        <input type="password" id="modal-passphrase-input" placeholder="Enter passphrase..." autocomplete="off" style="width: 100%;">
+        <input type="password" id="modal-passphrase-input" placeholder="Enter passphrase..." autocomplete="off"
+          style="width: 100%;">
       </div>
-      <div id="passphrase-error-msg" style="display: none; color: var(--error); font-size: 0.8rem; font-weight: 500;"></div>
+      <div id="passphrase-error-msg" style="display: none; color: var(--error); font-size: 0.8rem; font-weight: 500;">
+      </div>
       <div style="display: flex; gap: 1rem; margin-top: 0.5rem;">
-        <button class="btn" id="passphrase-submit-btn" style="flex: 1; padding: 0.6rem 1.2rem; font-size: 0.9rem;">Submit</button>
-        <button class="btn btn-secondary" id="passphrase-cancel-btn" style="flex: 1; border-style: solid; color: var(--text-main); border-color: var(--card-border); padding: 0.6rem 1.2rem; font-size: 0.9rem;">Cancel</button>
+        <button class="btn" id="passphrase-submit-btn"
+          style="flex: 1; padding: 0.6rem 1.2rem; font-size: 0.9rem;">Submit</button>
+        <button class="btn btn-secondary" id="passphrase-cancel-btn"
+          style="flex: 1; border-style: solid; color: var(--text-main); border-color: var(--card-border); padding: 0.6rem 1.2rem; font-size: 0.9rem;">Cancel</button>
       </div>
     </div>
   </div>
@@ -902,16 +999,20 @@
   <!-- MISSING LIBRARIES OVERLAY -->
   <div id="missing-libs-overlay">
     <div class="modal-card">
-      <h2 style="color: var(--error); border-bottom-color: var(--error); justify-content: center; font-size: 1.5rem; gap: 0.5rem;">
+      <h2
+        style="color: var(--error); border-bottom-color: var(--error); justify-content: center; font-size: 1.5rem; gap: 0.5rem;">
         Offline Libraries Missing
       </h2>
       <p style="font-size: 0.95rem; line-height: 1.6; color: var(--text-main); text-align: left;">
-        This application runs in strict offline mode. The following libraries must be placed in the <strong>same folder</strong> as this HTML file:
+        This application runs in strict offline mode. The following libraries must be placed in the <strong>same
+          folder</strong> as this HTML file:
       </p>
-      <div style="background: var(--mono-bg); border: 1px solid var(--mono-border); padding: 1rem; border-radius: 8px; overflow-x: auto;">
+      <div
+        style="background: var(--mono-bg); border: 1px solid var(--mono-border); padding: 1rem; border-radius: 8px; overflow-x: auto;">
         <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
           <thead>
-            <tr style="border-bottom: 1px solid var(--mono-border); color: var(--text-muted); font-family: inherit; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; font-size: 0.75rem;">
+            <tr
+              style="border-bottom: 1px solid var(--mono-border); color: var(--text-muted); font-family: inherit; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; font-size: 0.75rem;">
               <th style="padding: 0.3rem 0.75rem 0.5rem 0; text-align: left;">Status</th>
               <th style="padding: 0.3rem 0.75rem; text-align: left;">Library</th>
               <th style="padding: 0.3rem 0.75rem; text-align: left;">Version</th>
@@ -925,9 +1026,11 @@
         </table>
       </div>
       <p style="font-size: 0.85rem; color: var(--text-muted); text-align: left; margin-top: 0.25rem;">
-        Obtain missing files from their official sources and place them in the same directory as this file, then refresh.
+        Obtain missing files from their official sources and place them in the same directory as this file, then
+        refresh.
       </p>
-      <button class="btn" id="refresh-btn-modal" onclick="window.location.reload()" style="background: var(--error); width: 100%;">Refresh Page</button>
+      <button class="btn" id="refresh-btn-modal" onclick="window.location.reload()"
+        style="background: var(--error); width: 100%;">Refresh Page</button>
     </div>
   </div>
 
@@ -941,7 +1044,8 @@
         <button id="mode-encrypt-btn" class="mode-btn active" onclick="switchMode('encrypt')">Encrypt & Package</button>
         <button id="mode-decrypt-btn" class="mode-btn" onclick="switchMode('decrypt')">Decrypt & Verify</button>
       </div>
-      <button class="theme-toggle-btn" onclick="clearSensitiveData()" style="border-color: var(--error); color: var(--error);">Wipe Session Data</button>
+      <button class="theme-toggle-btn" onclick="clearSensitiveData()"
+        style="border-color: var(--error); color: var(--error);">Wipe Session Data</button>
       <button class="theme-toggle-btn" id="theme-toggle">Light Mode</button>
     </div>
   </header>
@@ -952,7 +1056,8 @@
       <strong>Library Dependency Check</strong>
     </summary>
     <div style="margin-top: 0.75rem; cursor: default;" onclick="event.stopPropagation()">
-      <strong>Strict Offline Mode:</strong> All cryptographic operations are processed entirely in your browser using local files only.
+      <strong>Strict Offline Mode:</strong> All cryptographic operations are processed entirely in your browser using
+      local files only.
       <div id="library-loading-status" style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.5rem;">
         Loading local cryptographic libraries...
       </div>
@@ -964,21 +1069,27 @@
     <!-- Left Panel: Input Credentials and Config -->
     <div class="card">
       <h2>1. API Credentials Input</h2>
-      
+
       <div class="tabs" style="margin-bottom: 1rem;">
-        <button class="tab input-mode-tab active" id="input-mode-raw-btn" onclick="switchInputMode('raw')">Raw Text Input</button>
-        <button class="tab input-mode-tab" id="input-mode-field-btn" onclick="switchInputMode('field')">Field Input</button>
-        <button class="tab input-mode-tab" id="input-mode-autogen-btn" onclick="switchInputMode('autogen')">Auto-Generate & Encrypt</button>
+        <button class="tab input-mode-tab active" id="input-mode-raw-btn" onclick="switchInputMode('raw')">Raw Text
+          Input</button>
+        <button class="tab input-mode-tab" id="input-mode-field-btn" onclick="switchInputMode('field')">Field
+          Input</button>
+        <button class="tab input-mode-tab" id="input-mode-autogen-btn"
+          onclick="switchInputMode('autogen')">Auto-Generate & Encrypt</button>
       </div>
 
       <!-- Mode: Auto-Generate -->
       <div id="input-autogen-container" class="tab-content">
-        <div style="background: rgba(99, 102, 241, 0.05); border: 1px dashed var(--primary); padding: 1.5rem; border-radius: 8px; text-align: center;">
+        <div
+          style="background: rgba(99, 102, 241, 0.05); border: 1px dashed var(--primary); padding: 1.5rem; border-radius: 8px; text-align: center;">
           <p style="font-size: 0.95rem; color: var(--text-main); margin-bottom: 0.5rem; font-weight: 500;">
             Secure In-Memory Generation Mode
           </p>
           <p style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.5;">
-            Clicking the encrypt button will generate a fresh package of 3 secure UUIDs (X-Partner-ID, Secret Key, and X-Client-ID) directly in memory, and immediately encrypt them using the provided Public Key. The plaintext credentials will never be exposed in the UI.
+            Clicking the encrypt button will generate a fresh package of 3 secure UUIDs (X-Partner-ID, Secret Key, and
+            X-Client-ID) directly in memory, and immediately encrypt them using the provided Public Key. The plaintext
+            credentials will never be exposed in the UI.
           </p>
         </div>
       </div>
@@ -989,11 +1100,14 @@
           <label>
             Raw Text / Plaintext Payload
             <div class="file-input-wrapper" style="margin-left: auto;">
-              <span class="file-input-label" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; border-radius: 4px;">Upload Payload File</span>
-              <input type="file" id="raw-payload-file-upload" accept=".txt,.json,.csv,.yaml,.yml,.xml" onchange="handleRawPayloadFileUpload(event)">
+              <span class="file-input-label"
+                style="padding: 0.25rem 0.5rem; font-size: 0.75rem; border-radius: 4px;">Upload Payload File</span>
+              <input type="file" id="raw-payload-file-upload" accept=".txt,.json,.csv,.yaml,.yml,.xml"
+                onchange="handleRawPayloadFileUpload(event)">
             </div>
           </label>
-          <textarea id="raw-plaintext-payload" rows="8" placeholder="Enter plaintext message or raw JSON to encrypt..." autocomplete="off"></textarea>
+          <textarea id="raw-plaintext-payload" rows="8" placeholder="Enter plaintext message or raw JSON to encrypt..."
+            autocomplete="off"></textarea>
         </div>
       </div>
 
@@ -1001,17 +1115,25 @@
       <div id="input-field-container" class="tab-content">
         <div class="input-row">
           <div class="form-group">
-            <label>Partner ID <span class="help-btn" role="button" onclick="showHelp('partnerId'); event.stopPropagation();">?</span> <span class="label-action" onclick="generateUUID('partner-id')">Generate UUID</span></label>
-            <input type="text" id="partner-id" placeholder="e.g., d3b07384-d113-4956-a5db-25f0e1d84872" autocomplete="off">
+            <label>Partner ID <span class="help-btn" role="button"
+                onclick="showHelp('partnerId'); event.stopPropagation();">?</span> <span class="label-action"
+                onclick="generateUUID('partner-id')">Generate UUID</span></label>
+            <input type="text" id="partner-id" placeholder="e.g., d3b07384-d113-4956-a5db-25f0e1d84872"
+              autocomplete="off">
           </div>
           <div class="form-group">
-            <label>Client ID <span class="help-btn" role="button" onclick="showHelp('clientId'); event.stopPropagation();">?</span> <span class="label-action" onclick="generateUUID('client-id')">Generate UUID</span></label>
-            <input type="text" id="client-id" placeholder="e.g., e7d1bb39-16a7-47ab-a1a6-061031d279cf" autocomplete="off">
+            <label>Client ID <span class="help-btn" role="button"
+                onclick="showHelp('clientId'); event.stopPropagation();">?</span> <span class="label-action"
+                onclick="generateUUID('client-id')">Generate UUID</span></label>
+            <input type="text" id="client-id" placeholder="e.g., e7d1bb39-16a7-47ab-a1a6-061031d279cf"
+              autocomplete="off">
           </div>
         </div>
 
         <div class="form-group" style="margin-top: 1rem;">
-          <label>Secret Key <span class="help-btn" role="button" onclick="showHelp('secretKey'); event.stopPropagation();">?</span> <span class="label-action" onclick="generateSecret('secret-key')">Generate Random Secret</span></label>
+          <label>Secret Key <span class="help-btn" role="button"
+              onclick="showHelp('secretKey'); event.stopPropagation();">?</span> <span class="label-action"
+              onclick="generateSecret('secret-key')">Generate Random Secret</span></label>
           <input type="text" id="secret-key" placeholder="e.g., s_4f89d873c52e4ba9b71e16f731a547b7" autocomplete="off">
         </div>
 
@@ -1019,16 +1141,19 @@
           <label>
             Additional Payload (Optional Raw Text/JSON)
             <div class="file-input-wrapper" style="margin-left: auto;">
-              <span class="file-input-label" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; border-radius: 4px;">Upload Payload File</span>
-              <input type="file" id="payload-file-upload" accept=".txt,.json,.csv,.yaml,.yml,.xml" onchange="handlePayloadFileUpload(event)">
+              <span class="file-input-label"
+                style="padding: 0.25rem 0.5rem; font-size: 0.75rem; border-radius: 4px;">Upload Payload File</span>
+              <input type="file" id="payload-file-upload" accept=".txt,.json,.csv,.yaml,.yml,.xml"
+                onchange="handlePayloadFileUpload(event)">
             </div>
           </label>
-          <textarea id="additional-payload" rows="3" placeholder="Enter any extra config or custom metadata to encrypt..." autocomplete="off"></textarea>
+          <textarea id="additional-payload" rows="3"
+            placeholder="Enter any extra config or custom metadata to encrypt..." autocomplete="off"></textarea>
         </div>
       </div>
 
       <h2 style="margin-top: 1rem;">2. Encryption Method</h2>
-      
+
       <div class="tabs">
         <button class="tab encrypt-tab" onclick="switchEncryptTab('rsa-hybrid')">RSA Hybrid (Web Crypto)</button>
         <button class="tab encrypt-tab active" onclick="switchEncryptTab('pgp')">PGP Standard</button>
@@ -1037,11 +1162,16 @@
       <!-- Tab: RSA-OAEP + AES Hybrid -->
       <div id="encrypt-rsa-hybrid-tab" class="tab-content">
         <p style="font-size: 0.875rem; color: var(--text-muted);">
-          Encrypts the payload with a random AES-256 key, then encrypts that AES key with the client's standard RSA Public Key (PEM). Outputs a ZIP file containing the ciphertext and helper decryption scripts.
+          Encrypts the payload with a random AES-256 key, then encrypts that AES key with the client's standard RSA
+          Public Key (PEM). Outputs a ZIP file containing the ciphertext and helper decryption scripts.
         </p>
         <div class="form-group">
-          <label>Client's RSA Public Key (PEM format) <span class="help-btn" role="button" onclick="showHelp('publicKey'); event.stopPropagation();">?</span> <span class="label-action" onclick="generateTestRsaKeypair()">Generate Test Keypair</span></label>
-          <textarea id="rsa-public-key" rows="6" placeholder="-----BEGIN PUBLIC KEY-----&#10;MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA...&#10;-----END PUBLIC KEY-----" autocomplete="off"></textarea>
+          <label>Client's RSA Public Key (PEM format) <span class="help-btn" role="button"
+              onclick="showHelp('publicKey'); event.stopPropagation();">?</span> <span class="label-action"
+              onclick="generateTestRsaKeypair()">Generate Test Keypair</span></label>
+          <textarea id="rsa-public-key" rows="6"
+            placeholder="-----BEGIN PUBLIC KEY-----&#10;MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA...&#10;-----END PUBLIC KEY-----"
+            autocomplete="off"></textarea>
         </div>
         <button class="btn" onclick="encryptRsaHybrid()">Encrypt & Download ZIP Package</button>
       </div>
@@ -1049,11 +1179,16 @@
       <!-- Tab: Standard PGP -->
       <div id="encrypt-pgp-tab" class="tab-content active">
         <p style="font-size: 0.875rem; color: var(--text-muted);">
-          Standard OpenPGP encryption. Encrypts the payload directly into an ASCII-Armored block decryptable by any standard PGP tool (like <code>gpg</code>).
+          Standard OpenPGP encryption. Encrypts the payload directly into an ASCII-Armored block decryptable by any
+          standard PGP tool (like <code>gpg</code>).
         </p>
         <div class="form-group">
-          <label>Client's PGP Public Key (Armored) <span class="help-btn" role="button" onclick="showHelp('publicKey'); event.stopPropagation();">?</span> <span class="label-action" onclick="generateTestPgpKeypair()">Generate Test Keypair</span></label>
-          <textarea id="pgp-public-key" rows="6" placeholder="-----BEGIN PGP PUBLIC KEY BLOCK-----&#10;Version: OpenPGP.js...&#10;-----END PGP PUBLIC KEY BLOCK-----" autocomplete="off"></textarea>
+          <label>Client's PGP Public Key (Armored) <span class="help-btn" role="button"
+              onclick="showHelp('publicKey'); event.stopPropagation();">?</span> <span class="label-action"
+              onclick="generateTestPgpKeypair()">Generate Test Keypair</span></label>
+          <textarea id="pgp-public-key" rows="6"
+            placeholder="-----BEGIN PGP PUBLIC KEY BLOCK-----&#10;Version: OpenPGP.js...&#10;-----END PGP PUBLIC KEY BLOCK-----"
+            autocomplete="off"></textarea>
         </div>
         <button class="btn" onclick="encryptPgp()">Encrypt to PGP Message</button>
       </div>
@@ -1062,22 +1197,28 @@
     <!-- Right Panel: Output & Decryption Preview -->
     <div class="card" style="justify-content: flex-start;">
       <h2>Encrypted Output & Assets</h2>
-      
+
       <div class="output-tab-container">
         <div class="output-tabs">
-          <button class="output-tab active" id="tab-cipher-btn" onclick="switchOutputTab('cipher')">Encrypted Payload</button>
-          <button class="output-tab" id="tab-helper-btn" onclick="switchOutputTab('helper')" disabled>Decryption Helper</button>
-          <button class="output-tab" id="tab-keys-btn" onclick="switchOutputTab('keys')" style="display: none;">Generated Keys</button>
+          <button class="output-tab active" id="tab-cipher-btn" onclick="switchOutputTab('cipher')">Encrypted
+            Payload</button>
+          <button class="output-tab" id="tab-helper-btn" onclick="switchOutputTab('helper')" disabled>Decryption
+            Helper</button>
+          <button class="output-tab" id="tab-keys-btn" onclick="switchOutputTab('keys')"
+            style="display: none;">Generated Keys</button>
         </div>
 
         <!-- Tab Content: Encrypted Payload -->
         <div id="output-tab-cipher" class="output-tab-content active">
           <div class="form-group" style="position: relative;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-              <label style="margin: 0;">Ciphertext Preview <span class="help-btn" role="button" onclick="showHelp('ciphertext'); event.stopPropagation();">?</span></label>
+              <label style="margin: 0;">Ciphertext Preview <span class="help-btn" role="button"
+                  onclick="showHelp('ciphertext'); event.stopPropagation();">?</span></label>
               <div style="display: flex; gap: 0.5rem; align-items: center;">
-                <button class="btn" id="download-cipher-btn" onclick="downloadEncryptedFile()" style="display: none; padding: 0.25rem 0.6rem; font-size: 0.75rem; background: var(--accent); color: var(--mono-bg); border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">Download</button>
-                <button class="btn" onclick="copyText('ciphertext-preview')" style="padding: 0.25rem 0.6rem; font-size: 0.75rem; background: var(--card-bg); border: 1px solid var(--card-border); color: var(--text-main); border-radius: 4px; cursor: pointer; font-weight: 600;">Copy</button>
+                <button class="btn" id="download-cipher-btn" onclick="downloadEncryptedFile()"
+                  style="display: none; padding: 0.25rem 0.6rem; font-size: 0.75rem; background: var(--accent); color: var(--mono-bg); border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">Download</button>
+                <button class="btn" onclick="copyText('ciphertext-preview')"
+                  style="padding: 0.25rem 0.6rem; font-size: 0.75rem; background: var(--card-bg); border: 1px solid var(--card-border); color: var(--text-main); border-radius: 4px; cursor: pointer; font-weight: 600;">Copy</button>
               </div>
             </div>
             <div class="mono-preview" style="min-height: 250px;">
@@ -1104,7 +1245,7 @@
         <div id="output-tab-keys" class="output-tab-content">
           <div id="test-keys-section" class="form-group">
             <label style="margin-bottom: 0.5rem;">Generated Test Keypair</label>
-            
+
             <details class="key-details" open>
               <summary class="key-summary">Public Key (Auto-applied to input field)</summary>
               <div class="key-details-content">
@@ -1135,7 +1276,7 @@
     <!-- Left Panel: Private Key and Ciphertext Inputs -->
     <div class="card">
       <h2>1. Decryption Mode</h2>
-      
+
       <div class="tabs">
         <button class="tab decrypt-tab" onclick="switchDecryptTab('rsa-hybrid')">RSA Hybrid (Web Crypto)</button>
         <button class="tab decrypt-tab active" onclick="switchDecryptTab('pgp')">PGP Standard</button>
@@ -1145,24 +1286,34 @@
       <div id="decrypt-rsa-hybrid-tab" class="tab-content">
         <div class="form-group">
           <label>
-            Client's RSA Private Key (PEM format) <span class="help-btn" role="button" onclick="showHelp('privateKey'); event.stopPropagation();">?</span>
+            Client's RSA Private Key (PEM format) <span class="help-btn" role="button"
+              onclick="showHelp('privateKey'); event.stopPropagation();">?</span>
             <div class="file-input-wrapper">
-              <span class="file-input-label" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; border-radius: 4px;">Upload Key File (.pem/.key)</span>
+              <span class="file-input-label"
+                style="padding: 0.25rem 0.5rem; font-size: 0.75rem; border-radius: 4px;">Upload Key File
+                (.pem/.key)</span>
               <input type="file" id="rsa-key-upload" onchange="handleRsaKeyUpload(event)">
             </div>
           </label>
-          <textarea id="rsa-private-key" rows="5" placeholder="-----BEGIN PRIVATE KEY-----&#10;MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQ...&#10;-----END PRIVATE KEY-----" autocomplete="off"></textarea>
+          <textarea id="rsa-private-key" rows="5"
+            placeholder="-----BEGIN PRIVATE KEY-----&#10;MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQ...&#10;-----END PRIVATE KEY-----"
+            autocomplete="off"></textarea>
         </div>
 
         <div class="form-group">
           <label>
-            Ciphertext (JSON Envelope or upload Package ZIP / JSON file) <span class="help-btn" role="button" onclick="showHelp('ciphertext'); event.stopPropagation();">?</span>
+            Ciphertext (JSON Envelope or upload Package ZIP / JSON file) <span class="help-btn" role="button"
+              onclick="showHelp('ciphertext'); event.stopPropagation();">?</span>
             <div class="file-input-wrapper">
-              <span class="file-input-label" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; border-radius: 4px;">Upload ZIP or JSON File</span>
-              <input type="file" id="rsa-cipher-upload" accept=".zip,.json,.txt" onchange="handleRsaCipherUpload(event)">
+              <span class="file-input-label"
+                style="padding: 0.25rem 0.5rem; font-size: 0.75rem; border-radius: 4px;">Upload ZIP or JSON File</span>
+              <input type="file" id="rsa-cipher-upload" accept=".zip,.json,.txt"
+                onchange="handleRsaCipherUpload(event)">
             </div>
           </label>
-          <textarea id="rsa-ciphertext" rows="5" placeholder="{&#10;  &quot;algorithm&quot;: &quot;RSA-OAEP-SHA256 / AES-256-GCM&quot;,&#10;  &quot;encryptedAesKey&quot;: &quot;...&quot;,&#10;  &quot;iv&quot;: &quot;...&quot;,&#10;  &quot;tag&quot;: &quot;...&quot;,&#10;  &quot;ciphertext&quot;: &quot;...&quot;&#10;}" autocomplete="off"></textarea>
+          <textarea id="rsa-ciphertext" rows="5"
+            placeholder="{&#10;  &quot;algorithm&quot;: &quot;RSA-OAEP-SHA256 / AES-256-GCM&quot;,&#10;  &quot;encryptedAesKey&quot;: &quot;...&quot;,&#10;  &quot;iv&quot;: &quot;...&quot;,&#10;  &quot;tag&quot;: &quot;...&quot;,&#10;  &quot;ciphertext&quot;: &quot;...&quot;&#10;}"
+            autocomplete="off"></textarea>
         </div>
 
         <button class="btn" onclick="decryptRsaHybrid()">Decrypt Payload</button>
@@ -1172,24 +1323,33 @@
       <div id="decrypt-pgp-tab" class="tab-content active">
         <div class="form-group">
           <label>
-            Client's PGP Private Key (Armored) <span class="help-btn" role="button" onclick="showHelp('privateKey'); event.stopPropagation();">?</span>
+            Client's PGP Private Key (Armored) <span class="help-btn" role="button"
+              onclick="showHelp('privateKey'); event.stopPropagation();">?</span>
             <div class="file-input-wrapper">
-              <span class="file-input-label" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; border-radius: 4px;">Upload PGP Private Key</span>
+              <span class="file-input-label"
+                style="padding: 0.25rem 0.5rem; font-size: 0.75rem; border-radius: 4px;">Upload PGP Private Key</span>
               <input type="file" id="pgp-key-upload" onchange="handlePgpKeyUpload(event)">
             </div>
           </label>
-          <textarea id="pgp-private-key" rows="5" placeholder="-----BEGIN PGP PRIVATE KEY BLOCK-----&#10;...&#10;-----END PGP PRIVATE KEY BLOCK-----" autocomplete="off"></textarea>
+          <textarea id="pgp-private-key" rows="5"
+            placeholder="-----BEGIN PGP PRIVATE KEY BLOCK-----&#10;...&#10;-----END PGP PRIVATE KEY BLOCK-----"
+            autocomplete="off"></textarea>
         </div>
 
         <div class="form-group">
           <label>
-            PGP Armored Message <span class="help-btn" role="button" onclick="showHelp('ciphertext'); event.stopPropagation();">?</span>
+            PGP Armored Message <span class="help-btn" role="button"
+              onclick="showHelp('ciphertext'); event.stopPropagation();">?</span>
             <div class="file-input-wrapper">
-              <span class="file-input-label" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; border-radius: 4px;">Upload PGP File (.asc/.pgp)</span>
+              <span class="file-input-label"
+                style="padding: 0.25rem 0.5rem; font-size: 0.75rem; border-radius: 4px;">Upload PGP File
+                (.asc/.pgp)</span>
               <input type="file" id="pgp-cipher-upload" accept=".asc,.pgp,.txt" onchange="handlePgpCipherUpload(event)">
             </div>
           </label>
-          <textarea id="pgp-ciphertext" rows="5" placeholder="-----BEGIN PGP MESSAGE-----&#10;...&#10;-----END PGP MESSAGE-----" autocomplete="off"></textarea>
+          <textarea id="pgp-ciphertext" rows="5"
+            placeholder="-----BEGIN PGP MESSAGE-----&#10;...&#10;-----END PGP MESSAGE-----"
+            autocomplete="off"></textarea>
         </div>
 
         <button class="btn" onclick="decryptPgp()">Decrypt PGP Message</button>
@@ -1218,8 +1378,11 @@
           <span>💻</span> System Execution Logs
         </h3>
         <div class="console-header-actions">
-          <span style="font-size: 0.75rem; color: var(--text-muted); font-family: monospace;" id="console-last-msg">System Ready.</span>
-          <button class="theme-toggle-btn" onclick="clearConsole(event)" style="padding: 0.25rem 0.60rem; font-size: 0.75rem; border-color: var(--card-border); margin: 0;">Clear Logs</button>
+          <span style="font-size: 0.75rem; color: var(--text-muted); font-family: monospace;"
+            id="console-last-msg">System Ready.</span>
+          <button class="theme-toggle-btn" onclick="clearConsole(event)"
+            style="padding: 0.25rem 0.60rem; font-size: 0.75rem; border-color: var(--card-border); margin: 0;">Clear
+            Logs</button>
           <span class="console-toggle-icon" id="console-toggle-icon">▼</span>
         </div>
       </div>
@@ -1358,19 +1521,19 @@
     function updateWipeUI() {
       const bannerCountdown = document.getElementById('wipe-countdown');
       const modalCountdown = document.getElementById('modal-wipe-countdown');
-      
+
       bannerCountdown.innerText = secondsRemaining + 's';
-      
+
       const warningModal = document.getElementById('wipe-warning-modal');
       if (secondsRemaining <= SECURITY_TIMEOUT_CONFIG.WARNING_THRESHOLD_SECONDS) {
         warningModal.style.setProperty('display', 'flex', 'important');
         modalCountdown.innerText = secondsRemaining;
-        
+
         bannerCountdown.classList.add('flashing-red-countdown');
         modalCountdown.classList.add('flashing-red-countdown');
       } else {
         warningModal.style.display = 'none';
-        
+
         bannerCountdown.classList.remove('flashing-red-countdown');
         modalCountdown.classList.remove('flashing-red-countdown');
       }
@@ -1432,7 +1595,7 @@
         toggleIcon.innerText = '◀';
       }
     }
-    
+
     function clearConsole(event) {
       if (event) event.stopPropagation();
       document.getElementById('unified-log-console').innerHTML = '[System Logs Cleared]';
@@ -1470,13 +1633,13 @@
     function switchOutputTab(tabId) {
       const tabs = document.querySelectorAll('.output-tab');
       tabs.forEach(t => t.classList.remove('active'));
-      
+
       const contents = document.querySelectorAll('.output-tab-content');
       contents.forEach(c => c.classList.remove('active'));
-      
+
       const selectedTab = document.getElementById(`tab-${tabId}-btn`);
       const selectedContent = document.getElementById(`output-tab-${tabId}`);
-      
+
       if (selectedTab && selectedContent) {
         selectedTab.classList.add('active');
         selectedContent.classList.add('active');
@@ -1609,18 +1772,18 @@
         const pemPrivate = `-----BEGIN PRIVATE KEY-----\n${pkcs8Base64.match(/.{1,64}/g).join('\n')}\n-----END PRIVATE KEY-----`;
 
         document.getElementById('rsa-public-key').value = pemPublic;
-        
+
         document.getElementById('generated-pubkey').innerText = pemPublic;
         document.getElementById('generated-privkey').innerText = pemPrivate;
-        
+
         const keysTabBtn = document.getElementById('tab-keys-btn');
         if (keysTabBtn) {
           keysTabBtn.style.display = 'inline-block';
         }
         switchOutputTab('keys');
-        
+
         encryptLog("Test RSA keypair generated successfully. Loaded Public Key into field and Private Key in Decryption Preview.");
-      } catch(err) {
+      } catch (err) {
         encryptLog("RSA Key Gen Error: " + err.message);
       }
     }
@@ -1638,18 +1801,18 @@
         });
 
         document.getElementById('pgp-public-key').value = publicKey;
-        
+
         document.getElementById('generated-pubkey').innerText = publicKey;
         document.getElementById('generated-privkey').innerText = privateKey;
-        
+
         const keysTabBtn = document.getElementById('tab-keys-btn');
         if (keysTabBtn) {
           keysTabBtn.style.display = 'inline-block';
         }
         switchOutputTab('keys');
-        
+
         encryptLog("Test PGP keypair generated successfully. Loaded Public Key into field and Private Key in Decryption Preview.");
-      } catch(err) {
+      } catch (err) {
         encryptLog("PGP Key Gen Error: " + err.message);
       }
     }
@@ -1674,7 +1837,7 @@
       const rawBtn = document.getElementById('input-mode-raw-btn');
       const fieldBtn = document.getElementById('input-mode-field-btn');
       const autogenBtn = document.getElementById('input-mode-autogen-btn');
-      
+
       const rawContainer = document.getElementById('input-raw-container');
       const fieldContainer = document.getElementById('input-field-container');
       const autogenContainer = document.getElementById('input-autogen-container');
@@ -1683,7 +1846,7 @@
       rawBtn.classList.remove('active');
       fieldBtn.classList.remove('active');
       autogenBtn.classList.remove('active');
-      
+
       rawContainer.classList.remove('active');
       fieldContainer.classList.remove('active');
       autogenContainer.classList.remove('active');
@@ -1721,19 +1884,19 @@
         const pId = createSecureUUID();
         const sKey = createSecureUUID();
         const cId = createSecureUUID();
-        
+
         const payload = {
           partnerId: pId,
           secretKey: sKey,
           clientId: cId,
           timestamp: new Date().toISOString()
         };
-        
+
         encryptLog("Generated fresh credential package in memory:");
         encryptLog("X-Partner-ID: [masked]");
         encryptLog("Secret Key: [masked]");
         encryptLog("X-Client-ID: [masked]");
-        
+
         return JSON.stringify(payload, null, 2);
       }
 
@@ -1768,7 +1931,7 @@
       if (additional) {
         try {
           payload.additional = JSON.parse(additional);
-        } catch(e) {
+        } catch (e) {
           payload.additional = additional;
         }
       }
@@ -1814,7 +1977,7 @@
         let der;
         try {
           der = pemToDer(rsaPem);
-        } catch(e) {
+        } catch (e) {
           throw new Error("Invalid PEM format. Ensure headers and base64 body are correct.");
         }
 
@@ -1826,7 +1989,7 @@
             false,
             ["encrypt"]
           );
-        } catch(e) {
+        } catch (e) {
           throw new Error("Failed to import RSA public key: " + e.message);
         }
 
@@ -1835,7 +1998,7 @@
           const hashBuffer = await window.crypto.subtle.digest("SHA-256", der);
           const hashArray = Array.from(new Uint8Array(hashBuffer));
           fingerprint = hashArray.map(b => b.toString(16).padStart(2, "0")).join("").toUpperCase().match(/.{1,4}/g).join(" ");
-        } catch (e) {}
+        } catch (e) { }
 
         let detailsHtml = `
           <div style="margin-bottom: 0.4rem;"><strong>Key Type:</strong> <span style="color: var(--success);">RSA Public Key (PEM)</span></div>
@@ -2093,7 +2256,7 @@ console.log(decrypted);
    node decrypt.js
 `);
 
-        const blob = await zip.generateAsync({type: "blob"});
+        const blob = await zip.generateAsync({ type: "blob" });
         lastGeneratedBlob = blob;
         lastGeneratedFilename = "encrypted_credentials_package.zip";
         document.getElementById('download-cipher-btn').style.display = 'block';
@@ -2101,7 +2264,7 @@ console.log(decrypted);
         encryptLog("");
         startAutoWipeTimer();
 
-      } catch(err) {
+      } catch (err) {
         encryptLog("Error: " + err.message);
         alert("Encryption failed: " + err.message);
       }
@@ -2143,7 +2306,7 @@ console.log(decrypted);
               emails = extracted.join(", ");
             }
           }
-        } catch (e) {}
+        } catch (e) { }
 
         let keyId = "[unavailable]";
         try {
@@ -2151,7 +2314,7 @@ console.log(decrypted);
           if (kid) {
             keyId = kid.toHex().toUpperCase();
           }
-        } catch (e) {}
+        } catch (e) { }
 
         let fingerprint = "[unavailable]";
         try {
@@ -2159,7 +2322,7 @@ console.log(decrypted);
           if (fp) {
             fingerprint = fp.toUpperCase().match(/.{1,4}/g).join(" ");
           }
-        } catch (e) {}
+        } catch (e) { }
 
         let algorithm = "[unavailable]";
         try {
@@ -2167,7 +2330,7 @@ console.log(decrypted);
           if (algo) {
             algorithm = algo.algorithm || algo;
           }
-        } catch (e) {}
+        } catch (e) { }
 
         let creationTime = "[unavailable]";
         try {
@@ -2175,7 +2338,7 @@ console.log(decrypted);
           if (created) {
             creationTime = new Date(created).toUTCString();
           }
-        } catch (e) {}
+        } catch (e) { }
 
         let expirationTime = "[unavailable]";
         try {
@@ -2187,13 +2350,13 @@ console.log(decrypted);
           } else {
             expirationTime = "Never Expires";
           }
-        } catch (e) {}
+        } catch (e) { }
 
         let isRevoked = "[unavailable]";
         try {
           const revoked = await publicKey.isRevoked();
           isRevoked = revoked ? "Yes (Revoked)" : "No";
-        } catch (e) {}
+        } catch (e) { }
 
         let strength = "[unavailable]";
         try {
@@ -2203,7 +2366,7 @@ console.log(decrypted);
           } else if (primaryKey && primaryKey.curve) {
             strength = "ECC Curve: " + primaryKey.curve;
           }
-        } catch (e) {}
+        } catch (e) { }
 
         let detailsHtml = `
           <div style="margin-bottom: 0.4rem;"><strong>Key Type:</strong> <span style="color: var(--success);">PGP Public Key (Armored)</span></div>
@@ -2258,7 +2421,7 @@ gpg --decrypt encrypted_message.asc
         }
         switchOutputTab('cipher');
 
-        const blob = new Blob([encrypted], {type: "text/plain;charset=utf-8"});
+        const blob = new Blob([encrypted], { type: "text/plain;charset=utf-8" });
         lastGeneratedBlob = blob;
         lastGeneratedFilename = "encrypted_message.asc";
         document.getElementById('download-cipher-btn').style.display = 'block';
@@ -2266,7 +2429,7 @@ gpg --decrypt encrypted_message.asc
         encryptLog("");
         startAutoWipeTimer();
 
-      } catch(err) {
+      } catch (err) {
         encryptLog("Error: " + err.message);
         alert("PGP Encryption failed: " + err.message);
       }
@@ -2452,7 +2615,7 @@ gpg --decrypt encrypted_message.asc
         document.getElementById('decrypted-preview').innerText = decryptedText;
         startAutoWipeTimer();
 
-      } catch(err) {
+      } catch (err) {
         decryptLog("Error: " + err.message);
         alert("Decryption failed: " + err.message);
       }
@@ -2546,38 +2709,54 @@ gpg --decrypt encrypted_message.asc
   </script>
 
   <!-- HELP DIALOG MODAL -->
-  <div id="help-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.6); z-index: 100003; align-items: center; justify-content: center; backdrop-filter: blur(4px); padding: 2rem;">
-    <div class="modal-card" style="max-width: 420px; padding: 2rem; background: var(--card-bg); border: 1px solid var(--primary); border-radius: 12px; position: relative; box-shadow: var(--shadow); text-align: left; display: flex; flex-direction: column;">
-      <button onclick="closeHelpModal()" style="position: absolute; top: 0.75rem; right: 0.75rem; background: none; border: none; color: var(--text-muted); font-size: 1.1rem; cursor: pointer;">✕</button>
-      <h3 id="help-title" style="font-size: 1.15rem; font-weight: 600; color: var(--accent); margin-bottom: 0.75rem; margin-top: 0;">Help Topic</h3>
+  <div id="help-modal"
+    style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.6); z-index: 100003; align-items: center; justify-content: center; backdrop-filter: blur(4px); padding: 2rem;">
+    <div class="modal-card"
+      style="max-width: 420px; padding: 2rem; background: var(--card-bg); border: 1px solid var(--primary); border-radius: 12px; position: relative; box-shadow: var(--shadow); text-align: left; display: flex; flex-direction: column;">
+      <button onclick="closeHelpModal()"
+        style="position: absolute; top: 0.75rem; right: 0.75rem; background: none; border: none; color: var(--text-muted); font-size: 1.1rem; cursor: pointer;">✕</button>
+      <h3 id="help-title"
+        style="font-size: 1.15rem; font-weight: 600; color: var(--accent); margin-bottom: 0.75rem; margin-top: 0;">Help
+        Topic</h3>
       <p id="help-text" style="font-size: 0.875rem; line-height: 1.5; color: var(--text-main); margin: 0;"></p>
     </div>
   </div>
 
   <!-- WEB HOSTING WARNING MODAL -->
-  <div id="hosted-warning-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.75); z-index: 100004; align-items: center; justify-content: center; backdrop-filter: blur(5px); padding: 1.5rem;">
-    <div class="modal-card" style="max-width: 480px; width: 100%; padding: 2rem; background: #0f172a; border: 1px solid #f59e0b; border-radius: 12px; position: relative; box-shadow: 0 15px 40px rgba(0,0,0,0.5); text-align: left; display: flex; flex-direction: column; gap: 1rem;">
+  <div id="hosted-warning-modal"
+    style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.75); z-index: 100004; align-items: center; justify-content: center; backdrop-filter: blur(5px); padding: 1.5rem;">
+    <div class="modal-card"
+      style="max-width: 480px; width: 100%; padding: 2rem; background: #0f172a; border: 1px solid #f59e0b; border-radius: 12px; position: relative; box-shadow: 0 15px 40px rgba(0,0,0,0.5); text-align: left; display: flex; flex-direction: column; gap: 1rem;">
       <div style="display: flex; align-items: center; gap: 0.75rem;">
         <span style="font-size: 1.8rem; line-height: 1;">🌐</span>
-        <h3 style="font-size: 1.25rem; font-weight: 700; color: #f59e0b; margin: 0;">Hosted Web Environment Detected</h3>
+        <h3 style="font-size: 1.25rem; font-weight: 700; color: #f59e0b; margin: 0;">Hosted Web Environment Detected
+        </h3>
       </div>
-      
+
       <p style="font-size: 0.875rem; line-height: 1.55; color: #cbd5e1; margin: 0;">
-        This offline utility is currently being served online from a web hosting server (<strong id="hosted-domain-name" style="color: #f1f5f9;"></strong>).
+        This offline utility is currently being served online from a web hosting server (<strong id="hosted-domain-name"
+          style="color: #f1f5f9;"></strong>).
       </p>
-      
-      <div style="background: rgba(245, 158, 11, 0.1); border-left: 3px solid #f59e0b; padding: 0.75rem 1rem; border-radius: 4px;">
+
+      <div
+        style="background: rgba(245, 158, 11, 0.1); border-left: 3px solid #f59e0b; padding: 0.75rem 1rem; border-radius: 4px;">
         <p style="font-size: 0.825rem; line-height: 1.45; color: #fbbf24; margin: 0;">
-          <strong>Security Notice:</strong> All PGP operations still run 100% locally in your browser. However, for maximum privacy and air-gapped security, we recommend downloading and saving this HTML file locally onto your disk to run offline directly via <code style="font-family: monospace; background: rgba(0,0,0,0.3); padding: 0.15rem 0.35rem; border-radius: 3px;">file://</code>.
+          <strong>Security Notice:</strong> All PGP operations still run 100% locally in your browser. However, for
+          maximum privacy and security, we recommend downloading and saving this HTML file locally onto your disk to run
+          offline directly via <code
+            style="font-family: monospace; background: rgba(0,0,0,0.3); padding: 0.15rem 0.35rem; border-radius: 3px;">file://</code>.
         </p>
       </div>
 
       <div style="display: flex; gap: 0.75rem; justify-content: flex-end; margin-top: 0.5rem;">
-        <button onclick="closeHostedWarningModal()" style="padding: 0.6rem 1.25rem; background: #f59e0b; color: #0f172a; border: none; border-radius: 6px; font-weight: 600; font-size: 0.875rem; cursor: pointer; transition: opacity 0.2s;" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">
-          I Understand, Continue Tool
+        <button onclick="closeHostedWarningModal()"
+          style="padding: 0.6rem 1.25rem; background: #f59e0b; color: #0f172a; border: none; border-radius: 6px; font-weight: 600; font-size: 0.875rem; cursor: pointer; transition: opacity 0.2s;"
+          onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">
+          I Understand, Continue
         </button>
       </div>
     </div>
   </div>
 </body>
+
 </html>
