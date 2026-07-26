@@ -20,7 +20,7 @@
     <!-- Load Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <!-- FontAwesome for Premium Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Load QRious for QR Code generation -->
@@ -55,7 +55,6 @@
             box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.25);
             border-color: #6366f1;
         }
-        /* Custom styled switch/toggles */
         .spotlight {
             position: absolute;
             width: 500px;
@@ -68,191 +67,213 @@
         }
     </style>
 </head>
-<body class="bg-[#090b11] text-slate-100 min-h-screen p-4 sm:p-8 font-sans relative overflow-x-hidden">
+<body class="bg-[#090b11] text-slate-100 min-h-screen p-4 sm:p-6 font-sans relative overflow-x-hidden">
 
     <!-- Decorative Spotlights -->
     <div class="spotlight top-[-100px] left-[-100px]"></div>
     <div class="spotlight bottom-[-100px] right-[-100px]"></div>
 
-    <div class="max-w-4xl mx-auto relative z-10">
+    <div class="max-w-6xl mx-auto relative z-10">
         <!-- Header -->
-        <header class="text-center mb-10 mt-4">
-            <div class="inline-flex items-center gap-3 px-4 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-sm font-semibold mb-4 tracking-wide">
+        <header class="text-center mb-6 mt-2">
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-xs font-semibold mb-2 tracking-wide">
                 <i class="fa-solid fa-wand-magic-sparkles"></i> PRE-FILL AUTOMATOR
             </div>
-            <h1 class="text-4xl sm:text-5xl font-extrabold tracking-tight bg-gradient-to-r from-white via-indigo-200 to-indigo-400 bg-clip-text text-transparent">Editable Form Pre-fill Automator</h1>
-            <p class="mt-3 text-slate-400 max-w-xl mx-auto text-base sm:text-lg font-light">Dynamically generate Google Form pre-filled links and QR codes with fully editable fields.</p>
+            <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight bg-gradient-to-r from-white via-indigo-200 to-indigo-400 bg-clip-text text-transparent">Editable Form Pre-fill Automator</h1>
+            <p class="mt-1.5 text-slate-400 max-w-xl mx-auto text-sm sm:text-base font-light">Dynamically generate Google Form pre-filled links and QR codes with fully editable fields.</p>
         </header>
 
         <!-- Main Workspace Grid -->
-        <div class="space-y-8">
-            <!-- Configuration Card -->
-            <div class="glow-card bg-slate-900/60 backdrop-blur-xl p-6 sm:p-8 rounded-2xl border border-slate-800 shadow-2xl">
-                <div class="flex items-center gap-3 mb-6 pb-4 border-b border-slate-800">
-                    <span class="flex items-center justify-center w-8 h-8 rounded-lg bg-indigo-500/20 text-indigo-400 text-sm font-bold">1</span>
-                    <h2 class="text-2xl font-bold text-white tracking-tight">Configuration & Base Link</h2>
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            <!-- Configuration Card (Left Column) -->
+            <div class="lg:col-span-7 glow-card bg-slate-900/60 backdrop-blur-xl p-5 sm:p-6 rounded-2xl border border-slate-800 shadow-2xl">
+                <div class="flex items-center gap-3 mb-5 pb-3 border-b border-slate-800">
+                    <span class="flex items-center justify-center w-7 h-7 rounded-lg bg-indigo-500/20 text-indigo-400 text-xs font-bold">1</span>
+                    <h2 class="text-xl font-bold text-white tracking-tight">Configuration & Base Link</h2>
                 </div>
                 
                 <!-- Base URL Input -->
-                <div class="mb-8">
-                    <label for="baseUrl" class="block text-sm font-medium text-slate-300 mb-2">Google Form Base URL</label>
+                <div class="mb-5">
+                    <label for="baseUrl" class="block text-xs font-medium text-slate-300 mb-1.5 uppercase tracking-wider">Google Form Base URL</label>
                     <div class="relative">
                         <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-500 pointer-events-none">
-                            <i class="fa-solid fa-link"></i>
+                            <i class="fa-solid fa-link text-xs"></i>
                         </span>
                         <input type="url" id="baseUrl" value="https://docs.google.com/forms/d/e/1FAIpQLSfn2ndz9ZVp2BkExQiyjQXtf4mbGku3OO7Xdnmv0YHcFLUzGg/viewform"
                                placeholder="e.g., https://docs.google.com/forms/d/e/FORM_ID/viewform"
-                               class="input-field w-full pl-10 pr-4 py-3.5 bg-slate-950/80 border border-slate-800 text-slate-100 rounded-xl focus:outline-none text-sm placeholder-slate-600">
+                               class="input-field w-full pl-9 pr-3 py-2.5 bg-slate-950/80 border border-slate-800 text-slate-100 rounded-xl focus:outline-none text-xs sm:text-sm placeholder-slate-600 font-mono">
                     </div>
-                    <p class="mt-2 text-xs text-slate-500">Use the form's <code class="bg-slate-950 px-1 py-0.5 rounded text-indigo-300">viewform</code> URL (not the standard edit or pre-filled link).</p>
+                    <p class="mt-1.5 text-[11px] text-slate-500">Use the form's <code class="bg-slate-950 px-1 py-0.5 rounded text-indigo-300">viewform</code> URL (not edit or pre-filled link).</p>
                 </div>
 
-                <div class="flex items-center gap-3 mb-6">
-                    <span class="flex items-center justify-center w-8 h-8 rounded-lg bg-indigo-500/20 text-indigo-400 text-sm font-bold">2</span>
-                    <h3 class="text-xl font-bold text-white tracking-tight">Pre-fill Parameters</h3>
+                <div class="flex items-center gap-3 mb-4">
+                    <span class="flex items-center justify-center w-7 h-7 rounded-lg bg-indigo-500/20 text-indigo-400 text-xs font-bold">2</span>
+                    <h3 class="text-lg font-bold text-white tracking-tight">Pre-fill Parameters</h3>
                 </div>
 
                 <!-- Dynamic Fields Container -->
-                <div id="entries-container" class="space-y-6">
-                    <!-- Fixed Next Saturday Date Entries (Disabled/Greyed out) -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div class="flex flex-col p-4 bg-indigo-950/20 rounded-xl border border-indigo-500/20 hover:border-indigo-500/35 transition-all">
-                            <div class="flex justify-between items-center mb-2">
-                                <span class="text-xs font-semibold text-indigo-400 uppercase tracking-wider">Fixed Date Entry 1</span>
-                                <span class="text-[10px] bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded-full font-mono">ID: 2064895431</span>
+                <div id="entries-container" class="space-y-4">
+                    <!-- Fixed Next Saturday Date Entries -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div class="flex flex-col p-3 bg-indigo-950/20 rounded-xl border border-indigo-500/20 hover:border-indigo-500/35 transition-all">
+                            <div class="flex justify-between items-center mb-1.5">
+                                <span class="text-[11px] font-semibold text-indigo-400 uppercase tracking-wider">Fixed Date Entry 1</span>
+                                <span class="text-[10px] bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded-full font-mono">2064895431</span>
                             </div>
-                            <input type="hidden" data-id="2064895431" value="2064895431">
-                            <div class="flex items-center gap-3 mt-1 bg-slate-950/80 p-3 rounded-lg border border-slate-800/80">
-                                <i class="fa-regular fa-calendar text-indigo-400"></i>
-                                <input type="text" id="nextSaturday1" value="YYYY-MM-DD" disabled class="bg-transparent text-slate-300 font-mono text-sm focus:outline-none w-full cursor-not-allowed">
+                            <div class="flex items-center gap-2.5 bg-slate-950/80 p-2.5 rounded-lg border border-slate-800/80">
+                                <i class="fa-regular fa-calendar text-indigo-400 text-xs"></i>
+                                <input type="text" id="nextSaturday1" value="YYYY-MM-DD" disabled class="bg-transparent text-slate-300 font-mono text-xs focus:outline-none w-full cursor-not-allowed">
                             </div>
                         </div>
 
-                        <div class="flex flex-col p-4 bg-indigo-950/20 rounded-xl border border-indigo-500/20 hover:border-indigo-500/35 transition-all">
-                            <div class="flex justify-between items-center mb-2">
-                                <span class="text-xs font-semibold text-indigo-400 uppercase tracking-wider">Fixed Date Entry 2</span>
-                                <span class="text-[10px] bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded-full font-mono">ID: 1713726861</span>
+                        <div class="flex flex-col p-3 bg-indigo-950/20 rounded-xl border border-indigo-500/20 hover:border-indigo-500/35 transition-all">
+                            <div class="flex justify-between items-center mb-1.5">
+                                <span class="text-[11px] font-semibold text-indigo-400 uppercase tracking-wider">Fixed Date Entry 2</span>
+                                <span class="text-[10px] bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded-full font-mono">1713726861</span>
                             </div>
-                            <input type="hidden" data-id="1713726861" value="1713726861">
-                            <div class="flex items-center gap-3 mt-1 bg-slate-950/80 p-3 rounded-lg border border-slate-800/80">
-                                <i class="fa-regular fa-calendar text-indigo-400"></i>
-                                <input type="text" id="nextSaturday2" value="YYYY-MM-DD" disabled class="bg-transparent text-slate-300 font-mono text-sm focus:outline-none w-full cursor-not-allowed">
+                            <div class="flex items-center gap-2.5 bg-slate-950/80 p-2.5 rounded-lg border border-slate-800/80">
+                                <i class="fa-regular fa-calendar text-indigo-400 text-xs"></i>
+                                <input type="text" id="nextSaturday2" value="YYYY-MM-DD" disabled class="bg-transparent text-slate-300 font-mono text-xs focus:outline-none w-full cursor-not-allowed">
                             </div>
                         </div>
                     </div>
                     
-                    <div class="relative py-4">
+                    <div class="relative py-2">
                         <div class="absolute inset-0 flex items-center" aria-hidden="true">
                             <div class="w-full border-t border-slate-800"></div>
                         </div>
                         <div class="relative flex justify-start">
-                            <span class="bg-[#090b11] pr-3 text-sm font-semibold text-slate-400 uppercase tracking-wider">Custom Pre-fill Fields</span>
+                            <span class="bg-[#090b11] pr-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Custom Pre-fill Fields</span>
                         </div>
                     </div>
 
-                    <!-- 5 Generic Editable Entries with New IDs -->
-                    <div id="custom-entries" class="space-y-4">
-                        <!-- Placeholder 1: Editable -->
-                        <div class="entry-row grid grid-cols-1 md:grid-cols-5 gap-3 p-4 bg-slate-950/40 rounded-xl border border-slate-800/60 hover:border-slate-800 transition-all">
-                            <div class="md:col-span-2">
-                                <label class="block text-xs font-medium text-slate-400 mb-1.5 uppercase tracking-wider">Entry ID</label>
-                                <input type="text" data-id="2136028424" value="2136028424" class="input-field w-full px-3 py-2 bg-slate-950 border border-slate-800 focus:outline-none text-slate-300 rounded-lg text-sm font-mono">
-                            </div>
-                            <div class="md:col-span-3">
-                                <label class="block text-xs font-medium text-slate-400 mb-1.5 uppercase tracking-wider">Name</label>
-                                <input type="text" data-value="User Name" value="Gerald" class="input-field w-full px-3 py-2 bg-slate-950 border border-slate-800 focus:outline-none text-white rounded-lg text-sm">
-                            </div>
-                        </div>
-                        <!-- Placeholder 2: Editable -->
-                        <div class="entry-row grid grid-cols-1 md:grid-cols-5 gap-3 p-4 bg-slate-950/40 rounded-xl border border-slate-800/60 hover:border-slate-800 transition-all">
-                            <div class="md:col-span-2">
-                                <label class="block text-xs font-medium text-slate-400 mb-1.5 uppercase tracking-wider">Entry ID</label>
-                                <input type="text" data-id="779192591" value="779192591" class="input-field w-full px-3 py-2 bg-slate-950 border border-slate-800 focus:outline-none text-slate-300 rounded-lg text-sm font-mono">
-                            </div>
-                            <div class="md:col-span-3">
-                                <label class="block text-xs font-medium text-slate-400 mb-1.5 uppercase tracking-wider">Program</label>
-                                <input type="text" data-value="Department Code" value="MCS" class="input-field w-full px-3 py-2 bg-slate-950 border border-slate-800 focus:outline-none text-white rounded-lg text-sm">
-                            </div>
-                        </div>
-                        <!-- Placeholder 3: Editable -->
-                        <div class="entry-row grid grid-cols-1 md:grid-cols-5 gap-3 p-4 bg-slate-950/40 rounded-xl border border-slate-800/60 hover:border-slate-800 transition-all">	
-                            <div class="md:col-span-2">
-                                <label class="block text-xs font-medium text-slate-400 mb-1.5 uppercase tracking-wider">Entry ID</label>
-                                <input type="text" data-id="1541239556" value="1541239556" class="input-field w-full px-3 py-2 bg-slate-950 border border-slate-800 focus:outline-none text-slate-300 rounded-lg text-sm font-mono">
-                            </div>
-                            <div class="md:col-span-3">
-                                <label class="block text-xs font-medium text-slate-400 mb-1.5 uppercase tracking-wider">Student ID</label>
-                                <input type="text" data-value="Project Identifier" value="35283173" class="input-field w-full px-3 py-2 bg-slate-950 border border-slate-800 focus:outline-none text-white rounded-lg text-sm">
-                            </div>
-                        </div>
-                        <!-- Placeholder 4: Editable -->
-                        <div class="entry-row grid grid-cols-1 md:grid-cols-5 gap-3 p-4 bg-slate-950/40 rounded-xl border border-slate-800/60 hover:border-slate-800 transition-all">
-                            <div class="md:col-span-2">
-                                <label class="block text-xs font-medium text-slate-400 mb-1.5 uppercase tracking-wider">Entry ID</label>
-                                <input type="text" data-id="1808112377" value="1808112377" class="input-field w-full px-3 py-2 bg-slate-950 border border-slate-800 focus:outline-none text-slate-300 rounded-lg text-sm font-mono">
-                            </div>
-                            <div class="md:col-span-3">
-                                <label class="block text-xs font-medium text-slate-400 mb-1.5 uppercase tracking-wider">Phone Number</label>
-                                <input type="text" data-value="Status (e.g., Complete)" value="085882822338" class="input-field w-full px-3 py-2 bg-slate-950 border border-slate-800 focus:outline-none text-white rounded-lg text-sm">
-                            </div>
-                        </div>
-                        <!-- Placeholder 5: Editable -->
-                        <div class="entry-row grid grid-cols-1 md:grid-cols-5 gap-3 p-4 bg-slate-950/40 rounded-xl border border-slate-800/60 hover:border-slate-800 transition-all">
-                            <div class="md:col-span-2">
-                                <label class="block text-xs font-medium text-slate-400 mb-1.5 uppercase tracking-wider">Entry ID</label>
-                                <input type="text" data-id="1394696815" value="1394696815" class="input-field w-full px-3 py-2 bg-slate-950 border border-slate-800 focus:outline-none text-slate-300 rounded-lg text-sm font-mono">
-                            </div>
-                            <div class="md:col-span-3">
-                                <label class="block text-xs font-medium text-slate-400 mb-1.5 uppercase tracking-wider">Student Email</label>
-                                <input type="text" data-value="Notes/Comment" value="gkal0012@student.monash.edu" class="input-field w-full px-3 py-2 bg-slate-950 border border-slate-800 focus:outline-none text-white rounded-lg text-sm">
-                            </div>
-                        </div>
+                    <!-- Custom Pre-fill Fields Responsive Table / Cards -->
+                    <div id="custom-entries" class="overflow-x-auto rounded-xl sm:border sm:border-slate-800 sm:bg-slate-950/40">
+                        <table class="w-full text-left text-xs border-collapse block sm:table">
+                            <thead class="hidden sm:table-header-group bg-slate-900/80 border-b border-slate-800 text-slate-400 font-semibold uppercase tracking-wider text-[10px]">
+                                <tr>
+                                    <th class="py-2.5 px-3 w-1/4">Field</th>
+                                    <th class="py-2.5 px-3 w-1/3">Entry ID</th>
+                                    <th class="py-2.5 px-3">Pre-fill Value</th>
+                                </tr>
+                            </thead>
+                            <tbody class="block sm:table-row-group space-y-3 sm:space-y-0 sm:divide-y sm:divide-slate-800/60">
+                                <tr class="entry-row block sm:table-row p-3.5 sm:p-0 bg-slate-950/40 sm:bg-transparent rounded-xl sm:rounded-none border border-slate-800/60 sm:border-none hover:bg-slate-900/40 transition-colors">
+                                    <td class="block sm:table-cell py-1 sm:py-2 px-0 sm:px-3 text-indigo-400 sm:text-slate-300 font-semibold sm:font-medium text-xs uppercase sm:normal-case tracking-wider sm:tracking-normal mb-1 sm:mb-0">
+                                        Name
+                                    </td>
+                                    <td class="block sm:table-cell py-1 sm:py-2 px-0 sm:px-3 mb-2 sm:mb-0">
+                                        <label class="block sm:hidden text-[10px] font-medium text-slate-400 mb-1 uppercase tracking-wider">Entry ID</label>
+                                        <input type="text" value="2136028424" class="input-field w-full px-2.5 py-1.5 bg-slate-950 border border-slate-800 focus:outline-none text-slate-300 rounded-lg text-xs font-mono">
+                                    </td>
+                                    <td class="block sm:table-cell py-1 sm:py-2 px-0 sm:px-3">
+                                        <label class="block sm:hidden text-[10px] font-medium text-slate-400 mb-1 uppercase tracking-wider">Pre-fill Value</label>
+                                        <input type="text" value="Gerald" class="input-field w-full px-2.5 py-1.5 bg-slate-950 border border-slate-800 focus:outline-none text-white rounded-lg text-xs">
+                                    </td>
+                                </tr>
+                                <tr class="entry-row block sm:table-row p-3.5 sm:p-0 bg-slate-950/40 sm:bg-transparent rounded-xl sm:rounded-none border border-slate-800/60 sm:border-none hover:bg-slate-900/40 transition-colors">
+                                    <td class="block sm:table-cell py-1 sm:py-2 px-0 sm:px-3 text-indigo-400 sm:text-slate-300 font-semibold sm:font-medium text-xs uppercase sm:normal-case tracking-wider sm:tracking-normal mb-1 sm:mb-0">
+                                        Program
+                                    </td>
+                                    <td class="block sm:table-cell py-1 sm:py-2 px-0 sm:px-3 mb-2 sm:mb-0">
+                                        <label class="block sm:hidden text-[10px] font-medium text-slate-400 mb-1 uppercase tracking-wider">Entry ID</label>
+                                        <input type="text" value="779192591" class="input-field w-full px-2.5 py-1.5 bg-slate-950 border border-slate-800 focus:outline-none text-slate-300 rounded-lg text-xs font-mono">
+                                    </td>
+                                    <td class="block sm:table-cell py-1 sm:py-2 px-0 sm:px-3">
+                                        <label class="block sm:hidden text-[10px] font-medium text-slate-400 mb-1 uppercase tracking-wider">Pre-fill Value</label>
+                                        <input type="text" value="MCS" class="input-field w-full px-2.5 py-1.5 bg-slate-950 border border-slate-800 focus:outline-none text-white rounded-lg text-xs">
+                                    </td>
+                                </tr>
+                                <tr class="entry-row block sm:table-row p-3.5 sm:p-0 bg-slate-950/40 sm:bg-transparent rounded-xl sm:rounded-none border border-slate-800/60 sm:border-none hover:bg-slate-900/40 transition-colors">
+                                    <td class="block sm:table-cell py-1 sm:py-2 px-0 sm:px-3 text-indigo-400 sm:text-slate-300 font-semibold sm:font-medium text-xs uppercase sm:normal-case tracking-wider sm:tracking-normal mb-1 sm:mb-0">
+                                        Student ID
+                                    </td>
+                                    <td class="block sm:table-cell py-1 sm:py-2 px-0 sm:px-3 mb-2 sm:mb-0">
+                                        <label class="block sm:hidden text-[10px] font-medium text-slate-400 mb-1 uppercase tracking-wider">Entry ID</label>
+                                        <input type="text" value="1541239556" class="input-field w-full px-2.5 py-1.5 bg-slate-950 border border-slate-800 focus:outline-none text-slate-300 rounded-lg text-xs font-mono">
+                                    </td>
+                                    <td class="block sm:table-cell py-1 sm:py-2 px-0 sm:px-3">
+                                        <label class="block sm:hidden text-[10px] font-medium text-slate-400 mb-1 uppercase tracking-wider">Pre-fill Value</label>
+                                        <input type="text" value="35283173" class="input-field w-full px-2.5 py-1.5 bg-slate-950 border border-slate-800 focus:outline-none text-white rounded-lg text-xs">
+                                    </td>
+                                </tr>
+                                <tr class="entry-row block sm:table-row p-3.5 sm:p-0 bg-slate-950/40 sm:bg-transparent rounded-xl sm:rounded-none border border-slate-800/60 sm:border-none hover:bg-slate-900/40 transition-colors">
+                                    <td class="block sm:table-cell py-1 sm:py-2 px-0 sm:px-3 text-indigo-400 sm:text-slate-300 font-semibold sm:font-medium text-xs uppercase sm:normal-case tracking-wider sm:tracking-normal mb-1 sm:mb-0">
+                                        Phone Number
+                                    </td>
+                                    <td class="block sm:table-cell py-1 sm:py-2 px-0 sm:px-3 mb-2 sm:mb-0">
+                                        <label class="block sm:hidden text-[10px] font-medium text-slate-400 mb-1 uppercase tracking-wider">Entry ID</label>
+                                        <input type="text" value="1808112377" class="input-field w-full px-2.5 py-1.5 bg-slate-950 border border-slate-800 focus:outline-none text-slate-300 rounded-lg text-xs font-mono">
+                                    </td>
+                                    <td class="block sm:table-cell py-1 sm:py-2 px-0 sm:px-3">
+                                        <label class="block sm:hidden text-[10px] font-medium text-slate-400 mb-1 uppercase tracking-wider">Pre-fill Value</label>
+                                        <input type="text" value="085882822338" class="input-field w-full px-2.5 py-1.5 bg-slate-950 border border-slate-800 focus:outline-none text-white rounded-lg text-xs">
+                                    </td>
+                                </tr>
+                                <tr class="entry-row block sm:table-row p-3.5 sm:p-0 bg-slate-950/40 sm:bg-transparent rounded-xl sm:rounded-none border border-slate-800/60 sm:border-none hover:bg-slate-900/40 transition-colors">
+                                    <td class="block sm:table-cell py-1 sm:py-2 px-0 sm:px-3 text-indigo-400 sm:text-slate-300 font-semibold sm:font-medium text-xs uppercase sm:normal-case tracking-wider sm:tracking-normal mb-1 sm:mb-0">
+                                        Student Email
+                                    </td>
+                                    <td class="block sm:table-cell py-1 sm:py-2 px-0 sm:px-3 mb-2 sm:mb-0">
+                                        <label class="block sm:hidden text-[10px] font-medium text-slate-400 mb-1 uppercase tracking-wider">Entry ID</label>
+                                        <input type="text" value="1394696815" class="input-field w-full px-2.5 py-1.5 bg-slate-950 border border-slate-800 focus:outline-none text-slate-300 rounded-lg text-xs font-mono">
+                                    </td>
+                                    <td class="block sm:table-cell py-1 sm:py-2 px-0 sm:px-3">
+                                        <label class="block sm:hidden text-[10px] font-medium text-slate-400 mb-1 uppercase tracking-wider">Pre-fill Value</label>
+                                        <input type="text" value="gkal0012@student.monash.edu" class="input-field w-full px-2.5 py-1.5 bg-slate-950 border border-slate-800 focus:outline-none text-white rounded-lg text-xs">
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
             
-            <!-- Output Card -->
-            <div class="glow-card bg-slate-900/60 backdrop-blur-xl p-6 sm:p-8 rounded-2xl border border-slate-800 shadow-2xl">
-                <div class="flex items-center gap-3 mb-6 pb-4 border-b border-slate-800">
-                    <span class="flex items-center justify-center w-8 h-8 rounded-lg bg-indigo-500/20 text-indigo-400 text-sm font-bold">3</span>
-                    <h2 class="text-2xl font-bold text-white tracking-tight">Generated Output</h2>
+            <!-- Output Card (Right Column Sticky) -->
+            <div class="lg:col-span-5 lg:sticky lg:top-6 glow-card bg-slate-900/60 backdrop-blur-xl p-5 sm:p-6 rounded-2xl border border-slate-800 shadow-2xl">
+                <div class="flex items-center gap-3 mb-5 pb-3 border-b border-slate-800">
+                    <span class="flex items-center justify-center w-7 h-7 rounded-lg bg-indigo-500/20 text-indigo-400 text-xs font-bold">3</span>
+                    <h2 class="text-xl font-bold text-white tracking-tight">Generated Output</h2>
                 </div>
                 
                 <!-- Result URL -->
-                <div class="mb-8">
-                    <label for="resultUrl" class="block text-sm font-medium text-slate-300 mb-2">Pre-filled Form URL</label>
+                <div class="mb-5">
+                    <label for="resultUrl" class="block text-xs font-medium text-slate-300 mb-1.5 uppercase tracking-wider">Pre-filled Form URL</label>
                     <textarea id="resultUrl" rows="4" readonly
-                           class="w-full p-4 bg-slate-950 border border-slate-800 text-slate-300 break-all text-sm rounded-xl resize-none focus:outline-none font-mono"></textarea>
+                           class="w-full p-3 bg-slate-950 border border-slate-800 text-slate-300 break-all text-xs rounded-xl resize-none focus:outline-none font-mono"></textarea>
                     
-                    <div class="flex flex-wrap gap-3 mt-4 items-center">
+                    <!-- Action Buttons Flex Row -->
+                    <div class="relative flex flex-col sm:flex-row gap-2.5 mt-3.5 items-stretch sm:items-center justify-center">
                         <button onclick="copyToClipboard()" id="copyButton"
-                                class="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-xl transition duration-150 shadow-lg shadow-indigo-600/20">
+                                class="w-full sm:w-auto sm:flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-xl transition duration-150 shadow-lg shadow-indigo-600/20 text-xs sm:text-sm">
                             <i class="fa-regular fa-copy"></i> Copy URL
                         </button>
                         <button onclick="openUrl()" id="openButton"
-                                class="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-6 py-3 bg-teal-600 hover:bg-teal-500 text-white font-semibold rounded-xl transition duration-150 shadow-lg shadow-teal-600/20">
+                                class="w-full sm:w-auto sm:flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-teal-600 hover:bg-teal-500 text-white font-semibold rounded-xl transition duration-150 shadow-lg shadow-teal-600/20 text-xs sm:text-sm">
                             <i class="fa-solid fa-arrow-up-right-from-square"></i> Open URL
                         </button>
-                        <!-- Message Span -->
-                        <span id="copyMessage" class="ml-auto text-sm text-teal-400 font-medium opacity-0 transition-opacity duration-300 flex items-center gap-1">
+                        <!-- Message Span (Absolutely Positioned to preserve perfect button centering) -->
+                        <span id="copyMessage" class="absolute -top-7 right-0 text-xs font-medium opacity-0 transition-opacity duration-300 flex items-center gap-1 bg-slate-950 px-2 py-0.5 rounded-md border border-slate-800 pointer-events-none">
                             <i class="fa-solid fa-circle-check"></i> Copied!
                         </span>
                     </div>
                 </div>
 
                 <!-- QR Code Placeholder -->
-                <div class="pt-6 border-t border-slate-800">
-                    <h3 class="text-lg font-semibold text-slate-200 mb-4 flex items-center gap-2">
+                <div class="pt-4 border-t border-slate-800 text-center">
+                    <h3 class="text-sm font-semibold text-slate-200 mb-3 flex items-center justify-center gap-2">
                         <i class="fa-solid fa-qrcode text-indigo-400"></i> QR Code for the Form
                     </h3>
-                    <div id="qr-code-placeholder" class="flex justify-center items-center p-6 bg-slate-950/60 rounded-xl border border-slate-800">
-                        <canvas id="qr-canvas" class="p-4 bg-white rounded-xl shadow-lg border border-slate-200 transition-all"></canvas>
+                    <div id="qr-code-placeholder" class="flex justify-center items-center text-center p-4 bg-slate-950/60 rounded-xl border border-slate-800 w-full">
+                        <div class="p-3 bg-white rounded-xl shadow-lg border border-slate-200 inline-flex justify-center items-center">
+                            <canvas id="qr-canvas" class="block"></canvas>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <footer class="mt-12 text-center text-slate-600 text-xs">
+        <footer class="mt-8 text-center text-slate-600 text-xs">
             Generated links operate strictly inside the web browser client. No form details are sent to external servers.
         </footer>
     </div>
@@ -261,102 +282,64 @@
         const DATE_ENTRY_ID_1 = "2064895431";
         const DATE_ENTRY_ID_2 = "1713726861";
 
-        // Global variable for the QRious instance
         let qr = null;
 
         /**
-         * Calculates the date for the next Saturday.
-         * @returns {Date} The Date object for the next Saturday.
+         * Calculates the date components for the next Saturday.
          */
-        function calculateNextSaturday() {
+        function getNextSaturday() {
             const date = new Date();
             const dayOfWeek = date.getDay(); // 0 = Sunday, 6 = Saturday
             let daysUntilNextSaturday = 6 - dayOfWeek;
-
-            // If today is Saturday, we want the Saturday of the next week (7 days later)
-            if (daysUntilNextSaturday <= 0) {
-                daysUntilNextSaturday += 7;
-            }
+            if (daysUntilNextSaturday <= 0) daysUntilNextSaturday += 7;
 
             date.setDate(date.getDate() + daysUntilNextSaturday);
-            return date;
-        }
-
-        /**
-         * Formats a Date object into YYYY-MM-DD string.
-         * @param {Date} date - The date to format.
-         * @returns {string} The formatted date string.
-         */
-        function formatDate(date) {
             const year = date.getFullYear();
-            const month = String(date.getMonth() + 1).padStart(2, '0'); // Months are 0-based
-            const day = String(date.getDate()).padStart(2, '0');
-            return `${year}-${month}-${day}`;
-        }
+            const month = date.getMonth() + 1;
+            const day = date.getDate();
+            const formatted = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 
-        /**
-         * Gets the year, month, and day components for the URL parameter format.
-         * @param {Date} date - The date to get components from.
-         * @returns {{year: number, month: number, day: number}} Date components.
-         */
-        function getDateComponents(date) {
-            return {
-                year: date.getFullYear(),
-                // Google Forms uses 1-based month, same as Date.getMonth() + 1
-                month: date.getMonth() + 1, 
-                day: date.getDate()
-            };
+            return { year, month, day, formatted };
         }
 
         /**
          * Reads all entry fields and builds the final pre-filled URL.
          */
         function generateUrl() {
-            const baseUrl = document.getElementById('baseUrl').value;
-            const customEntries = document.getElementById('custom-entries').querySelectorAll('.entry-row');
-            const nextSaturday = calculateNextSaturday();
-            const { year, month, day } = getDateComponents(nextSaturday);
+            const baseUrl = document.getElementById('baseUrl').value.trim();
+            const customEntries = document.querySelectorAll('#custom-entries .entry-row');
+            const sat = getNextSaturday();
 
-            // Update fixed date fields in the UI
-            const formattedDate = formatDate(nextSaturday);
-            document.getElementById('nextSaturday1').value = formattedDate;
-            document.getElementById('nextSaturday2').value = formattedDate;
+            // Update UI fixed date fields
+            document.getElementById('nextSaturday1').value = sat.formatted;
+            document.getElementById('nextSaturday2').value = sat.formatted;
 
-            if (!baseUrl.trim()) {
+            if (!baseUrl) {
                 document.getElementById('resultUrl').value = "Please enter a valid Google Form Base URL.";
                 return;
             }
             
-            // Start URL construction with base and standard query parameter
-            let params = new URLSearchParams("usp=pp_url");
+            const params = new URLSearchParams("usp=pp_url");
 
-            // 1. Add fixed date entries (Next Saturday)
-            params.append(`entry.${DATE_ENTRY_ID_1}_year`, year);
-            params.append(`entry.${DATE_ENTRY_ID_1}_month`, month);
-            params.append(`entry.${DATE_ENTRY_ID_1}_day`, day);
+            // Fixed date entries (Next Saturday)
+            [DATE_ENTRY_ID_1, DATE_ENTRY_ID_2].forEach(id => {
+                params.append(`entry.${id}_year`, sat.year);
+                params.append(`entry.${id}_month`, sat.month);
+                params.append(`entry.${id}_day`, sat.day);
+            });
 
-            params.append(`entry.${DATE_ENTRY_ID_2}_year`, year);
-            params.append(`entry.${DATE_ENTRY_ID_2}_month`, month);
-            params.append(`entry.${DATE_ENTRY_ID_2}_day`, day);
-
-            // 2. Add custom entries
+            // Custom entries
             customEntries.forEach(row => {
-                // Since these are now editable, we read the current value directly
-                const idInput = row.querySelector('input[data-id]');
-                const valueInput = row.querySelector('input[data-value]');
-                
-                const id = idInput ? idInput.value.trim() : null;
-                const value = valueInput ? valueInput.value.trim() : null;
-
+                const [idInput, valInput] = row.querySelectorAll('input');
+                const id = idInput?.value.trim();
+                const value = valInput?.value.trim();
                 if (id && value) {
                     params.append(`entry.${id}`, value);
                 }
             });
 
-            // The base URL must be the 'viewform' URL
             const finalUrl = `${baseUrl.split('?')[0]}?${params.toString()}`;
             document.getElementById('resultUrl').value = finalUrl;
-            
             generateQrCode(finalUrl);
         }
 
@@ -364,67 +347,60 @@
          * Opens the generated URL in a new browser tab.
          */
         function openUrl() {
-            const urlTextarea = document.getElementById('resultUrl');
-            const url = urlTextarea.value.trim();
-            const message = document.getElementById('copyMessage');
-
-            // Check if the URL is valid (i.e., not the error message)
-            if (url && url !== "Please enter a valid Google Form Base URL.") {
+            const url = document.getElementById('resultUrl').value.trim();
+            if (url && !url.startsWith("Please enter")) {
                 window.open(url, '_blank');
             } else {
-                // Display error message
-                message.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> Base URL first!';
-                message.classList.remove('text-teal-400', 'opacity-0');
-                message.classList.add('text-rose-400', 'opacity-100');
-                
-                // Hide the message after a delay and reset its properties
-                setTimeout(() => {
-                    message.classList.remove('text-rose-400', 'opacity-100');
-                    message.classList.add('text-teal-400', 'opacity-0');
-                    setTimeout(() => {
-                        message.innerHTML = '<i class="fa-solid fa-circle-check"></i> Copied!'; // Reset message for copy function
-                    }, 300);
-                }, 2000);
+                showToast('<i class="fa-solid fa-triangle-exclamation"></i> Base URL first!', 'text-rose-400');
             }
         }
 
         /**
-         * Copies the generated URL to the clipboard.
+         * Copies the generated URL to the clipboard using modern Async Clipboard API.
          */
-        function copyToClipboard() {
+        async function copyToClipboard() {
             const urlTextarea = document.getElementById('resultUrl');
-            urlTextarea.select();
-            document.execCommand('copy');
+            const url = urlTextarea.value.trim();
 
+            if (!url || url.startsWith("Please enter")) return;
+
+            try {
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    await navigator.clipboard.writeText(url);
+                } else {
+                    urlTextarea.select();
+                    document.execCommand('copy');
+                }
+                showToast('<i class="fa-solid fa-circle-check"></i> Copied!', 'text-teal-400');
+            } catch (err) {
+                showToast('<i class="fa-solid fa-circle-xmark"></i> Copy failed', 'text-rose-400');
+            }
+        }
+
+        /**
+         * Displays temporary toast status message.
+         */
+        function showToast(htmlContent, colorClass) {
             const message = document.getElementById('copyMessage');
-            // Ensure message is green for success
-            message.classList.remove('text-rose-400', 'opacity-0');
-            message.classList.add('text-teal-400', 'opacity-100');
+            message.innerHTML = htmlContent;
+            message.className = `absolute -top-7 right-0 text-xs font-medium opacity-100 transition-opacity duration-300 flex items-center gap-1 bg-slate-950 px-2 py-0.5 rounded-md border border-slate-800 pointer-events-none ${colorClass}`;
 
             setTimeout(() => {
-                message.classList.remove('opacity-100');
-                message.classList.add('opacity-0');
+                message.classList.replace('opacity-100', 'opacity-0');
             }, 1500);
         }
 
         /**
          * Generates and updates the QR Code.
-         * @param {string} url - The URL to encode in the QR code.
          */
         function generateQrCode(url) {
             const canvas = document.getElementById('qr-canvas');
+            const qrValue = url || 'No URL generated';
 
             if (!qr) {
-                // Initialize QRious only once
-                qr = new QRious({
-                    element: canvas,
-                    size: 240,
-                    padding: 10,
-                    value: url || 'No URL generated'
-                });
+                qr = new QRious({ element: canvas, size: 200, padding: 8, value: qrValue });
             } else {
-                // Update value for existing instance
-                qr.set({ value: url || 'No URL generated' });
+                qr.set({ value: qrValue });
             }
         }
 
@@ -432,19 +408,12 @@
          * Initializes event listeners and generates the initial output.
          */
         function initialize() {
-            // Attach event listeners to all inputs that change the output URL (Base URL, and 5 custom entries)
-            const editableInputs = document.querySelectorAll('#baseUrl, #custom-entries input');
-            
-            editableInputs.forEach(input => {
-                input.addEventListener('input', generateUrl);
-            });
-            
-            // Initial generation on load
+            document.getElementById('baseUrl').addEventListener('input', generateUrl);
+            document.getElementById('entries-container').addEventListener('input', generateUrl);
             generateUrl();
         }
 
         window.onload = initialize;
-
     </script>
 </body>
 </html>
