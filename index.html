@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Geraldlcpd Tool Directory</title>
+  <title>DevOps Tool Directory</title>
   <meta name="description"
     content="A beautiful and interactive directory listing all tools, utilities, and services hosted in this GitHub Pages repository.">
 
@@ -292,47 +292,6 @@
       max-width: 600px;
       margin: 0 auto 2rem;
       font-weight: 300;
-    }
-
-    /* Repo Stats Badge */
-    .repo-stats {
-      display: inline-flex;
-      align-items: center;
-      gap: 1.5rem;
-      background: var(--bg-glass);
-      border: 1px solid var(--border-color);
-      padding: 0.75rem 1.5rem;
-      border-radius: 50px;
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      font-size: 0.9rem;
-      font-weight: 500;
-      color: var(--text-secondary);
-      transition: var(--transition-smooth);
-    }
-
-    .repo-stats:hover {
-      border-color: var(--border-glow-hover);
-      transform: translateY(-1px);
-    }
-
-    .repo-stats a {
-      color: var(--text-primary);
-      text-decoration: none;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      transition: var(--transition-smooth);
-    }
-
-    .repo-stats a:hover {
-      color: var(--color-primary);
-    }
-
-    .stat-divider {
-      width: 1px;
-      height: 14px;
-      background: var(--border-color);
     }
 
     /* Controls Bar */
@@ -922,15 +881,6 @@
       <h1><span class="gradient-text">Developer Tools Directory</span></h1>
       <p>A collection of productivity utilities, Google Forms automators, and offline secure tools built for fast web
         workflows.</p>
-
-      <div class="repo-stats" id="repo-stats-container">
-        <a href="https://github.com/geraldlcpd/geraldlcpd.github.io" target="_blank" rel="noopener">
-          <i class="fa-brands fa-github"></i>
-          <span>geraldlcpd.github.io</span>
-        </a>
-        <div class="stat-divider"></div>
-        <div id="stat-count">Loading status...</div>
-      </div>
     </section>
 
     <section class="controls">
@@ -1031,7 +981,6 @@
     const searchBar = document.getElementById('search-bar');
     const filterChips = document.querySelectorAll('.filter-chip');
     const themeToggle = document.getElementById('theme-toggle');
-    const statCount = document.getElementById('stat-count');
     const viewGridBtn = document.getElementById('view-grid-btn');
     const viewListBtn = document.getElementById('view-list-btn');
 
@@ -1062,7 +1011,6 @@
         if (cached && expiry && Date.now() < parseInt(expiry)) {
           toolsData = JSON.parse(cached);
           displayTools(toolsData);
-          updateRepoStats();
           return;
         }
 
@@ -1099,7 +1047,6 @@
         localStorage.setItem(CACHE_EXPIRY_KEY, (Date.now() + CACHE_DURATION).toString());
 
         displayTools(toolsData);
-        updateRepoStats();
 
       } catch (err) {
         console.warn('Falling back to curated list due to:', err.message);
@@ -1115,7 +1062,6 @@
           tags: t.tags
         }));
         displayTools(toolsData);
-        statCount.textContent = `${toolsData.length} Tools Ready`;
       }
     }
 
@@ -1133,24 +1079,6 @@
       const sizes = ['Bytes', 'KB', 'MB'];
       const i = Math.floor(Math.log(bytes) / Math.log(k));
       return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
-    }
-
-    async function updateRepoStats() {
-      try {
-        const res = await fetch(GITHUB_REPO_META);
-        if (res.ok) {
-          const data = await res.json();
-          statCount.innerHTML = `
-            <span><i class="fa-solid fa-code-branch"></i> Main</span>
-            <div class="stat-divider" style="height: 10px;"></div>
-            <span><i class="fa-solid fa-star"></i> ${data.stargazers_count}</span>
-            <div class="stat-divider" style="height: 10px;"></div>
-            <span><i class="fa-solid fa-layer-group"></i> ${toolsData.length} Tools</span>
-          `;
-          return;
-        }
-      } catch (e) { }
-      statCount.textContent = `${toolsData.length} Tools Available`;
     }
 
     // Display / Filter Logic
