@@ -514,6 +514,11 @@ function renderPageList() {
             renderPageList();
             updateEditorView();
 
+            // Dynamically fetch single page payload from remote DB on click
+            if (AppState.syncProtocol === 'firebase_rest' && AppState.isUnlocked && AppState.masterKey) {
+                SyncManager.fetchSinglePage(page.id);
+            }
+
             // Auto-close sidebar on mobile after selecting page
             if (window.innerWidth <= 868) {
                 elements.sidebar.classList.remove('open');
