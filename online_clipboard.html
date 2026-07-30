@@ -1316,11 +1316,6 @@
             AppState.lastActivityTime = Date.now();
         }
 
-        // Register user activity events to reset inactivity clock
-        ['mousemove', 'keydown', 'click', 'scroll', 'touchstart', 'input'].forEach(evtName => {
-            window.addEventListener(evtName, resetInactivityTimer, { passive: true });
-        });
-
         // 1-Second Ticker for Inactivity Countdown (mm:ss)
         setInterval(() => {
             if (!AppState.isUnlocked) {
@@ -2123,6 +2118,7 @@
         });
 
         elements.codeEditor.addEventListener('input', (e) => {
+            resetInactivityTimer();
             const page = getActivePage();
             page.content = e.target.value;
             renderSyntaxHighlighting();
