@@ -43,47 +43,12 @@ class SyncManager {
         if (isNewRoom) {
             SyncManager.broadcastState();
         } else {
-            // Initial full load: fetch all pages once upon room load/unlock
-            SyncManager.pollHttpsRest(endpoint, key, protocol, true);
+            SyncManager.pollHttpsRest(endpoint, key, protocol);
         }
 
         AppState.pollTimer = setInterval(() => {
-            SyncManager.pollHttpsRest(endpoint, key, protocol, false);
+            SyncManager.pollHttpsRest(endpoint, key, protocol);
         }, APP_CONFIG.POLL_INTERVAL_MS);
-    }
-
-    static async fetchSinglePage(pageId) {
-        if (!AppState.isUnlocked || !AppState.masterKey || AppState.syncProtocol !== 'firebase_rest') return;
-        try {
-            const base = (AppState.customUrl || APP_CONFIG.DEFAULT_FIREBASE_URL).trim().replace(/\/+$/, '').replace(/\/rooms\/.*$/, '');
-            const roomCode = AppState.roomCode;
-            const singlePageEndpoint = `${base}/rooms/${encodeURIComponent(roomCode)}/pages/${encodeURIComponent(pageId)}.json`;
-
-            const res = await fetch(singlePageEndpoint, { cache: 'no-store' });
-            if (res.ok) {
-                const node = await res.json();
-                if (node && node.payload) {
-                    const decryptedStr = await CryptoEngine.decryptPayload(node.payload, AppState.masterKey);
-                    if (decryptedStr) {
-                        const pageObj = JSON.parse(decryptedStr);
-                        const idx = AppState.pages.findIndex(p => p.id === pageId);
-                        if (idx !== -1) {
-                            AppState.pages[idx] = pageObj;
-                        } else {
-                            AppState.pages.push(pageObj);
-                        }
-                        if (node.lastUpdated && node.lastUpdated > AppState.lastUpdated) {
-                            AppState.lastUpdated = node.lastUpdated;
-                        }
-                        if (AppState.activePageId === pageId) {
-                            updateEditorView();
-                        }
-                    }
-                }
-            }
-        } catch (err) {
-            console.warn("Fetch single page error", err);
-        }
     }
 
     static async pollHttpsRest(endpoint, key, protocol, forceSync = false) {
@@ -96,34 +61,36 @@ class SyncManager {
             if (protocol === 'firebase_rest') {
                 const base = (AppState.customUrl || APP_CONFIG.DEFAULT_FIREBASE_URL).trim().replace(/\/+$/, '').replace(/\/rooms\/.*$/, '');
                 const roomCode = AppState.roomCode;
+                const pagesEndpoint = `${base}/rooms/${encodeURIComponent(roomCode)}/pages.json`;
+                const legacyEndpoint = `${base}/rooms/${encodeURIComponent(roomCode)}.json`;
 
-                if (forceSync) {
-                    // Initial load or explicit refresh: fetch all pages at once
-                    const pagesEndpoint = `${base}/rooms/${encodeURIComponent(roomCode)}/pages.json`;
-                    const legacyEndpoint = `${base}/rooms/${encodeURIComponent(roomCode)}.json`;
+                const res = await fetch(pagesEndpoint, { cache: 'no-store' });
+                if (res.ok) {
+                    const pagesData = await res.json();
+                    if (pagesData && typeof pagesData === 'object' && Object.keys(pagesData).length > 0) {
+                        // Sub-Node Strategy 1: Read individual page ciphertexts
+                        let latestTime = 0;
+                        let assembledPages = [];
 
-                    const res = await fetch(pagesEndpoint, { cache: 'no-store' });
-                    if (res.ok) {
-                        const pagesData = await res.json();
-                        if (pagesData && typeof pagesData === 'object' && Object.keys(pagesData).length > 0) {
-                            let latestTime = 0;
-                            let assembledPages = [];
-
-                            for (const pId of Object.keys(pagesData)) {
-                                const node = pagesData[pId];
-                                if (node && node.payload) {
-                                    const decryptedStr = await CryptoEngine.decryptPayload(node.payload, key);
-                                    if (decryptedStr) {
-                                        const pageObj = JSON.parse(decryptedStr);
-                                        assembledPages.push(pageObj);
-                                        if (node.lastUpdated && node.lastUpdated > latestTime) {
-                                            latestTime = node.lastUpdated;
-                                        }
+                        for (const pId of Object.keys(pagesData)) {
+                            const node = pagesData[pId];
+                            if (node && node.payload) {
+                                const decryptedStr = await CryptoEngine.decryptPayload(node.payload, key);
+                                if (decryptedStr) {
+                                    const pageObj = JSON.parse(decryptedStr);
+                                    assembledPages.push(pageObj);
+                                    if (node.lastUpdated && node.lastUpdated > latestTime) {
+                                        latestTime = node.lastUpdated;
                                     }
                                 }
                             }
+                        }
 
-                            if (assembledPages.length > 0) {
+                        if (assembledPages.length > 0 && (forceSync || latestTime > AppState.lastUpdated)) {
+                            if (!forceSync && document.activeElement === elements.codeEditor) {
+                                AppState.pendingRemoteEnvelope = { lastUpdated: latestTime, pages: assembledPages };
+                                elements.syncBanner.classList.add('show');
+                            } else {
                                 AppState.lastUpdated = latestTime;
                                 AppState.pages = assembledPages;
                                 AppState.pendingRemoteEnvelope = null;
@@ -132,33 +99,29 @@ class SyncManager {
                                 updateEditorView();
                                 setSyncStatus('updated', 'Remote update synced!');
                             }
-                            return;
                         }
+                        return;
                     }
+                }
 
-                    // Legacy Fallback Check
-                    const legRes = await fetch(legacyEndpoint, { cache: 'no-store' });
-                    if (legRes.ok) {
-                        const legData = await legRes.json();
-                        if (legData && legData.payload) {
-                            const decryptedStr = await CryptoEngine.decryptPayload(legData.payload, key);
-                            if (decryptedStr) {
-                                const remoteEnvelope = JSON.parse(decryptedStr);
-                                if (remoteEnvelope) {
-                                    AppState.lastUpdated = remoteEnvelope.lastUpdated;
-                                    AppState.pages = remoteEnvelope.pages;
-                                    renderPageList();
-                                    updateEditorView();
-                                    setSyncStatus('updated', 'Legacy payload synced (Auto-upgrading...)');
-                                    SyncManager.broadcastState();
-                                }
+                // Legacy Fallback Check
+                const legRes = await fetch(legacyEndpoint, { cache: 'no-store' });
+                if (legRes.ok) {
+                    const legData = await legRes.json();
+                    if (legData && legData.payload) {
+                        const decryptedStr = await CryptoEngine.decryptPayload(legData.payload, key);
+                        if (decryptedStr) {
+                            const remoteEnvelope = JSON.parse(decryptedStr);
+                            if (remoteEnvelope && (forceSync || remoteEnvelope.lastUpdated > AppState.lastUpdated)) {
+                                AppState.lastUpdated = remoteEnvelope.lastUpdated;
+                                AppState.pages = remoteEnvelope.pages;
+                                renderPageList();
+                                updateEditorView();
+                                setSyncStatus('updated', 'Legacy payload synced (Auto-upgrading...)');
+                                // Trigger broadcast to auto-upgrade legacy payload to Sub-Node Structure
+                                SyncManager.broadcastState();
                             }
                         }
-                    }
-                } else {
-                    // Periodic background poll: poll active page only to minimize bandwidth
-                    if (AppState.activePageId) {
-                        await SyncManager.fetchSinglePage(AppState.activePageId);
                     }
                 }
             } else {
