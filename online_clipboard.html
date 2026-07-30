@@ -28,7 +28,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/bash.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/yaml.min.js"></script>
 
-    <!-- MQTT WebSocket Client for E2EE Sync -->
+    <!-- MQTT WebSocket Client -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mqtt/4.3.7/mqtt.min.js"></script>
 
     <style>
@@ -754,6 +754,14 @@
                 <input type="text" class="text-input" id="inputRoomCode" placeholder="e.g. my-private-clipboard-123" value="my-sync-room-1">
             </div>
 
+            <div class="input-field">
+                <label class="input-label">Network Sync Protocol</label>
+                <select class="select-input" id="syncProtocolSelect" style="width: 100%;">
+                    <option value="https_rest">Standard HTTPS REST (Corporate Firewall Friendly - Port 443)</option>
+                    <option value="websocket">WebSockets (WSS Port 8084)</option>
+                </select>
+            </div>
+
             <button class="btn btn-primary" id="btnPasskeyUnlock" style="width: 100%; padding: 12px;">
                 <i data-lucide="fingerprint"></i>
                 Unlock with Passkey / Biometrics
@@ -787,6 +795,7 @@
         const AppState = {
             isUnlocked: false,
             roomCode: 'my-sync-room-1',
+            syncProtocol: 'https_rest', // 'https_rest' or 'websocket'
             masterKey: null, // CryptoKey
             activePageId: 'page_1',
             pages: [
@@ -794,13 +803,16 @@
                 { id: 'page_2', name: 'Page 2 (Snippets)', lang: 'json', content: '{\n  "status": "success",\n  "message": "Welcome to Secure E2EE Clipboard!",\n  "features": ["Passkey Protection", "Real-Time Sync", "Multi-Page", "Syntax Highlighting"]\n}' }
             ],
             mqttClient: null,
-            debounceTimer: null
+            pollTimer: null,
+            debounceTimer: null,
+            lastRemoteHash: null
         };
 
         // --- DOM Elements ---
         const elements = {
             unlockModal: document.getElementById('unlockModal'),
             inputRoomCode: document.getElementById('inputRoomCode'),
+            syncProtocolSelect: document.getElementById('syncProtocolSelect'),
             inputPassphrase: document.getElementById('inputPassphrase'),
             btnPasskeyUnlock: document.getElementById('btnPasskeyUnlock'),
             btnPassphraseUnlock: document.getElementById('btnPassphraseUnlock'),
@@ -904,7 +916,6 @@
         // --- WebAuthn / Dashlane Passkey Handler ---
         class PasskeyManager {
             static async registerOrAuthenticate(roomCode) {
-                // Check WebAuthn support
                 if (!window.PublicKeyCredential) {
                     throw new Error("WebAuthn / Passkeys not supported in this browser.");
                 }
@@ -912,11 +923,9 @@
                 const challenge = new Uint8Array(32);
                 crypto.getRandomValues(challenge);
 
-                // Check stored credential
                 const storedCredId = localStorage.getItem(`passkey_cred_${roomCode}`);
 
                 if (storedCredId) {
-                    // Authenticate Existing Passkey
                     const credential = await navigator.credentials.get({
                         publicKey: {
                             challenge: challenge,
@@ -928,12 +937,10 @@
                         }
                     });
 
-                    // Use assertion signature as key seed
                     const sig = new Uint8Array(credential.response.signature);
                     const keySeed = Array.from(sig).join(',');
                     return CryptoEngine.deriveKeyFromPassword(keySeed, roomCode);
                 } else {
-                    // Create New Passkey (Saved to Dashlane / System Passkey Manager)
                     const credential = await navigator.credentials.create({
                         publicKey: {
                             challenge: challenge,
@@ -949,7 +956,6 @@
                         }
                     });
 
-                    // Save Credential ID for future quick unlocks
                     const rawIdB64 = btoa(String.fromCharCode(...new Uint8Array(credential.rawId)));
                     localStorage.setItem(`passkey_cred_${roomCode}`, rawIdB64);
 
@@ -959,17 +965,77 @@
             }
         }
 
-        // --- MQTT Real-Time E2EE Sync Manager ---
+        // --- Dual Transport Manager (HTTPS REST + WebSocket) ---
         class SyncManager {
-            static connect(roomCode, key) {
-                if (AppState.mqttClient) {
-                    AppState.mqttClient.end();
+            static connect(roomCode, key, protocol) {
+                // Stop existing connections
+                if (AppState.mqttClient) AppState.mqttClient.end();
+                if (AppState.pollTimer) clearInterval(AppState.pollTimer);
+
+                AppState.syncProtocol = protocol;
+
+                if (protocol === 'https_rest') {
+                    SyncManager.initHttpsRest(roomCode, key);
+                } else {
+                    SyncManager.initWebSocket(roomCode, key);
                 }
+            }
 
+            // --- 1. Standard HTTPS REST Transport (Port 443 - Corporate Firewall Friendly) ---
+            static initHttpsRest(roomCode, key) {
+                elements.statusDot.className = 'status-dot connected';
+                elements.statusText.textContent = 'HTTPS Synced (443)';
+
+                const endpoint = `https://ntfy.sh/e2ee_clipboard_${encodeURIComponent(roomCode)}`;
+
+                // Initial poll & Push initial state
+                SyncManager.pollHttpsRest(endpoint, key);
+                SyncManager.broadcastState();
+
+                // Poll every 3 seconds over HTTPS REST GET (Port 443)
+                AppState.pollTimer = setInterval(() => {
+                    SyncManager.pollHttpsRest(endpoint, key);
+                }, 3000);
+            }
+
+            static async pollHttpsRest(endpoint, key) {
+                try {
+                    const res = await fetch(`${endpoint}/json?poll=1`, { cache: 'no-store' });
+                    if (!res.ok) return;
+
+                    const text = await res.text();
+                    const lines = text.trim().split('\n');
+                    
+                    for (let i = lines.length - 1; i >= 0; i--) {
+                        if (!lines[i]) continue;
+                        try {
+                            const parsed = JSON.parse(lines[i]);
+                            const cipherText = parsed.message;
+                            if (cipherText && cipherText !== AppState.lastRemoteHash) {
+                                const decryptedStr = await CryptoEngine.decryptPayload(cipherText, key);
+                                if (decryptedStr) {
+                                    const remotePages = JSON.parse(decryptedStr);
+                                    if (Array.isArray(remotePages)) {
+                                        AppState.lastRemoteHash = cipherText;
+                                        AppState.pages = remotePages;
+                                        renderPageList();
+                                        updateEditorView();
+                                        break; // Process latest valid remote payload
+                                    }
+                                }
+                            }
+                        } catch (e) {}
+                    }
+                } catch (err) {
+                    console.warn("HTTPS REST poll error", err);
+                }
+            }
+
+            // --- 2. WebSocket Transport ---
+            static initWebSocket(roomCode, key) {
                 elements.statusDot.className = 'status-dot connecting';
-                elements.statusText.textContent = 'Connecting...';
+                elements.statusText.textContent = 'Connecting WSS...';
 
-                // Connect to public secure WebSocket MQTT broker
                 const client = mqtt.connect('wss://broker.emqx.io:8084/mqtt', {
                     clientId: 'clipboard_' + Math.random().toString(16).substring(2, 10),
                     keepalive: 30,
@@ -980,9 +1046,9 @@
 
                 client.on('connect', () => {
                     elements.statusDot.className = 'status-dot connected';
-                    elements.statusText.textContent = 'Synced';
+                    elements.statusText.textContent = 'WSS Synced';
                     client.subscribe(topic, { qos: 1 });
-                    SyncManager.broadcastState(); // Sync initial state
+                    SyncManager.broadcastState();
                 });
 
                 client.on('message', async (t, message) => {
@@ -997,29 +1063,39 @@
                                     updateEditorView();
                                 }
                             }
-                        } catch (err) {
-                            console.warn("Received invalid/encrypted message from different key");
-                        }
+                        } catch (err) {}
                     }
                 });
 
                 client.on('error', () => {
                     elements.statusDot.className = 'status-dot locked';
-                    elements.statusText.textContent = 'Sync Offline';
+                    elements.statusText.textContent = 'WSS Blocked - Switch to HTTPS';
                 });
 
                 AppState.mqttClient = client;
             }
 
             static broadcastState() {
-                if (!AppState.mqttClient || !AppState.masterKey) return;
+                if (!AppState.isUnlocked || !AppState.masterKey) return;
                 
                 clearTimeout(AppState.debounceTimer);
                 AppState.debounceTimer = setTimeout(async () => {
                     const jsonPages = JSON.stringify(AppState.pages);
                     const encryptedB64 = await CryptoEngine.encryptPayload(jsonPages, AppState.masterKey);
-                    const topic = `secure_clipboard_room_v1/${encodeURIComponent(AppState.roomCode)}`;
-                    AppState.mqttClient.publish(topic, encryptedB64, { qos: 1 });
+                    
+                    if (AppState.syncProtocol === 'https_rest') {
+                        // Publish via HTTPS POST (Port 443)
+                        const endpoint = `https://ntfy.sh/e2ee_clipboard_${encodeURIComponent(AppState.roomCode)}`;
+                        AppState.lastRemoteHash = encryptedB64;
+                        fetch(endpoint, {
+                            method: 'POST',
+                            body: encryptedB64
+                        }).catch(e => console.error("HTTPS POST publish error", e));
+                    } else if (AppState.mqttClient) {
+                        // Publish via WSS
+                        const topic = `secure_clipboard_room_v1/${encodeURIComponent(AppState.roomCode)}`;
+                        AppState.mqttClient.publish(topic, encryptedB64, { qos: 1 });
+                    }
                 }, 400);
             }
         }
@@ -1105,9 +1181,10 @@
         // --- App Event Handlers ---
         async function unlockWithPasskey() {
             const roomCode = elements.inputRoomCode.value.trim() || 'default-room';
+            const protocol = elements.syncProtocolSelect.value;
             try {
                 const key = await PasskeyManager.registerOrAuthenticate(roomCode);
-                completeUnlock(roomCode, key);
+                completeUnlock(roomCode, key, protocol);
                 showToast("Unlocked via Passkey!");
             } catch (err) {
                 alert("Passkey authentication failed: " + err.message);
@@ -1116,6 +1193,7 @@
 
         async function unlockWithPassphrase() {
             const roomCode = elements.inputRoomCode.value.trim() || 'default-room';
+            const protocol = elements.syncProtocolSelect.value;
             const passphrase = elements.inputPassphrase.value;
 
             if (!passphrase) {
@@ -1124,11 +1202,11 @@
             }
 
             const key = await CryptoEngine.deriveKeyFromPassword(passphrase, roomCode);
-            completeUnlock(roomCode, key);
+            completeUnlock(roomCode, key, protocol);
             showToast("Unlocked via Passphrase!");
         }
 
-        function completeUnlock(roomCode, key) {
+        function completeUnlock(roomCode, key, protocol) {
             AppState.isUnlocked = true;
             AppState.roomCode = roomCode;
             AppState.masterKey = key;
@@ -1136,19 +1214,18 @@
             elements.unlockModal.classList.remove('active');
             elements.lockIcon.setAttribute('data-lucide', 'lock-keyhole-open');
             elements.lockBtnText.textContent = 'Lock';
-            elements.statusDot.className = 'status-dot connected';
-            elements.statusText.textContent = 'Unlocked';
             lucide.createIcons();
 
             renderPageList();
             updateEditorView();
-            SyncManager.connect(roomCode, key);
+            SyncManager.connect(roomCode, key, protocol);
         }
 
         function lockClipboard() {
             AppState.isUnlocked = false;
             AppState.masterKey = null;
             if (AppState.mqttClient) AppState.mqttClient.end();
+            if (AppState.pollTimer) clearInterval(AppState.pollTimer);
 
             elements.unlockModal.classList.add('active');
             elements.lockIcon.setAttribute('data-lucide', 'lock');
