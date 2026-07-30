@@ -177,6 +177,12 @@
             color: #6ee7b7;
         }
 
+        .badge-timer {
+            border-color: rgba(245, 158, 11, 0.3);
+            background: rgba(245, 158, 11, 0.08);
+            color: #fcd34d;
+        }
+
         .status-dot {
             width: 7px;
             height: 7px;
@@ -872,6 +878,12 @@
         </div>
 
         <div class="header-actions">
+            <!-- Auto-Lock Countdown Timer Badge -->
+            <div class="badge-status badge-timer" id="autoLockBadge" title="Auto-locks after inactivity" style="display: none;">
+                <i data-lucide="timer" style="width: 13px; height: 13px;"></i>
+                <span id="autoLockTimerText">10:00</span>
+            </div>
+
             <!-- Sync Indicator Badge -->
             <div class="badge-status" id="badgeStatus">
                 <span class="status-dot locked" id="statusDot"></span>
@@ -1148,6 +1160,16 @@
 
     <!-- App Application Script -->
     <script>
+        // ==========================================
+        // APP CONFIGURATION CONSTANTS (Easily Configurable)
+        // ==========================================
+        const APP_CONFIG = {
+            AUTO_LOCK_MINUTES: 10, // Inactivity minutes before auto-locking (Format MM:SS displayed in header)
+            POLL_INTERVAL_MS: 10000, // Background HTTPS REST polling interval (10 seconds)
+            DEFAULT_ROOM_CODE: 'apilog',
+            DEFAULT_FIREBASE_URL: 'https://bdi-online-clipboard-default-rtdb.asia-southeast1.firebasedatabase.app'
+        };
+
         // Initialize Icons
         lucide.createIcons();
 
@@ -1189,12 +1211,13 @@
         // --- State Management ---
         const AppState = {
             isUnlocked: false,
-            roomCode: 'apilog',
+            roomCode: APP_CONFIG.DEFAULT_ROOM_CODE,
             syncProtocol: 'firebase_rest',
-            customUrl: 'https://bdi-online-clipboard-default-rtdb.asia-southeast1.firebasedatabase.app',
+            customUrl: APP_CONFIG.DEFAULT_FIREBASE_URL,
             masterKey: null, // CryptoKey
             activePageId: 'page_1',
             lastUpdated: 0,
+            lastActivityTime: Date.now(),
             pendingRemoteEnvelope: null,
             pendingRenamePageId: null,
             pendingDeletePageId: null,
@@ -1204,6 +1227,7 @@
             ],
             mqttClient: null,
             pollTimer: null,
+            inactivityTimer: null,
             debounceTimer: null,
             resetBadgeTimer: null
         };
@@ -1213,6 +1237,9 @@
             syncBanner: document.getElementById('syncBanner'),
             btnBannerRefresh: document.getElementById('btnBannerRefresh'),
             btnManualRefresh: document.getElementById('btnManualRefresh'),
+
+            autoLockBadge: document.getElementById('autoLockBadge'),
+            autoLockTimerText: document.getElementById('autoLockTimerText'),
 
             unlockModal: document.getElementById('unlockModal'),
             tabSelectExisting: document.getElementById('tabSelectExisting'),
@@ -1283,6 +1310,39 @@
             toast: document.getElementById('toast'),
             toastMsg: document.getElementById('toastMsg')
         };
+
+        // --- Auto-Lock & Inactivity Countdown Manager ---
+        function resetInactivityTimer() {
+            AppState.lastActivityTime = Date.now();
+        }
+
+        // Register user activity events to reset inactivity clock
+        ['mousemove', 'keydown', 'click', 'scroll', 'touchstart', 'input'].forEach(evtName => {
+            window.addEventListener(evtName, resetInactivityTimer, { passive: true });
+        });
+
+        // 1-Second Ticker for Inactivity Countdown (mm:ss)
+        setInterval(() => {
+            if (!AppState.isUnlocked) {
+                elements.autoLockBadge.style.display = 'none';
+                return;
+            }
+
+            elements.autoLockBadge.style.display = 'inline-flex';
+            const totalSec = APP_CONFIG.AUTO_LOCK_MINUTES * 60;
+            const elapsedSec = Math.floor((Date.now() - AppState.lastActivityTime) / 1000);
+            const remainingSec = Math.max(0, totalSec - elapsedSec);
+
+            const m = Math.floor(remainingSec / 60).toString().padStart(2, '0');
+            const s = (remainingSec % 60).toString().padStart(2, '0');
+            elements.autoLockTimerText.textContent = `${m}:${s}`;
+
+            // Auto-lock when timer reaches 0
+            if (remainingSec <= 0 && AppState.isUnlocked) {
+                lockClipboard();
+                showToast(`Clipboard auto-locked (${APP_CONFIG.AUTO_LOCK_MINUTES}m inactivity)`);
+            }
+        }, 1000);
 
         // 2-Panel Switcher Listeners
         elements.tabSelectExisting.addEventListener('click', () => {
@@ -1395,7 +1455,7 @@
                 elements.customUrlContainer.style.display = 'flex';
                 elements.customUrlLabel.textContent = 'Firebase Database URL';
                 if (!elements.inputCustomUrl.value) {
-                    elements.inputCustomUrl.value = 'https://bdi-online-clipboard-default-rtdb.asia-southeast1.firebasedatabase.app';
+                    elements.inputCustomUrl.value = APP_CONFIG.DEFAULT_FIREBASE_URL;
                 }
             } else if (val === 'custom_rest') {
                 elements.customUrlContainer.style.display = 'flex';
@@ -1589,7 +1649,7 @@
                 const safeRoom = encodeURIComponent(roomCode);
                 
                 if (protocol === 'firebase_rest') {
-                    let base = (AppState.customUrl || 'https://bdi-online-clipboard-default-rtdb.asia-southeast1.firebasedatabase.app').trim();
+                    let base = (AppState.customUrl || APP_CONFIG.DEFAULT_FIREBASE_URL).trim();
                     base = base.replace(/\/+$/, '').replace(/\/rooms\/.*$/, '');
                     return `${base}/rooms/${safeRoom}.json`;
                 }
@@ -1608,7 +1668,7 @@
                     return url.replace('{roomCode}', safeRoom).replace('{room}', safeRoom);
                 }
 
-                return `https://bdi-online-clipboard-default-rtdb.asia-southeast1.firebasedatabase.app/rooms/${safeRoom}.json`;
+                return `${APP_CONFIG.DEFAULT_FIREBASE_URL}/rooms/${safeRoom}.json`;
             }
 
             // --- HTTPS REST Transport (Port 443) ---
@@ -1625,7 +1685,7 @@
 
                 AppState.pollTimer = setInterval(() => {
                     SyncManager.pollHttpsRest(endpoint, key, protocol);
-                }, 10000);
+                }, APP_CONFIG.POLL_INTERVAL_MS);
             }
 
             static async pollHttpsRest(endpoint, key, protocol, forceSync = false) {
@@ -1997,6 +2057,7 @@
             AppState.roomCode = roomCode;
             AppState.masterKey = key;
             AppState.lastUpdated = 0;
+            resetInactivityTimer();
 
             elements.unlockModal.classList.remove('active');
             elements.activeRoomUnlockModal.classList.remove('active');
@@ -2015,11 +2076,11 @@
             if (AppState.mqttClient) AppState.mqttClient.end();
             if (AppState.pollTimer) clearInterval(AppState.pollTimer);
 
-            // Show active room re-unlock modal instead of full room selector modal
             elements.lockedRoomCodeName.textContent = AppState.roomCode;
             elements.inputActivePassphrase.value = '';
             elements.activeRoomUnlockModal.classList.add('active');
             elements.unlockModal.classList.remove('active');
+            elements.autoLockBadge.style.display = 'none';
 
             elements.lockIcon.setAttribute('data-lucide', 'lock');
             elements.lockBtnText.textContent = 'Unlock';
