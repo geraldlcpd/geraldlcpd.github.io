@@ -1506,7 +1506,7 @@
 
                 AppState.pollTimer = setInterval(() => {
                     SyncManager.pollHttpsRest(endpoint, key, protocol);
-                }, 3000);
+                }, 10000);
             }
 
             static async pollHttpsRest(endpoint, key, protocol, forceSync = false) {
