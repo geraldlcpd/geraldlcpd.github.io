@@ -236,6 +236,17 @@
             background: #475569;
         }
 
+        .btn-danger {
+            background: rgba(244, 63, 94, 0.2);
+            color: #f43f5e;
+            border: 1px solid rgba(244, 63, 94, 0.4);
+        }
+
+        .btn-danger:hover {
+            background: #f43f5e;
+            color: white;
+        }
+
         .btn-icon {
             padding: 7px;
             border-radius: var(--radius-md);
@@ -614,7 +625,7 @@
             opacity: 1;
         }
 
-        /* --- Modal Backdrop & Lock Screen --- */
+        /* --- Modal Backdrop & Generic Dialog Cards --- */
         .modal-overlay {
             position: fixed;
             inset: 0;
@@ -651,6 +662,10 @@
             animation: modalPop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
 
+        .modal-card-sm {
+            max-width: 380px;
+        }
+
         @keyframes modalPop {
             from { transform: scale(0.92); opacity: 0; }
             to { transform: scale(1); opacity: 1; }
@@ -685,6 +700,14 @@
             font-size: 0.82rem;
             color: var(--text-muted);
             line-height: 1.5;
+        }
+
+        .modal-footer-actions {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 6px;
         }
 
         /* Modal Segmented Switch Tabs */
@@ -955,7 +978,7 @@
         </main>
     </div>
 
-    <!-- Security & Room Unlock Modal -->
+    <!-- Security & Initial Room Unlock Modal -->
     <div class="modal-overlay active" id="unlockModal">
         <div class="modal-card">
             <div class="modal-header">
@@ -1042,6 +1065,81 @@
         </div>
     </div>
 
+    <!-- Active Room Quick Re-Unlock Modal -->
+    <div class="modal-overlay" id="activeRoomUnlockModal">
+        <div class="modal-card modal-card-sm">
+            <div class="modal-header">
+                <div class="modal-icon" style="background: rgba(244, 63, 94, 0.15); color: var(--accent-rose); border-color: rgba(244, 63, 94, 0.3);">
+                    <i data-lucide="lock" style="width: 24px; height: 24px;"></i>
+                </div>
+                <h2 class="modal-title">Room Locked</h2>
+                <p class="modal-desc">Enter credentials to unlock active room: <strong id="lockedRoomCodeName" style="color: var(--text-main);">apilog</strong></p>
+            </div>
+
+            <div class="panel-content">
+                <button class="btn btn-primary" id="btnActivePasskeyUnlock" style="width: 100%; padding: 10px;">
+                    <i data-lucide="fingerprint"></i>
+                    Unlock with Passkey
+                </button>
+
+                <div class="divider">or Passphrase</div>
+
+                <div class="input-field">
+                    <label class="input-label">Master Passphrase</label>
+                    <input type="password" class="text-input" id="inputActivePassphrase" placeholder="Enter passphrase...">
+                </div>
+
+                <button class="btn btn-secondary" id="btnActivePassphraseUnlock" style="width: 100%; padding: 9px;">
+                    Unlock with Passphrase
+                </button>
+
+                <div style="text-align: center; margin-top: 4px;">
+                    <button class="btn btn-secondary" id="btnSwitchRoomLink" style="background: none; border: none; color: var(--primary); text-decoration: underline; font-size: 0.78rem; padding: 4px;">
+                        Switch or Change Room
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Rename Page Modal -->
+    <div class="modal-overlay" id="renameModal">
+        <div class="modal-card modal-card-sm">
+            <div class="modal-header">
+                <div class="modal-icon">
+                    <i data-lucide="edit-3" style="width: 22px; height: 22px;"></i>
+                </div>
+                <h2 class="modal-title">Rename Page</h2>
+                <p class="modal-desc">Enter a new title for this clipboard page.</p>
+            </div>
+            <div class="input-field">
+                <label class="input-label">Page Title</label>
+                <input type="text" class="text-input" id="inputRenameTitle" placeholder="e.g. Snippets">
+            </div>
+            <div class="modal-footer-actions">
+                <button class="btn btn-secondary" id="btnCancelRename">Cancel</button>
+                <button class="btn btn-primary" id="btnSaveRename">Save Title</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Delete Confirmation Modal -->
+    <div class="modal-overlay" id="deleteModal">
+        <div class="modal-card modal-card-sm">
+            <div class="modal-header">
+                <div class="modal-icon" style="background: rgba(244, 63, 94, 0.15); color: var(--accent-rose); border-color: rgba(244, 63, 94, 0.3);">
+                    <i data-lucide="trash-2" style="width: 22px; height: 22px;"></i>
+                </div>
+                <h2 class="modal-title">Delete Page</h2>
+                <p class="modal-desc" id="deleteModalText">Are you sure you want to delete this page?</p>
+            </div>
+            <div class="modal-footer-actions">
+                <button class="btn btn-secondary" id="btnCancelDelete">Cancel</button>
+                <button class="btn btn-danger" id="btnConfirmDelete">Delete Page</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Notification Toast -->
     <div class="toast" id="toast">
         <i data-lucide="check-circle-2" style="color: var(--accent-green);"></i>
@@ -1098,6 +1196,8 @@
             activePageId: 'page_1',
             lastUpdated: 0,
             pendingRemoteEnvelope: null,
+            pendingRenamePageId: null,
+            pendingDeletePageId: null,
             pages: [
                 { id: 'page_1', name: 'Page 1 (General)', lang: 'plaintext', content: '' },
                 { id: 'page_2', name: 'Page 2 (Snippets)', lang: 'markdown', content: '# Welcome to Markdown & Mermaid!\n\nHere is a GitHub Diff example:\n```diff\n- const oldSecret = "insecure";\n+ const newSecret = "AES-256-GCM";\n```\n\nHere is a Mermaid flowchart:\n```mermaid\ngraph TD;\n    A[Mobile Passkey] --> B(Firebase Database);\n    B --> C[Desktop Clipboard];\n```\n' }
@@ -1129,6 +1229,25 @@
             inputNewRoomCode: document.getElementById('inputNewRoomCode'),
             inputNewPassphrase: document.getElementById('inputNewPassphrase'),
             btnCreateRoom: document.getElementById('btnCreateRoom'),
+
+            // Active Room Quick Re-Unlock Modal Elements
+            activeRoomUnlockModal: document.getElementById('activeRoomUnlockModal'),
+            lockedRoomCodeName: document.getElementById('lockedRoomCodeName'),
+            btnActivePasskeyUnlock: document.getElementById('btnActivePasskeyUnlock'),
+            inputActivePassphrase: document.getElementById('inputActivePassphrase'),
+            btnActivePassphraseUnlock: document.getElementById('btnActivePassphraseUnlock'),
+            btnSwitchRoomLink: document.getElementById('btnSwitchRoomLink'),
+
+            // Custom Modals
+            renameModal: document.getElementById('renameModal'),
+            inputRenameTitle: document.getElementById('inputRenameTitle'),
+            btnCancelRename: document.getElementById('btnCancelRename'),
+            btnSaveRename: document.getElementById('btnSaveRename'),
+
+            deleteModal: document.getElementById('deleteModal'),
+            deleteModalText: document.getElementById('deleteModalText'),
+            btnCancelDelete: document.getElementById('btnCancelDelete'),
+            btnConfirmDelete: document.getElementById('btnConfirmDelete'),
 
             syncProtocolSelect: document.getElementById('syncProtocolSelect'),
             customUrlContainer: document.getElementById('customUrlContainer'),
@@ -1696,26 +1815,13 @@
                 item.addEventListener('click', (e) => {
                     if (e.target.closest('.btn-rename')) {
                         e.stopPropagation();
-                        const newName = prompt('Enter page name:', page.name);
-                        if (newName) {
-                            page.name = newName.trim();
-                            renderPageList();
-                            SyncManager.broadcastState();
-                        }
+                        openRenameModal(page);
                         return;
                     }
 
                     if (e.target.closest('.btn-delete')) {
                         e.stopPropagation();
-                        if (confirm(`Delete "${page.name}"?`)) {
-                            AppState.pages = AppState.pages.filter(p => p.id !== page.id);
-                            if (AppState.activePageId === page.id) {
-                                AppState.activePageId = AppState.pages[0].id;
-                            }
-                            renderPageList();
-                            updateEditorView();
-                            SyncManager.broadcastState();
-                        }
+                        openDeleteModal(page);
                         return;
                     }
 
@@ -1728,6 +1834,58 @@
             });
             lucide.createIcons();
         }
+
+        // --- Modal Dialog Handlers for Rename & Delete ---
+        function openRenameModal(page) {
+            AppState.pendingRenamePageId = page.id;
+            elements.inputRenameTitle.value = page.name;
+            elements.renameModal.classList.add('active');
+            setTimeout(() => elements.inputRenameTitle.focus(), 100);
+        }
+
+        function closeRenameModal() {
+            AppState.pendingRenamePageId = null;
+            elements.renameModal.classList.remove('active');
+        }
+
+        elements.btnCancelRename.addEventListener('click', closeRenameModal);
+        elements.btnSaveRename.addEventListener('click', () => {
+            if (AppState.pendingRenamePageId) {
+                const page = AppState.pages.find(p => p.id === AppState.pendingRenamePageId);
+                const newTitle = elements.inputRenameTitle.value.trim();
+                if (page && newTitle) {
+                    page.name = newTitle;
+                    renderPageList();
+                    SyncManager.broadcastState();
+                }
+            }
+            closeRenameModal();
+        });
+
+        function openDeleteModal(page) {
+            AppState.pendingDeletePageId = page.id;
+            elements.deleteModalText.textContent = `Are you sure you want to delete "${page.name}"?`;
+            elements.deleteModal.classList.add('active');
+        }
+
+        function closeDeleteModal() {
+            AppState.pendingDeletePageId = null;
+            elements.deleteModal.classList.remove('active');
+        }
+
+        elements.btnCancelDelete.addEventListener('click', closeDeleteModal);
+        elements.btnConfirmDelete.addEventListener('click', () => {
+            if (AppState.pendingDeletePageId) {
+                AppState.pages = AppState.pages.filter(p => p.id !== AppState.pendingDeletePageId);
+                if (AppState.activePageId === AppState.pendingDeletePageId) {
+                    AppState.activePageId = AppState.pages[0].id;
+                }
+                renderPageList();
+                updateEditorView();
+                SyncManager.broadcastState();
+            }
+            closeDeleteModal();
+        });
 
         function getActivePage() {
             return AppState.pages.find(p => p.id === AppState.activePageId) || AppState.pages[0];
@@ -1773,11 +1931,11 @@
         }
 
         // --- App Event Handlers ---
-        async function authenticateWithPasskey() {
-            const roomCode = elements.inputRoomCode.value.trim() || 'default-room';
+        async function authenticateWithPasskey(isActiveRoomUnlock = false) {
+            const roomCode = isActiveRoomUnlock ? AppState.roomCode : (elements.inputRoomCode.value.trim() || 'default-room');
             const protocol = elements.syncProtocolSelect.value;
             const customUrl = elements.inputCustomUrl.value.trim();
-            const passphrase = elements.inputPassphrase.value;
+            const passphrase = isActiveRoomUnlock ? elements.inputActivePassphrase.value : elements.inputPassphrase.value;
 
             try {
                 let passphraseKey = null;
@@ -1793,11 +1951,11 @@
             }
         }
 
-        async function authenticateWithPassphrase() {
-            const roomCode = elements.inputRoomCode.value.trim() || 'default-room';
+        async function authenticateWithPassphrase(isActiveRoomUnlock = false) {
+            const roomCode = isActiveRoomUnlock ? AppState.roomCode : (elements.inputRoomCode.value.trim() || 'default-room');
             const protocol = elements.syncProtocolSelect.value;
             const customUrl = elements.inputCustomUrl.value.trim();
-            const passphrase = elements.inputPassphrase.value;
+            const passphrase = isActiveRoomUnlock ? elements.inputActivePassphrase.value : elements.inputPassphrase.value;
 
             if (!passphrase) {
                 alert("Please enter a Master Passphrase.");
@@ -1841,6 +1999,7 @@
             AppState.lastUpdated = 0;
 
             elements.unlockModal.classList.remove('active');
+            elements.activeRoomUnlockModal.classList.remove('active');
             elements.lockIcon.setAttribute('data-lucide', 'lock-keyhole-open');
             elements.lockBtnText.textContent = 'Lock';
             lucide.createIcons();
@@ -1856,29 +2015,48 @@
             if (AppState.mqttClient) AppState.mqttClient.end();
             if (AppState.pollTimer) clearInterval(AppState.pollTimer);
 
-            elements.unlockModal.classList.add('active');
+            // Show active room re-unlock modal instead of full room selector modal
+            elements.lockedRoomCodeName.textContent = AppState.roomCode;
+            elements.inputActivePassphrase.value = '';
+            elements.activeRoomUnlockModal.classList.add('active');
+            elements.unlockModal.classList.remove('active');
+
             elements.lockIcon.setAttribute('data-lucide', 'lock');
             elements.lockBtnText.textContent = 'Unlock';
             setSyncStatus('locked', 'Locked');
             lucide.createIcons();
-            fetchExistingRooms();
         }
 
         // --- Listeners ---
-        elements.btnPasskeyAuthenticate.addEventListener('click', authenticateWithPasskey);
-        elements.btnPassphraseAuthenticate.addEventListener('click', authenticateWithPassphrase);
+        elements.btnPasskeyAuthenticate.addEventListener('click', () => authenticateWithPasskey(false));
+        elements.btnPassphraseAuthenticate.addEventListener('click', () => authenticateWithPassphrase(false));
+        elements.btnActivePasskeyUnlock.addEventListener('click', () => authenticateWithPasskey(true));
+        elements.btnActivePassphraseUnlock.addEventListener('click', () => authenticateWithPassphrase(true));
+
+        elements.btnSwitchRoomLink.addEventListener('click', () => {
+            elements.activeRoomUnlockModal.classList.remove('active');
+            elements.unlockModal.classList.add('active');
+            fetchExistingRooms();
+        });
+
         elements.btnCreateRoom.addEventListener('click', createNewRoom);
 
         elements.btnLockUnlock.addEventListener('click', () => {
             if (AppState.isUnlocked) {
                 lockClipboard();
             } else {
-                elements.unlockModal.classList.add('active');
-                fetchExistingRooms();
+                if (AppState.roomCode) {
+                    elements.lockedRoomCodeName.textContent = AppState.roomCode;
+                    elements.activeRoomUnlockModal.classList.add('active');
+                } else {
+                    elements.unlockModal.classList.add('active');
+                    fetchExistingRooms();
+                }
             }
         });
 
         elements.btnRoomConfig.addEventListener('click', () => {
+            elements.activeRoomUnlockModal.classList.remove('active');
             elements.unlockModal.classList.add('active');
             fetchExistingRooms();
         });
@@ -1939,12 +2117,8 @@
         });
 
         elements.btnClearPage.addEventListener('click', () => {
-            if (confirm("Clear current page content?")) {
-                const page = getActivePage();
-                page.content = '';
-                updateEditorView();
-                SyncManager.broadcastState();
-            }
+            const page = getActivePage();
+            openDeleteModal({ id: page.id, name: `content of "${page.name}"` });
         });
 
         // Mobile View Toggle
