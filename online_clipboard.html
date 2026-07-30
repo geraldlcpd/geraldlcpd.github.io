@@ -110,7 +110,10 @@
         <!-- Sidebar Navigation (Pages) -->
         <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
-                <span class="sidebar-title">Clipboard Pages</span>
+                <div>
+                    <div class="sidebar-title">Clipboard Pages</div>
+                    <div class="sidebar-db-size" id="sidebarDbSizeBadge">Est. DB: 0 KB</div>
+                </div>
                 <button class="btn btn-secondary btn-icon" id="btnAddPage" title="New Page">
                     <i data-lucide="plus"></i>
                 </button>
@@ -172,9 +175,9 @@
                 </div>
             </div>
 
-            <!-- Dual Editor Container -->
+            <!-- Dual Editor / Image Gallery Container -->
             <div class="editor-container view-edit" id="editorContainer">
-                <div class="editor-pane">
+                <div class="editor-pane" id="editorPane">
                     <span class="pane-label">Editor Input</span>
                     <textarea class="code-editor" id="codeEditor" placeholder="Paste or type content here... Data syncs automatically across devices." spellcheck="false"></textarea>
                 </div>
@@ -183,6 +186,39 @@
                     <span class="pane-label">Syntax Preview</span>
                     <pre id="preContainer"><code id="codeRender" class="language-plaintext"></code></pre>
                     <div id="markdownRender" class="markdown-body" style="display: none;"></div>
+                </div>
+
+                <!-- Image Gallery Page View -->
+                <div class="image-gallery-container" id="imageGalleryContainer">
+                    <!-- Gallery Resolution Settings & Batch Resize Bar -->
+                    <div style="display: flex; align-items: center; justify-content: space-between; background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 8px 12px; gap: 10px; flex-wrap: wrap;">
+                        <div style="display: flex; align-items: center; gap: 8px; font-size: 0.78rem;">
+                            <i data-lucide="settings" style="width: 14px; height: 14px; color: var(--accent-cyan);"></i>
+                            <span style="color: var(--text-muted); font-weight: 500;">Auto-Compression Target:</span>
+                            <select class="select-input" id="selectImageTargetRes" style="padding: 4px 8px; font-size: 0.78rem; width: auto; background: var(--bg-surface-elevated);">
+                                <option value="360">360p (Low / Ultra Fast - 360px)</option>
+                                <option value="720" selected>720p (Medium / Standard - 720px)</option>
+                                <option value="1080">1080p (High Quality - 1080px)</option>
+                                <option value="0">Original / Uncompressed</option>
+                            </select>
+                        </div>
+                        <button class="btn btn-secondary" id="btnBatchResizeImages" style="padding: 5px 10px; font-size: 0.76rem; border-color: rgba(245, 158, 11, 0.4); color: var(--accent-amber);">
+                            <i data-lucide="shrink" style="width: 13px; height: 13px;"></i>
+                            Resize Existing Images
+                        </button>
+                    </div>
+
+                    <div class="image-dropzone" id="imageDropzone">
+                        <i data-lucide="image-plus" style="width: 32px; height: 32px; color: var(--primary);"></i>
+                        <div style="font-weight: 600; font-size: 0.9rem; color: var(--text-main);">Drop images here or click to upload</div>
+                        <div style="font-size: 0.75rem;" id="imageDropzoneDesc">Supports PNG, JPG, WebP. Images are automatically compressed to 720p & encrypted.</div>
+                        <div style="font-size: 0.72rem; color: var(--primary); margin-top: 2px;">Tip: You can also press <strong>Ctrl+V</strong> anywhere to paste images directly!</div>
+                    </div>
+                    <input type="file" id="imageFileInput" accept="image/*" multiple style="display: none;">
+
+                    <div class="image-gallery-grid" id="imageGalleryGrid">
+                        <!-- Dynamically Populated Image Cards -->
+                    </div>
                 </div>
             </div>
 
@@ -437,6 +473,104 @@
             </div>
             <div class="modal-footer-actions" style="justify-content: center; margin-top: 8px;">
                 <button class="btn btn-primary" id="btnDismissError" style="width: 100%; padding: 10px;">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create New Page Type Selection Modal -->
+    <div class="modal-overlay" id="createPageTypeModal">
+        <div class="modal-card modal-card-sm">
+            <div class="modal-header">
+                <div class="modal-icon">
+                    <i data-lucide="plus-circle" style="width: 24px; height: 24px;"></i>
+                </div>
+                <h2 class="modal-title">Create New Page</h2>
+                <p class="modal-desc">Select the type of clipboard page you wish to create.</p>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 6px;">
+                <button class="btn btn-secondary" id="btnChooseTextPage" style="justify-content: flex-start; padding: 12px; gap: 12px; height: auto; text-align: left;">
+                    <i data-lucide="file-code" style="width: 20px; height: 20px; color: var(--primary); flex-shrink: 0;"></i>
+                    <div style="flex: 1; min-width: 0;">
+                        <div style="font-weight: 600; color: var(--text-main); margin-bottom: 2px;">Text / Code Page</div>
+                        <div style="font-size: 0.72rem; color: var(--text-muted); white-space: normal; line-height: 1.35;">Plain text, Code syntax highlighting, Markdown & Mermaid charts.</div>
+                    </div>
+                </button>
+
+                <button class="btn btn-secondary" id="btnChooseImagePage" style="justify-content: flex-start; padding: 12px; gap: 12px; height: auto; text-align: left; border-color: rgba(16, 185, 129, 0.4);">
+                    <i data-lucide="image" style="width: 20px; height: 20px; color: var(--accent-green); flex-shrink: 0;"></i>
+                    <div style="flex: 1; min-width: 0;">
+                        <div style="font-weight: 600; color: var(--text-main); margin-bottom: 2px;">Image Gallery Page</div>
+                        <div style="font-size: 0.72rem; color: var(--text-muted); white-space: normal; line-height: 1.35;">Store pasted screenshots & uploaded images auto-compressed to 720p.</div>
+                    </div>
+                </button>
+            </div>
+            <div class="modal-footer-actions" style="margin-top: 10px;">
+                <button class="btn btn-secondary" id="btnCancelCreatePageType" style="width: 100%;">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Image Lightbox Preview Modal with Info Side Panel -->
+    <div class="lightbox-modal" id="imageLightboxModal">
+        <button class="modal-close-btn" id="btnCloseLightbox" title="Close Lightbox" style="top: 20px; right: 20px;">
+            <i data-lucide="x" style="width: 20px; height: 20px;"></i>
+        </button>
+        <div class="lightbox-wrapper">
+            <div class="lightbox-image-container">
+                <img src="" alt="Enlarged Preview" class="lightbox-content" id="lightboxImage">
+            </div>
+            
+            <!-- Side Metadata Panel -->
+            <div class="lightbox-sidebar">
+                <div class="lightbox-sidebar-title">
+                    <i data-lucide="info" style="width: 16px; height: 16px; color: var(--primary);"></i>
+                    Image Details
+                </div>
+                <div class="lightbox-info-group">
+                    <div class="lightbox-info-row">
+                        <span class="lightbox-info-label">Name</span>
+                        <span class="lightbox-info-val" id="lightboxMetaName">Image</span>
+                    </div>
+                    <div class="lightbox-info-row">
+                        <span class="lightbox-info-label">Resolution (W x H)</span>
+                        <span class="lightbox-info-val" id="lightboxMetaRes" style="color: var(--accent-green);">Loading...</span>
+                    </div>
+                    <div class="lightbox-info-row">
+                        <span class="lightbox-info-label">Payload Size</span>
+                        <span class="lightbox-info-val" id="lightboxMetaSize" style="color: var(--accent-cyan);">Loading...</span>
+                    </div>
+                    <div class="lightbox-info-row">
+                        <span class="lightbox-info-label">Encrypted Format</span>
+                        <span class="lightbox-info-val" id="lightboxMetaFormat">WebP (AES-256-GCM)</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Batch Resize Confirmation Modal -->
+    <div class="modal-overlay" id="resizeImagesModal">
+        <div class="modal-card modal-card-sm">
+            <div class="modal-header">
+                <div class="modal-icon" style="background: rgba(245, 158, 11, 0.15); color: var(--accent-amber); border-color: rgba(245, 158, 11, 0.3);">
+                    <i data-lucide="shrink" style="width: 22px; height: 22px;"></i>
+                </div>
+                <h2 class="modal-title">Batch Resize Gallery Images</h2>
+                <p class="modal-desc" id="resizeImagesModalDesc">Re-compress all images in this gallery to target resolution.</p>
+            </div>
+            <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 12px; font-size: 0.78rem; color: var(--text-muted); line-height: 1.4;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                    <span>Total Gallery Images:</span>
+                    <strong style="color: var(--text-main);" id="resizeModalImageCount">0 Images</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                    <span>Target Resolution:</span>
+                    <strong style="color: var(--accent-amber);" id="resizeModalTargetRes">720p</strong>
+                </div>
+            </div>
+            <div class="modal-footer-actions" style="margin-top: 10px;">
+                <button class="btn btn-secondary" id="btnCancelResizeImages">Cancel</button>
+                <button class="btn btn-primary" id="btnConfirmResizeImages" style="background: var(--accent-amber); border-color: var(--accent-amber);">Confirm & Resize All</button>
             </div>
         </div>
     </div>

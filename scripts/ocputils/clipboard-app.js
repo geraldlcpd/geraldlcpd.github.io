@@ -3,8 +3,8 @@
 // ==========================================
 
 const APP_CONFIG = {
-    VERSION: 'v1.7',
-    BUILD_TIME: '2026-07-30 19:30:00',
+    VERSION: 'v1.8',
+    BUILD_TIME: '2026-07-30 20:15:00',
     AUTO_LOCK_MINUTES: 20, // Inactivity minutes before auto-locking (Format MM:SS displayed in header)
     POLL_INTERVAL_MS: 10000, // Background HTTPS REST polling interval (10 seconds)
     DEFAULT_ROOM_CODE: 'apilog',
@@ -194,6 +194,37 @@ const elements = {
     inputNewResetPassphrase: document.getElementById('inputNewResetPassphrase'),
     btnCancelResetPassphrase: document.getElementById('btnCancelResetPassphrase'),
     btnSaveResetPassphrase: document.getElementById('btnSaveResetPassphrase'),
+
+    sidebarDbSizeBadge: document.getElementById('sidebarDbSizeBadge'),
+
+    // Image Gallery & Lightbox Elements
+    editorPane: document.getElementById('editorPane'),
+    renderPane: document.getElementById('renderPane'),
+    imageGalleryContainer: document.getElementById('imageGalleryContainer'),
+    selectImageTargetRes: document.getElementById('selectImageTargetRes'),
+    btnBatchResizeImages: document.getElementById('btnBatchResizeImages'),
+    imageDropzoneDesc: document.getElementById('imageDropzoneDesc'),
+    imageDropzone: document.getElementById('imageDropzone'),
+    imageFileInput: document.getElementById('imageFileInput'),
+    imageGalleryGrid: document.getElementById('imageGalleryGrid'),
+    createPageTypeModal: document.getElementById('createPageTypeModal'),
+    btnChooseTextPage: document.getElementById('btnChooseTextPage'),
+    btnChooseImagePage: document.getElementById('btnChooseImagePage'),
+    btnCancelCreatePageType: document.getElementById('btnCancelCreatePageType'),
+    imageLightboxModal: document.getElementById('imageLightboxModal'),
+    btnCloseLightbox: document.getElementById('btnCloseLightbox'),
+    lightboxImage: document.getElementById('lightboxImage'),
+    lightboxMetaName: document.getElementById('lightboxMetaName'),
+    lightboxMetaRes: document.getElementById('lightboxMetaRes'),
+    lightboxMetaSize: document.getElementById('lightboxMetaSize'),
+    lightboxMetaFormat: document.getElementById('lightboxMetaFormat'),
+
+    // Batch Resize Modal Elements
+    resizeImagesModal: document.getElementById('resizeImagesModal'),
+    resizeModalImageCount: document.getElementById('resizeModalImageCount'),
+    resizeModalTargetRes: document.getElementById('resizeModalTargetRes'),
+    btnCancelResizeImages: document.getElementById('btnCancelResizeImages'),
+    btnConfirmResizeImages: document.getElementById('btnConfirmResizeImages'),
 
     // Dynamic Stats Bar Elements
     statCharCount: document.getElementById('statCharCount'),
@@ -452,10 +483,12 @@ function renderPageList() {
     elements.pageList.innerHTML = '';
     AppState.pages.forEach(page => {
         const item = document.createElement('div');
+        const isImagePage = page.type === 'image';
+        const iconName = isImagePage ? 'image' : 'file-text';
         item.className = `page-item ${page.id === AppState.activePageId ? 'active' : ''}`;
         item.innerHTML = `
             <div class="page-item-info">
-                <i data-lucide="file-text" style="width: 15px; height: 15px;"></i>
+                <i data-lucide="${iconName}" style="width: 15px; height: 15px; ${isImagePage ? 'color: var(--accent-green);' : ''}"></i>
                 <span>${escapeHtml(page.name)}</span>
             </div>
             <div class="page-actions">
@@ -578,12 +611,250 @@ function updateEditorStats() {
 
 function updateEditorView() {
     const page = getActivePage();
-    if (document.activeElement !== elements.codeEditor) {
-        elements.codeEditor.value = page.content;
+
+    if (page.type === 'image') {
+        // Show Image Gallery View, Hide Text Editor & Preview
+        if (elements.editorPane) elements.editorPane.style.display = 'none';
+        if (elements.renderPane) elements.renderPane.style.display = 'none';
+        if (elements.imageGalleryContainer) elements.imageGalleryContainer.style.display = 'flex';
+        renderImageGalleryView(page);
+    } else {
+        // Show Text Editor View, Hide Image Gallery
+        if (elements.imageGalleryContainer) elements.imageGalleryContainer.style.display = 'none';
+        if (elements.editorPane) elements.editorPane.style.display = 'flex';
+        if (elements.renderPane) elements.renderPane.style.display = 'flex';
+
+        if (document.activeElement !== elements.codeEditor) {
+            elements.codeEditor.value = page.content || '';
+        }
+        elements.languageSelect.value = page.lang || 'plaintext';
+        renderSyntaxHighlighting();
+        updateEditorStats();
     }
-    elements.languageSelect.value = page.lang || 'plaintext';
-    renderSyntaxHighlighting();
-    updateEditorStats();
+}
+
+// Helper: Calculate & Display Estimated Room DB Payload Size Summary
+function updateSidebarDbSizeSummary() {
+    if (!elements.sidebarDbSizeBadge) return;
+    let totalBytes = 0;
+
+    AppState.pages.forEach(page => {
+        if (page.type === 'image') {
+            (page.images || []).forEach(img => {
+                if (img.dataUrl) totalBytes += img.dataUrl.length;
+            });
+        } else {
+            if (page.content) totalBytes += new TextEncoder().encode(page.content).length;
+        }
+    });
+
+    let displayStr = '0 KB';
+    if (totalBytes < 1024) {
+        displayStr = `${totalBytes} B`;
+    } else if (totalBytes < 1024 * 1024) {
+        displayStr = `${(totalBytes / 1024).toFixed(1)} KB`;
+    } else {
+        displayStr = `${(totalBytes / (1024 * 1024)).toFixed(2)} MB`;
+    }
+
+    elements.sidebarDbSizeBadge.textContent = `Est. DB: ${displayStr}`;
+}
+
+// --- Image Compression Engine (Dynamic Aspect Ratio Scaling) ---
+function compressImageTo720p(fileOrBlobInput, targetMaxDim = 720) {
+    return new Promise((resolve, reject) => {
+        const processDataUrl = (dataUrl) => {
+            const img = new Image();
+            img.onload = () => {
+                const MAX_DIM = parseInt(targetMaxDim, 10);
+                let width = img.width;
+                let height = img.height;
+
+                if (MAX_DIM > 0 && (width > MAX_DIM || height > MAX_DIM)) {
+                    if (width > height) {
+                        height = Math.round((height * MAX_DIM) / width);
+                        width = MAX_DIM;
+                    } else {
+                        width = Math.round((width * MAX_DIM) / height);
+                        height = MAX_DIM;
+                    }
+                }
+
+                const canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+
+                const compressedDataUrl = canvas.toDataURL('image/webp', 0.80);
+                const sizeKB = Math.round((compressedDataUrl.length * 0.75) / 1024);
+
+                resolve({
+                    dataUrl: compressedDataUrl,
+                    width: width,
+                    height: height,
+                    sizeKB: sizeKB
+                });
+            };
+            img.onerror = () => reject(new Error("Failed loading image for processing."));
+            img.src = dataUrl;
+        };
+
+        if (typeof fileOrBlobInput === 'string') {
+            processDataUrl(fileOrBlobInput);
+        } else {
+            const reader = new FileReader();
+            reader.onload = (e) => processDataUrl(e.target.result);
+            reader.onerror = () => reject(new Error("Failed reading file."));
+            reader.readAsDataURL(fileOrBlobInput);
+        }
+    });
+}
+
+// --- Image Gallery Renderer ---
+function renderImageGalleryView(page) {
+    if (!elements.imageGalleryGrid) return;
+    elements.imageGalleryGrid.innerHTML = '';
+    const images = page.images || [];
+
+    // Set resolution dropdown to match page setting
+    const targetRes = page.targetRes !== undefined ? page.targetRes : 720;
+    if (elements.selectImageTargetRes) elements.selectImageTargetRes.value = String(targetRes);
+
+    const resLabel = targetRes == 0 ? 'Original' : `${targetRes}p`;
+    if (elements.imageDropzoneDesc) {
+        elements.imageDropzoneDesc.textContent = `Supports PNG, JPG, WebP. Images are automatically scaled to ${resLabel} & encrypted.`;
+    }
+
+    if (images.length === 0) {
+        const emptyState = document.createElement('div');
+        emptyState.style.gridColumn = '1 / -1';
+        emptyState.style.textAlign = 'center';
+        emptyState.style.padding = '40px 20px';
+        emptyState.style.color = 'var(--text-muted)';
+        emptyState.style.fontSize = '0.85rem';
+        emptyState.innerHTML = `
+            <i data-lucide="image-off" style="width: 36px; height: 36px; margin-bottom: 8px; color: var(--text-dim);"></i>
+            <div>No images stored in this gallery yet.</div>
+            <div style="font-size: 0.75rem; margin-top: 4px;">Paste an image with <strong>Ctrl+V</strong> or click above to upload.</div>
+        `;
+        elements.imageGalleryGrid.appendChild(emptyState);
+        updateSidebarDbSizeSummary();
+        if (window.lucide) lucide.createIcons();
+        return;
+    }
+
+    images.forEach(imgItem => {
+        const card = document.createElement('div');
+        card.className = 'image-card';
+        const dateStr = imgItem.timestamp ? new Date(imgItem.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+        const metaStr = `${imgItem.sizeKB ? imgItem.sizeKB + ' KB' : '720p'} • ${dateStr}`;
+
+        card.innerHTML = `
+            <div class="image-preview-wrapper" title="Click to enlarge">
+                <img src="${imgItem.dataUrl}" alt="${escapeHtml(imgItem.name || 'Gallery Image')}">
+            </div>
+            <div class="image-card-footer">
+                <div class="image-card-info">
+                    <span class="image-card-name">${escapeHtml(imgItem.name || 'Pasted Image')}</span>
+                    <span class="image-card-meta">${escapeHtml(metaStr)}</span>
+                </div>
+                <div class="image-card-actions">
+                    <button class="image-card-btn btn-copy-img" title="Copy Image to Clipboard"><i data-lucide="copy" style="width: 13px; height: 13px;"></i></button>
+                    <button class="image-card-btn btn-download-img" title="Download Image"><i data-lucide="download" style="width: 13px; height: 13px;"></i></button>
+                    <button class="image-card-btn btn-delete-img" title="Delete Image"><i data-lucide="trash-2" style="width: 13px; height: 13px;"></i></button>
+                </div>
+            </div>
+        `;
+
+        // Click wrapper -> Open Lightbox & Populate Side Panel Metadata
+        card.querySelector('.image-preview-wrapper').addEventListener('click', () => {
+            elements.lightboxImage.src = imgItem.dataUrl;
+            if (elements.lightboxMetaName) elements.lightboxMetaName.textContent = imgItem.name || 'Pasted Image';
+            if (elements.lightboxMetaSize) {
+                const bytes = imgItem.dataUrl ? imgItem.dataUrl.length : 0;
+                const kbStr = imgItem.sizeKB ? `${imgItem.sizeKB} KB` : `${Math.round(bytes / 1024)} KB`;
+                elements.lightboxMetaSize.textContent = `${kbStr} (${bytes.toLocaleString()} bytes)`;
+            }
+
+            // Calculate actual image width x height
+            if (elements.lightboxMetaRes) {
+                elements.lightboxMetaRes.textContent = 'Calculating...';
+                const tempImg = new Image();
+                tempImg.onload = () => {
+                    elements.lightboxMetaRes.textContent = `${tempImg.naturalWidth} x ${tempImg.naturalHeight} px`;
+                };
+                tempImg.src = imgItem.dataUrl;
+            }
+
+            elements.imageLightboxModal.classList.add('active');
+        });
+
+        // Copy Image to Clipboard
+        card.querySelector('.btn-copy-img').addEventListener('click', async (e) => {
+            e.stopPropagation();
+            try {
+                const res = await fetch(imgItem.dataUrl);
+                const blob = await res.blob();
+                await navigator.clipboard.write([
+                    new ClipboardItem({ [blob.type]: blob })
+                ]);
+                showToast("Copied image to clipboard!");
+            } catch (err) {
+                showToast("Copy failed: Browser permission required.");
+            }
+        });
+
+        // Download Image
+        card.querySelector('.btn-download-img').addEventListener('click', (e) => {
+            e.stopPropagation();
+            const a = document.createElement('a');
+            a.href = imgItem.dataUrl;
+            a.download = `${(imgItem.name || 'image').replace(/\s+/g, '_')}_720p.webp`;
+            a.click();
+        });
+
+        // Delete Image
+        card.querySelector('.btn-delete-img').addEventListener('click', (e) => {
+            e.stopPropagation();
+            page.images = page.images.filter(i => i.id !== imgItem.id);
+            renderImageGalleryView(page);
+            SyncManager.broadcastState();
+            showToast("Deleted image.");
+        });
+
+        elements.imageGalleryGrid.appendChild(card);
+    });
+
+    updateSidebarDbSizeSummary();
+    if (window.lucide) lucide.createIcons();
+}
+
+async function addCompressedImageToPage(fileOrBlob, customName = null) {
+    const page = getActivePage();
+    if (page.type !== 'image') return;
+    if (!page.images) page.images = [];
+
+    const targetRes = page.targetRes !== undefined ? page.targetRes : 720;
+    const resLabel = targetRes == 0 ? 'Original' : `${targetRes}p`;
+    showToast(`Scaling image to ${resLabel}...`);
+
+    try {
+        const compressed = await compressImageTo720p(fileOrBlob, targetRes);
+        const newImg = {
+            id: 'img_' + Date.now() + '_' + Math.floor(Math.random()*1000),
+            name: customName || `Image #${page.images.length + 1}`,
+            dataUrl: compressed.dataUrl,
+            sizeKB: compressed.sizeKB,
+            timestamp: Date.now()
+        };
+        page.images.unshift(newImg); // Prepend to top
+        renderImageGalleryView(page);
+        SyncManager.broadcastState();
+        showToast(`Added image (${resLabel}, ${compressed.sizeKB} KB)!`);
+    } catch (err) {
+        showErrorModal("Image Processing Error", err.message);
+    }
 }
 
 function renderSyntaxHighlighting() {
@@ -1127,6 +1398,7 @@ if (elements.codeEditor) {
         page.content = e.target.value;
         renderSyntaxHighlighting();
         updateEditorStats();
+        updateSidebarDbSizeSummary();
         SyncManager.broadcastState();
     });
 }
@@ -1141,13 +1413,185 @@ if (elements.languageSelect) {
 
 if (elements.btnAddPage) {
     elements.btnAddPage.addEventListener('click', () => {
-        const id = 'page_' + Date.now();
-        const newPage = { id, name: `Page ${AppState.pages.length + 1}`, lang: 'plaintext', content: '' };
-        AppState.pages.push(newPage);
-        AppState.activePageId = id;
-        renderPageList();
-        updateEditorView();
-        SyncManager.broadcastState();
+        if (elements.createPageTypeModal) {
+            elements.createPageTypeModal.classList.add('active');
+        } else {
+            createNewTextPage();
+        }
+    });
+}
+
+function createNewTextPage() {
+    const id = 'page_' + Date.now();
+    const newPage = { id, name: `Page ${AppState.pages.length + 1}`, type: 'text', lang: 'plaintext', content: '' };
+    AppState.pages.push(newPage);
+    AppState.activePageId = id;
+    renderPageList();
+    updateEditorView();
+    SyncManager.broadcastState();
+}
+
+function createNewImagePage() {
+    const id = 'page_' + Date.now();
+    const newPage = { id, name: `Image Gallery ${AppState.pages.length + 1}`, type: 'image', images: [] };
+    AppState.pages.push(newPage);
+    AppState.activePageId = id;
+    renderPageList();
+    updateEditorView();
+    SyncManager.broadcastState();
+}
+
+if (elements.btnChooseTextPage) {
+    elements.btnChooseTextPage.addEventListener('click', () => {
+        elements.createPageTypeModal.classList.remove('active');
+        createNewTextPage();
+    });
+}
+
+if (elements.btnChooseImagePage) {
+    elements.btnChooseImagePage.addEventListener('click', () => {
+        elements.createPageTypeModal.classList.remove('active');
+        createNewImagePage();
+    });
+}
+
+if (elements.btnCancelCreatePageType) {
+    elements.btnCancelCreatePageType.addEventListener('click', () => {
+        elements.createPageTypeModal.classList.remove('active');
+    });
+}
+
+// Global Paste Event Listener for Images (Ctrl+V)
+document.addEventListener('paste', async (e) => {
+    const page = getActivePage();
+    if (!page || page.type !== 'image') return;
+
+    const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+    let foundImage = false;
+
+    for (const item of items) {
+        if (item.type.indexOf('image') !== -1) {
+            foundImage = true;
+            const blob = item.getAsFile();
+            if (blob) {
+                await addCompressedImageToPage(blob, `Pasted Screenshot ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`);
+            }
+        }
+    }
+});
+
+// Dropzone & File Picker Handlers
+if (elements.imageDropzone) {
+    elements.imageDropzone.addEventListener('click', () => {
+        if (elements.imageFileInput) elements.imageFileInput.click();
+    });
+
+    elements.imageDropzone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        elements.imageDropzone.classList.add('drag-active');
+    });
+
+    elements.imageDropzone.addEventListener('dragleave', () => {
+        elements.imageDropzone.classList.remove('drag-active');
+    });
+
+    elements.imageDropzone.addEventListener('drop', async (e) => {
+        e.preventDefault();
+        elements.imageDropzone.classList.remove('drag-active');
+        const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
+        for (const file of files) {
+            await addCompressedImageToPage(file, file.name);
+        }
+    });
+}
+
+if (elements.imageFileInput) {
+    elements.imageFileInput.addEventListener('change', async (e) => {
+        const files = Array.from(e.target.files).filter(f => f.type.startsWith('image/'));
+        for (const file of files) {
+            await addCompressedImageToPage(file, file.name);
+        }
+        elements.imageFileInput.value = '';
+    });
+}
+
+// Resolution Select & Batch Resizer Handlers
+if (elements.selectImageTargetRes) {
+    elements.selectImageTargetRes.addEventListener('change', (e) => {
+        const page = getActivePage();
+        if (page && page.type === 'image') {
+            page.targetRes = parseInt(e.target.value, 10);
+            renderImageGalleryView(page);
+            SyncManager.broadcastState();
+        }
+    });
+}
+
+if (elements.btnBatchResizeImages) {
+    elements.btnBatchResizeImages.addEventListener('click', () => {
+        const page = getActivePage();
+        if (!page || page.type !== 'image' || !page.images || page.images.length === 0) {
+            showErrorModal("No Images", "There are no images in this gallery to resize.");
+            return;
+        }
+
+        const targetRes = page.targetRes !== undefined ? page.targetRes : 720;
+        const resLabel = targetRes == 0 ? 'Original / Uncompressed' : `${targetRes}p Resolution`;
+
+        elements.resizeModalImageCount.textContent = `${page.images.length} Image${page.images.length > 1 ? 's' : ''}`;
+        elements.resizeModalTargetRes.textContent = resLabel;
+        elements.resizeImagesModal.classList.add('active');
+    });
+}
+
+if (elements.btnCancelResizeImages) {
+    elements.btnCancelResizeImages.addEventListener('click', () => {
+        elements.resizeImagesModal.classList.remove('active');
+    });
+}
+
+if (elements.btnConfirmResizeImages) {
+    elements.btnConfirmResizeImages.addEventListener('click', async () => {
+        const page = getActivePage();
+        if (!page || page.type !== 'image' || !page.images) return;
+
+        const targetRes = page.targetRes !== undefined ? page.targetRes : 720;
+        elements.resizeImagesModal.classList.remove('active');
+        showToast("Batch resizing all gallery images...");
+
+        try {
+            setButtonLoadingState(elements.btnConfirmResizeImages, true, "Resizing...");
+            for (let i = 0; i < page.images.length; i++) {
+                const img = page.images[i];
+                if (img.dataUrl) {
+                    const compressed = await compressImageTo720p(img.dataUrl, targetRes);
+                    img.dataUrl = compressed.dataUrl;
+                    img.sizeKB = compressed.sizeKB;
+                }
+            }
+            renderImageGalleryView(page);
+            SyncManager.broadcastState();
+            showToast(`Batch resize complete! All ${page.images.length} images resized to ${targetRes == 0 ? 'Original' : targetRes + 'p'}.`);
+        } catch (err) {
+            showErrorModal("Batch Resize Failed", err.message);
+        } finally {
+            setButtonLoadingState(elements.btnConfirmResizeImages, false);
+        }
+    });
+}
+
+// Lightbox Close Handlers
+if (elements.btnCloseLightbox) {
+    elements.btnCloseLightbox.addEventListener('click', () => {
+        elements.imageLightboxModal.classList.remove('active');
+    });
+}
+
+if (elements.imageLightboxModal) {
+    elements.imageLightboxModal.addEventListener('click', (e) => {
+        if (e.target === elements.imageLightboxModal) {
+            elements.imageLightboxModal.classList.remove('active');
+        }
     });
 }
 
