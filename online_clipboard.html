@@ -503,13 +503,13 @@
             border: 1px solid var(--border-color);
             border-radius: var(--radius-lg);
             width: 100%;
-            max-width: 460px;
+            max-width: 480px;
             padding: 28px;
             box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
             display: flex;
             flex-direction: column;
             gap: 18px;
-            max-height: 90vh;
+            max-height: 92vh;
             overflow-y: auto;
             animation: modalPop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
@@ -548,6 +548,41 @@
             font-size: 0.86rem;
             color: var(--text-muted);
             line-height: 1.5;
+        }
+
+        /* Modal Segmented Switch Tabs */
+        .modal-switch-tabs {
+            display: flex;
+            background: var(--bg-base);
+            padding: 4px;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-color);
+            gap: 4px;
+        }
+
+        .switch-tab-btn {
+            flex: 1;
+            padding: 8px 12px;
+            font-size: 0.86rem;
+            font-weight: 600;
+            border-radius: var(--radius-sm);
+            border: none;
+            background: transparent;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .switch-tab-btn.active {
+            background: var(--bg-surface-elevated);
+            color: var(--text-main);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .panel-content {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
         }
 
         .input-field {
@@ -771,23 +806,69 @@
                     <i data-lucide="key-round" style="width: 28px; height: 28px;"></i>
                 </div>
                 <h2 class="modal-title">Unlock Clipboard</h2>
-                <p class="modal-desc">Select an existing room or type a room code to unlock with your Passkey / Master Passphrase.</p>
+                <p class="modal-desc">Select an existing room or create a new private room to sync your encrypted clipboard.</p>
             </div>
 
-            <div class="input-field">
-                <label class="input-label">Select Existing Room (Database)</label>
-                <select class="select-input" id="selectExistingRoom" style="width: 100%;">
-                    <option value="">-- Load Rooms from Database --</option>
-                </select>
+            <!-- 2-Panel Switch Control -->
+            <div class="modal-switch-tabs">
+                <button class="switch-tab-btn active" id="tabSelectExisting">Select Existing Room</button>
+                <button class="switch-tab-btn" id="tabCreateNew">Create New Room</button>
             </div>
 
-            <div class="input-field">
-                <label class="input-label">Sync Room Code</label>
-                <input type="text" class="text-input" id="inputRoomCode" placeholder="e.g. my-private-clipboard-123" value="my-sync-room-1">
+            <!-- PANEL 1: Select Existing Room -->
+            <div class="panel-content" id="panelExistingRoom">
+                <div class="input-field">
+                    <label class="input-label">Select Room from Database</label>
+                    <select class="select-input" id="selectExistingRoom" style="width: 100%;">
+                        <option value="">-- Load Rooms from Database --</option>
+                    </select>
+                </div>
+
+                <div class="input-field">
+                    <label class="input-label">Room Code</label>
+                    <input type="text" class="text-input" id="inputRoomCode" placeholder="e.g. my-private-clipboard-123" value="apilog">
+                </div>
+
+                <button class="btn btn-primary" id="btnPasskeyAuthenticate" style="width: 100%; padding: 12px;">
+                    <i data-lucide="fingerprint"></i>
+                    Authenticate with Passkey
+                </button>
+
+                <div class="divider">or Passphrase</div>
+
+                <div class="input-field">
+                    <label class="input-label">Master Passphrase</label>
+                    <input type="password" class="text-input" id="inputPassphrase" placeholder="Enter passphrase...">
+                </div>
+
+                <button class="btn btn-secondary" id="btnPassphraseAuthenticate" style="width: 100%; padding: 10px;">
+                    Authenticate with Passphrase
+                </button>
             </div>
 
+            <!-- PANEL 2: Create New Room -->
+            <div class="panel-content" id="panelCreateRoom" style="display: none;">
+                <div class="input-field">
+                    <label class="input-label">New Room Code</label>
+                    <input type="text" class="text-input" id="inputNewRoomCode" placeholder="e.g. team-snippets-2026">
+                </div>
+
+                <div class="input-field">
+                    <label class="input-label">Master Passphrase (Encryption Key)</label>
+                    <input type="password" class="text-input" id="inputNewPassphrase" placeholder="Create room passphrase...">
+                </div>
+
+                <button class="btn btn-primary" id="btnCreateRoom" style="width: 100%; padding: 12px;">
+                    <i data-lucide="plus-circle"></i>
+                    Create Room & Register Passkey
+                </button>
+            </div>
+
+            <!-- Relay Settings -->
+            <div class="divider">Database Relay Settings</div>
+
             <div class="input-field">
-                <label class="input-label">Corporate Bypass Relay Provider</label>
+                <label class="input-label">Relay Provider</label>
                 <select class="select-input" id="syncProtocolSelect" style="width: 100%;">
                     <option value="firebase_rest" selected>Google Firebase Database (Personal Project - Port 443)</option>
                     <option value="kvdb_rest">KVDB Storage (Categorized: Developer Tools - Port 443)</option>
@@ -801,22 +882,6 @@
                 <label class="input-label" id="customUrlLabel">Firebase Database URL</label>
                 <input type="text" class="text-input" id="inputCustomUrl" value="https://bdi-online-clipboard-default-rtdb.asia-southeast1.firebasedatabase.app" placeholder="https://my-app-default-rtdb.asia-southeast1.firebasedatabase.app">
             </div>
-
-            <button class="btn btn-primary" id="btnPasskeyUnlock" style="width: 100%; padding: 12px;">
-                <i data-lucide="fingerprint"></i>
-                Unlock / Add Passkey to Room
-            </button>
-
-            <div class="divider">or Master Passphrase</div>
-
-            <div class="input-field">
-                <label class="input-label">Master Passphrase</label>
-                <input type="password" class="text-input" id="inputPassphrase" placeholder="Enter passphrase...">
-            </div>
-
-            <button class="btn btn-secondary" id="btnPassphraseUnlock" style="width: 100%; padding: 10px;">
-                Unlock with Passphrase
-            </button>
         </div>
     </div>
 
@@ -834,7 +899,7 @@
         // --- State Management ---
         const AppState = {
             isUnlocked: false,
-            roomCode: 'my-sync-room-1',
+            roomCode: 'apilog',
             syncProtocol: 'firebase_rest',
             customUrl: 'https://bdi-online-clipboard-default-rtdb.asia-southeast1.firebasedatabase.app',
             masterKey: null, // CryptoKey
@@ -853,15 +918,26 @@
         // --- DOM Elements ---
         const elements = {
             unlockModal: document.getElementById('unlockModal'),
+            tabSelectExisting: document.getElementById('tabSelectExisting'),
+            tabCreateNew: document.getElementById('tabCreateNew'),
+            panelExistingRoom: document.getElementById('panelExistingRoom'),
+            panelCreateRoom: document.getElementById('panelCreateRoom'),
+
             selectExistingRoom: document.getElementById('selectExistingRoom'),
             inputRoomCode: document.getElementById('inputRoomCode'),
+            inputPassphrase: document.getElementById('inputPassphrase'),
+            btnPasskeyAuthenticate: document.getElementById('btnPasskeyAuthenticate'),
+            btnPassphraseAuthenticate: document.getElementById('btnPassphraseAuthenticate'),
+
+            inputNewRoomCode: document.getElementById('inputNewRoomCode'),
+            inputNewPassphrase: document.getElementById('inputNewPassphrase'),
+            btnCreateRoom: document.getElementById('btnCreateRoom'),
+
             syncProtocolSelect: document.getElementById('syncProtocolSelect'),
             customUrlContainer: document.getElementById('customUrlContainer'),
             customUrlLabel: document.getElementById('customUrlLabel'),
             inputCustomUrl: document.getElementById('inputCustomUrl'),
-            inputPassphrase: document.getElementById('inputPassphrase'),
-            btnPasskeyUnlock: document.getElementById('btnPasskeyUnlock'),
-            btnPassphraseUnlock: document.getElementById('btnPassphraseUnlock'),
+            
             btnLockUnlock: document.getElementById('btnLockUnlock'),
             lockIcon: document.getElementById('lockIcon'),
             lockBtnText: document.getElementById('lockBtnText'),
@@ -889,6 +965,21 @@
             toast: document.getElementById('toast'),
             toastMsg: document.getElementById('toastMsg')
         };
+
+        // 2-Panel Switcher Listeners
+        elements.tabSelectExisting.addEventListener('click', () => {
+            elements.tabSelectExisting.classList.add('active');
+            elements.tabCreateNew.classList.remove('active');
+            elements.panelExistingRoom.style.display = 'flex';
+            elements.panelCreateRoom.style.display = 'none';
+        });
+
+        elements.tabCreateNew.addEventListener('click', () => {
+            elements.tabCreateNew.classList.add('active');
+            elements.tabSelectExisting.classList.remove('active');
+            elements.panelCreateRoom.style.display = 'flex';
+            elements.panelExistingRoom.style.display = 'none';
+        });
 
         // UI Status Helper
         function setSyncStatus(state, message) {
@@ -939,6 +1030,7 @@
                             const opt = document.createElement('option');
                             opt.value = room;
                             opt.textContent = `Room: ${room}`;
+                            if (room === elements.inputRoomCode.value) opt.selected = true;
                             elements.selectExistingRoom.appendChild(opt);
                         });
                     }
@@ -1045,7 +1137,7 @@
 
         // --- WebAuthn / Passkey & Synced Room Keys Manager ---
         class PasskeyManager {
-            static async registerOrAuthenticate(roomCode, passphraseKey) {
+            static async registerOrAuthenticate(roomCode, passphraseKey, isNewCreation = false) {
                 if (!window.PublicKeyCredential) {
                     throw new Error("WebAuthn / Passkeys not supported in this browser.");
                 }
@@ -1056,15 +1148,15 @@
                 const base = (elements.inputCustomUrl.value || AppState.customUrl).trim().replace(/\/+$/, '').replace(/\/rooms\/.*$/, '');
                 const metaEndpoint = `${base}/rooms/${encodeURIComponent(roomCode)}/meta.json`;
 
-                // Fetch room metadata & registered passkeys from database
+                // Fetch room metadata from DB
                 let roomMeta = null;
                 try {
                     const res = await fetch(metaEndpoint, { cache: 'no-store' });
                     if (res.ok) roomMeta = await res.json();
                 } catch(e){}
 
-                if (roomMeta && roomMeta.passkeys) {
-                    // Room has registered Passkeys! Authenticate using WebAuthn get()
+                if (!isNewCreation && roomMeta && roomMeta.passkeys) {
+                    // Authenticate Existing Room Passkey
                     const credIds = Object.keys(roomMeta.passkeys).map(id => ({
                         id: Uint8Array.from(atob(id), c => c.charCodeAt(0)),
                         type: 'public-key'
@@ -1082,7 +1174,6 @@
                     const credIdB64 = btoa(String.fromCharCode(...new Uint8Array(credential.rawId)));
                     const passkeyDerivedKey = await CryptoEngine.deriveKeyFromPassword(Array.from(sig).join(','), roomCode);
 
-                    // Decrypt the Room Master Key stored in database for this passkey
                     if (roomMeta.passkeys[credIdB64] && roomMeta.passkeys[credIdB64].wrappedKey) {
                         const masterKeyJson = await CryptoEngine.decryptPayload(roomMeta.passkeys[credIdB64].wrappedKey, passkeyDerivedKey);
                         if (masterKeyJson) {
@@ -1092,8 +1183,8 @@
                     }
                     return passkeyDerivedKey;
                 } else {
-                    // Create & Register New Passkey with Unique 6-Digit PIN
-                    const pin = Math.floor(100000 + Math.random() * 900000); // 6-digit unique pin e.g. 849302
+                    // Create & Register New Passkey with 6-Digit Unique PIN
+                    const pin = Math.floor(100000 + Math.random() * 900000);
                     const credential = await navigator.credentials.create({
                         publicKey: {
                             challenge: challenge,
@@ -1113,15 +1204,12 @@
                     const sigSeed = rawIdB64 + "_passkey_secret";
                     const masterKey = passphraseKey || await CryptoEngine.deriveKeyFromPassword(sigSeed, roomCode);
 
-                    // Export Master Key raw bytes
                     const exportedRaw = await crypto.subtle.exportKey("raw", masterKey);
                     const rawB64 = btoa(String.fromCharCode(...new Uint8Array(exportedRaw)));
 
-                    // Encrypt Master Key with Passkey Secret
                     const passkeyKey = await CryptoEngine.deriveKeyFromPassword(sigSeed, roomCode);
                     const wrappedKey = await CryptoEngine.encryptPayload(rawB64, passkeyKey);
 
-                    // Register Passkey metadata to Database so all devices can see it!
                     const passkeyData = {
                         name: `Passkey #${pin}`,
                         registeredAt: Date.now(),
@@ -1434,7 +1522,7 @@
         }
 
         // --- App Event Handlers ---
-        async function unlockWithPasskey() {
+        async function authenticateWithPasskey() {
             const roomCode = elements.inputRoomCode.value.trim() || 'default-room';
             const protocol = elements.syncProtocolSelect.value;
             const customUrl = elements.inputCustomUrl.value.trim();
@@ -1446,15 +1534,15 @@
                     passphraseKey = await CryptoEngine.deriveKeyFromPassword(passphrase, roomCode);
                 }
 
-                const key = await PasskeyManager.registerOrAuthenticate(roomCode, passphraseKey);
+                const key = await PasskeyManager.registerOrAuthenticate(roomCode, passphraseKey, false);
                 completeUnlock(roomCode, key, protocol, customUrl);
-                showToast("Unlocked via Passkey!");
+                showToast("Authenticated via Passkey!");
             } catch (err) {
                 alert("Passkey authentication failed: " + err.message);
             }
         }
 
-        async function unlockWithPassphrase() {
+        async function authenticateWithPassphrase() {
             const roomCode = elements.inputRoomCode.value.trim() || 'default-room';
             const protocol = elements.syncProtocolSelect.value;
             const customUrl = elements.inputCustomUrl.value.trim();
@@ -1467,7 +1555,32 @@
 
             const key = await CryptoEngine.deriveKeyFromPassword(passphrase, roomCode);
             completeUnlock(roomCode, key, protocol, customUrl);
-            showToast("Unlocked via Passphrase!");
+            showToast("Authenticated via Passphrase!");
+        }
+
+        async function createNewRoom() {
+            const roomCode = elements.inputNewRoomCode.value.trim();
+            const passphrase = elements.inputNewPassphrase.value;
+            const protocol = elements.syncProtocolSelect.value;
+            const customUrl = elements.inputCustomUrl.value.trim();
+
+            if (!roomCode) {
+                alert("Please enter a New Room Code.");
+                return;
+            }
+
+            try {
+                let passphraseKey = null;
+                if (passphrase) {
+                    passphraseKey = await CryptoEngine.deriveKeyFromPassword(passphrase, roomCode);
+                }
+
+                const key = await PasskeyManager.registerOrAuthenticate(roomCode, passphraseKey, true);
+                completeUnlock(roomCode, key, protocol, customUrl);
+                showToast(`Created & Unlocked Room "${roomCode}"!`);
+            } catch (err) {
+                alert("Room creation failed: " + err.message);
+            }
         }
 
         function completeUnlock(roomCode, key, protocol, customUrl) {
@@ -1500,8 +1613,9 @@
         }
 
         // --- Listeners ---
-        elements.btnPasskeyUnlock.addEventListener('click', unlockWithPasskey);
-        elements.btnPassphraseUnlock.addEventListener('click', unlockWithPassphrase);
+        elements.btnPasskeyAuthenticate.addEventListener('click', authenticateWithPasskey);
+        elements.btnPassphraseAuthenticate.addEventListener('click', authenticateWithPassphrase);
+        elements.btnCreateRoom.addEventListener('click', createNewRoom);
 
         elements.btnLockUnlock.addEventListener('click', () => {
             if (AppState.isUnlocked) {
