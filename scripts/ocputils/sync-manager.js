@@ -62,13 +62,22 @@ class SyncManager {
                 const base = (AppState.customUrl || APP_CONFIG.DEFAULT_FIREBASE_URL).trim().replace(/\/+$/, '').replace(/\/rooms\/.*$/, '');
                 const roomCode = AppState.roomCode;
                 const pagesEndpoint = `${base}/rooms/${encodeURIComponent(roomCode)}/pages.json`;
+                const imagesEndpoint = `${base}/rooms/${encodeURIComponent(roomCode)}/images.json`;
                 const legacyEndpoint = `${base}/rooms/${encodeURIComponent(roomCode)}.json`;
 
                 const res = await fetch(pagesEndpoint, { cache: 'no-store' });
                 if (res.ok) {
                     const pagesData = await res.json();
                     if (pagesData && typeof pagesData === 'object' && Object.keys(pagesData).length > 0) {
-                        // Sub-Node Strategy 1: Read individual page ciphertexts
+                        // Fetch images map if exists
+                        let imagesMap = {};
+                        try {
+                            const imgRes = await fetch(imagesEndpoint, { cache: 'no-store' });
+                            if (imgRes.ok) {
+                                imagesMap = (await imgRes.json()) || {};
+                            }
+                        } catch (e) {}
+
                         let latestTime = 0;
                         let assembledPages = [];
 
@@ -78,6 +87,31 @@ class SyncManager {
                                 const decryptedStr = await CryptoEngine.decryptPayload(node.payload, key);
                                 if (decryptedStr) {
                                     const pageObj = JSON.parse(decryptedStr);
+
+                                    // If page is an image gallery, resolve sub-node images
+                                    if (pageObj.type === 'image') {
+                                        let resolvedImages = [];
+
+                                        // Fallback / Backward Compatibility: check for inline images in legacy format
+                                        if (pageObj.images && Array.isArray(pageObj.images) && pageObj.images.length > 0 && pageObj.images[0].dataUrl) {
+                                            resolvedImages = pageObj.images;
+                                        } else if (pageObj.imageManifest && Array.isArray(pageObj.imageManifest)) {
+                                            // Resolve each image from sub-nodes
+                                            for (const imgId of pageObj.imageManifest) {
+                                                const imgNode = imagesMap[imgId];
+                                                if (imgNode && imgNode.payload) {
+                                                    const imgStr = await CryptoEngine.decryptPayload(imgNode.payload, key);
+                                                    if (imgStr) {
+                                                        try {
+                                                            resolvedImages.push(JSON.parse(imgStr));
+                                                        } catch (e) {}
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        pageObj.images = resolvedImages;
+                                    }
+
                                     assembledPages.push(pageObj);
                                     if (node.lastUpdated && node.lastUpdated > latestTime) {
                                         latestTime = node.lastUpdated;
@@ -118,7 +152,6 @@ class SyncManager {
                                 renderPageList();
                                 updateEditorView();
                                 setSyncStatus('updated', 'Legacy payload synced (Auto-upgrading...)');
-                                // Trigger broadcast to auto-upgrade legacy payload to Sub-Node Structure
                                 SyncManager.broadcastState();
                             }
                         }
@@ -213,10 +246,11 @@ class SyncManager {
         clearTimeout(AppState.debounceTimer);
         AppState.debounceTimer = setTimeout(async () => {
             setSyncStatus('syncing', 'Broadcasting changes...');
-            AppState.lastUpdated = Date.now();
+            const updateTimestamp = Date.now();
 
             try {
                 if (AppState.syncProtocol === 'websocket') {
+                    AppState.lastUpdated = updateTimestamp;
                     const envelope = { lastUpdated: AppState.lastUpdated, pages: AppState.pages };
                     const encryptedB64 = await CryptoEngine.encryptPayload(JSON.stringify(envelope), AppState.masterKey);
                     const topic = `secure_clipboard_room_v1/${encodeURIComponent(AppState.roomCode)}`;
@@ -224,16 +258,45 @@ class SyncManager {
                 } else if (AppState.syncProtocol === 'firebase_rest') {
                     const base = (AppState.customUrl || APP_CONFIG.DEFAULT_FIREBASE_URL).trim().replace(/\/+$/, '').replace(/\/rooms\/.*$/, '');
                     const pagesBaseUrl = `${base}/rooms/${encodeURIComponent(AppState.roomCode)}/pages`;
+                    const imagesBaseUrl = `${base}/rooms/${encodeURIComponent(AppState.roomCode)}/images`;
 
-                    // 1. Encrypt and upload each page to /rooms/{roomCode}/pages/{pageId}.json
                     const activePageIds = AppState.pages.map(p => p.id);
+                    const activeImageIds = [];
+
+                    // 1. Process each page
                     for (const page of AppState.pages) {
-                        const pageCipher = await CryptoEngine.encryptPayload(JSON.stringify(page), AppState.masterKey);
+                        let pageToSave = { ...page };
+
+                        if (page.type === 'image' && Array.isArray(page.images)) {
+                            const manifest = [];
+
+                            // Save each image into individual sub-node /rooms/{roomCode}/images/{imgId}.json
+                            for (const img of page.images) {
+                                manifest.push(img.id);
+                                activeImageIds.push(img.id);
+
+                                const imgCipher = await CryptoEngine.encryptPayload(JSON.stringify(img), AppState.masterKey);
+                                await fetch(`${imagesBaseUrl}/${encodeURIComponent(img.id)}.json`, {
+                                    method: 'PUT',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                        lastUpdated: updateTimestamp,
+                                        payload: imgCipher
+                                    })
+                                });
+                            }
+
+                            // Replace inline images with imageManifest reference list to keep page payload tiny (~1 KB)
+                            pageToSave.imageManifest = manifest;
+                            delete pageToSave.images;
+                        }
+
+                        const pageCipher = await CryptoEngine.encryptPayload(JSON.stringify(pageToSave), AppState.masterKey);
                         await fetch(`${pagesBaseUrl}/${encodeURIComponent(page.id)}.json`, {
                             method: 'PUT',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
-                                lastUpdated: AppState.lastUpdated,
+                                lastUpdated: updateTimestamp,
                                 payload: pageCipher
                             })
                         });
@@ -254,10 +317,28 @@ class SyncManager {
                         }
                     } catch(e){}
 
-                    // 3. Clean up legacy payload.json if it exists
+                    // 3. Delete orphaned images from Firebase
+                    try {
+                        const existingImgRes = await fetch(`${imagesBaseUrl}.json`, { cache: 'no-store' });
+                        if (existingImgRes.ok) {
+                            const existingImgMap = await existingImgRes.json();
+                            if (existingImgMap) {
+                                for (const remoteImgId of Object.keys(existingImgMap)) {
+                                    if (!activeImageIds.includes(remoteImgId)) {
+                                        await fetch(`${imagesBaseUrl}/${encodeURIComponent(remoteImgId)}.json`, { method: 'DELETE' });
+                                    }
+                                }
+                            }
+                        }
+                    } catch(e){}
+
+                    // 4. Clean up legacy payload.json if it exists
                     const legacyPayloadUrl = `${base}/rooms/${encodeURIComponent(AppState.roomCode)}/payload.json`;
                     fetch(legacyPayloadUrl, { method: 'DELETE' }).catch(() => {});
+
+                    AppState.lastUpdated = updateTimestamp;
                 } else {
+                    AppState.lastUpdated = updateTimestamp;
                     const envelope = { lastUpdated: AppState.lastUpdated, pages: AppState.pages };
                     const encryptedB64 = await CryptoEngine.encryptPayload(JSON.stringify(envelope), AppState.masterKey);
                     const endpoint = SyncManager.getEndpointUrl(AppState.roomCode, AppState.syncProtocol);
