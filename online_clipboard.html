@@ -710,6 +710,69 @@
             max-height: 92vh;
             overflow-y: auto;
             animation: modalPop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: relative;
+        }
+
+        .modal-close-btn {
+            position: absolute;
+            top: 14px;
+            right: 14px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            color: var(--text-muted);
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: var(--transition);
+            z-index: 10;
+        }
+
+        .modal-close-btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+            color: var(--text-main);
+            transform: scale(1.05);
+        }
+
+        .info-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            background: var(--bg-base);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 12px 14px;
+        }
+
+        .info-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            padding: 4px 0;
+            border-bottom: 1px dashed rgba(255, 255, 255, 0.06);
+        }
+
+        .info-row:last-child {
+            border-bottom: none;
+        }
+
+        .info-label {
+            color: var(--text-muted);
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .info-value {
+            color: var(--text-main);
+            font-weight: 600;
+            text-align: right;
+            word-break: break-all;
         }
 
         .modal-card-sm {
@@ -1154,6 +1217,70 @@
         </div>
     </div>
 
+    <!-- Room Info & Settings Modal (Dismissible with X) -->
+    <div class="modal-overlay" id="roomInfoModal">
+        <div class="modal-card">
+            <button class="modal-close-btn" id="btnCloseRoomInfo" title="Close">
+                <i data-lucide="x" style="width: 18px; height: 18px;"></i>
+            </button>
+
+            <div class="modal-header">
+                <div class="modal-icon">
+                    <i data-lucide="radio" style="width: 24px; height: 24px;"></i>
+                </div>
+                <h2 class="modal-title">Active Room Info & Settings</h2>
+                <p class="modal-desc">Real-time status and security settings for active clipboard room.</p>
+            </div>
+
+            <div class="info-grid">
+                <div class="info-row">
+                    <span class="info-label"><i data-lucide="folder" style="width: 14px; height: 14px;"></i> Room Code</span>
+                    <span class="info-value" id="infoRoomCode" style="color: var(--primary-hover);">apilog</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label"><i data-lucide="shield" style="width: 14px; height: 14px;"></i> Security Status</span>
+                    <span class="info-value" id="infoSecurityStatus"><span style="color: var(--accent-green);">● Unlocked</span></span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label"><i data-lucide="globe" style="width: 14px; height: 14px;"></i> Host Domain</span>
+                    <span class="info-value" id="infoHostDomain">localhost</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label"><i data-lucide="fingerprint" style="width: 14px; height: 14px;"></i> Domain Passkey</span>
+                    <span class="info-value" id="infoPasskeyStatus">Checking...</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label"><i data-lucide="server" style="width: 14px; height: 14px;"></i> Relay Transport</span>
+                    <span class="info-value" id="infoRelayProtocol">Google Firebase REST</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label"><i data-lucide="file-text" style="width: 14px; height: 14px;"></i> Total Pages</span>
+                    <span class="info-value" id="infoPageCount">2 Pages</span>
+                </div>
+            </div>
+
+            <div class="panel-content" style="gap: 8px;">
+                <button class="btn btn-secondary" id="btnInfoAddPasskey" style="width: 100%; border-color: rgba(99, 102, 241, 0.4); color: #a5b4fc; display: none;">
+                    <i data-lucide="fingerprint"></i>
+                    Register Passkey for this Domain
+                </button>
+
+                <button class="btn btn-secondary" id="btnInfoSwitchRoom" style="width: 100%;">
+                    <i data-lucide="log-out"></i>
+                    Switch Room / Reconfigure Settings
+                </button>
+
+                <button class="btn btn-primary" id="btnDismissRoomInfo" style="width: 100%; padding: 10px; margin-top: 4px;">
+                    Done
+                </button>
+            </div>
+
+            <div style="text-align: center; font-size: 0.7rem; color: var(--text-dim);" id="infoModalVersionTag">
+                v1.6 • Build: 2026-07-30 14:37:05
+            </div>
+        </div>
+    </div>
+
     <!-- Active Room Quick Re-Unlock Modal -->
     <div class="modal-overlay" id="activeRoomUnlockModal">
         <div class="modal-card modal-card-sm">
@@ -1432,13 +1559,28 @@
             toastMsg: document.getElementById('toastMsg'),
 
             unlockModalVersionTag: document.getElementById('unlockModalVersionTag'),
-            activeModalVersionTag: document.getElementById('activeModalVersionTag')
+            activeModalVersionTag: document.getElementById('activeModalVersionTag'),
+
+            // Room Info Modal Elements
+            roomInfoModal: document.getElementById('roomInfoModal'),
+            btnCloseRoomInfo: document.getElementById('btnCloseRoomInfo'),
+            btnDismissRoomInfo: document.getElementById('btnDismissRoomInfo'),
+            btnInfoSwitchRoom: document.getElementById('btnInfoSwitchRoom'),
+            btnInfoAddPasskey: document.getElementById('btnInfoAddPasskey'),
+            infoRoomCode: document.getElementById('infoRoomCode'),
+            infoSecurityStatus: document.getElementById('infoSecurityStatus'),
+            infoHostDomain: document.getElementById('infoHostDomain'),
+            infoPasskeyStatus: document.getElementById('infoPasskeyStatus'),
+            infoRelayProtocol: document.getElementById('infoRelayProtocol'),
+            infoPageCount: document.getElementById('infoPageCount'),
+            infoModalVersionTag: document.getElementById('infoModalVersionTag')
         };
 
         // Render Version & Build Time on Modals
         const buildVerString = `${APP_CONFIG.VERSION} • Build: ${APP_CONFIG.BUILD_TIME}`;
         if (elements.unlockModalVersionTag) elements.unlockModalVersionTag.textContent = buildVerString;
         if (elements.activeModalVersionTag) elements.activeModalVersionTag.textContent = buildVerString;
+        if (elements.infoModalVersionTag) elements.infoModalVersionTag.textContent = buildVerString;
 
         // --- Custom Error Modal Handler ---
         function showErrorModal(title, message) {
@@ -1810,6 +1952,32 @@
                 const challenge = new Uint8Array(32);
                 crypto.getRandomValues(challenge);
 
+                if (!masterKey) {
+                    throw new Error("Master Passphrase is required to enroll a Passkey. Please unlock room with Passphrase first.");
+                }
+
+                const base = (elements.inputCustomUrl.value || AppState.customUrl).trim().replace(/\/+$/, '').replace(/\/rooms\/.*$/, '');
+                const metaEndpoint = `${base}/rooms/${encodeURIComponent(roomCode)}/meta.json`;
+
+                // 1. Clean up / Delete any existing Passkeys registered for currentDomain (Enforce 1 Passkey per domain)
+                try {
+                    const res = await fetch(metaEndpoint, { cache: 'no-store' });
+                    if (res.ok) {
+                        const roomMeta = await res.json();
+                        if (roomMeta && roomMeta.passkeys) {
+                            const oldCredIds = Object.keys(roomMeta.passkeys).filter(id => roomMeta.passkeys[id].rpId === currentDomain);
+                            for (const oldId of oldCredIds) {
+                                await fetch(`${base}/rooms/${encodeURIComponent(roomCode)}/meta/passkeys/${encodeURIComponent(oldId)}.json`, {
+                                    method: 'DELETE'
+                                });
+                            }
+                        }
+                    }
+                } catch(e) {
+                    console.warn("Failed deleting existing domain passkeys", e);
+                }
+
+                // 2. Create WebAuthn Credential
                 const pin = Math.floor(100000 + Math.random() * 900000);
                 const credential = await navigator.credentials.create({
                     publicKey: {
@@ -1827,9 +1995,9 @@
                 });
 
                 const rawIdB64 = btoa(String.fromCharCode(...new Uint8Array(credential.rawId)));
-                const activeMasterKey = masterKey || await CryptoEngine.deriveKeyFromPassword(rawIdB64 + "_room_master", roomCode);
 
-                const exportedRaw = await crypto.subtle.exportKey("raw", activeMasterKey);
+                // 3. Export actual master room key and encrypt with passkey key
+                const exportedRaw = await crypto.subtle.exportKey("raw", masterKey);
                 const rawB64 = btoa(String.fromCharCode(...new Uint8Array(exportedRaw)));
 
                 const passkeyKey = await CryptoEngine.deriveKeyFromPassword(rawIdB64 + "_passkey_key", roomCode);
@@ -1842,14 +2010,13 @@
                     wrappedKey: wrappedKey
                 };
 
-                const base = (elements.inputCustomUrl.value || AppState.customUrl).trim().replace(/\/+$/, '').replace(/\/rooms\/.*$/, '');
-                fetch(`${base}/rooms/${encodeURIComponent(roomCode)}/meta/passkeys/${encodeURIComponent(rawIdB64)}.json`, {
+                await fetch(`${base}/rooms/${encodeURIComponent(roomCode)}/meta/passkeys/${encodeURIComponent(rawIdB64)}.json`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(passkeyData)
                 }).catch(e => console.error("Passkey reg upload error", e));
 
-                return activeMasterKey;
+                return masterKey;
             }
         }
 
@@ -2456,11 +2623,72 @@
             }
         });
 
-        elements.btnRoomConfig.addEventListener('click', () => {
+        // --- Room Info Modal Controller ---
+        async function updateRoomInfoModal() {
+            const currentDomain = window.location.hostname || "localhost";
+            const roomCode = AppState.roomCode || elements.inputRoomCode.value || APP_CONFIG.DEFAULT_ROOM_CODE;
+
+            elements.infoRoomCode.textContent = roomCode;
+            elements.infoHostDomain.textContent = currentDomain;
+            elements.infoPageCount.textContent = `${AppState.pages.length} Page${AppState.pages.length > 1 ? 's' : ''}`;
+
+            if (AppState.isUnlocked) {
+                elements.infoSecurityStatus.innerHTML = '<span style="color: var(--accent-green);">● Unlocked & Authenticated</span>';
+            } else {
+                elements.infoSecurityStatus.innerHTML = '<span style="color: var(--accent-rose);">● Locked</span>';
+            }
+
+            // Transport protocol string
+            const proto = elements.syncProtocolSelect.value;
+            let protoText = 'Google Firebase Database';
+            if (proto === 'websocket') protoText = 'WebSockets (WSS Port 8084)';
+            if (proto === 'custom_rest') protoText = 'Custom HTTPS Endpoint';
+            elements.infoRelayProtocol.textContent = protoText;
+
+            // Check Passkey registration status for domain
+            elements.infoPasskeyStatus.textContent = 'Checking...';
+            const hasPasskey = await checkDomainPasskeyRegistration(roomCode);
+            if (hasPasskey) {
+                elements.infoPasskeyStatus.innerHTML = '<span style="color: var(--accent-green);">Registered (1 Key)</span>';
+                elements.btnInfoAddPasskey.style.display = 'none';
+            } else {
+                elements.infoPasskeyStatus.innerHTML = '<span style="color: var(--accent-amber);">Not Registered</span>';
+                if (AppState.isUnlocked) {
+                    elements.btnInfoAddPasskey.style.display = 'inline-flex';
+                } else {
+                    elements.btnInfoAddPasskey.style.display = 'none';
+                }
+            }
+            lucide.createIcons();
+        }
+
+        function closeRoomInfoModal() {
+            elements.roomInfoModal.classList.remove('active');
+        }
+
+        elements.btnCloseRoomInfo.addEventListener('click', closeRoomInfoModal);
+        elements.btnDismissRoomInfo.addEventListener('click', closeRoomInfoModal);
+
+        elements.roomInfoModal.addEventListener('click', (e) => {
+            if (e.target === elements.roomInfoModal) closeRoomInfoModal();
+        });
+
+        elements.btnInfoSwitchRoom.addEventListener('click', () => {
+            closeRoomInfoModal();
             elements.activeRoomUnlockModal.classList.remove('active');
             elements.unlockModal.classList.add('active');
             fetchExistingRooms();
             checkDomainPasskeyRegistration(elements.inputRoomCode.value);
+        });
+
+        elements.btnInfoAddPasskey.addEventListener('click', async () => {
+            closeRoomInfoModal();
+            await addDomainPasskey();
+        });
+
+        elements.btnRoomConfig.addEventListener('click', () => {
+            updateRoomInfoModal();
+            elements.roomInfoModal.classList.add('active');
         });
 
         elements.codeEditor.addEventListener('input', (e) => {
