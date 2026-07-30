@@ -1202,6 +1202,8 @@
             DEFAULT_FIREBASE_URL: 'https://bdi-online-clipboard-default-rtdb.asia-southeast1.firebasedatabase.app'
         };
 
+        const VERIFY_MAGIC_TOKEN = "ROOM_VERIFY_VALID_2026";
+
         // Initialize Icons
         lucide.createIcons();
 
@@ -1530,7 +1532,6 @@
                     if (roomMeta && roomMeta.passkeys) {
                         const validCreds = Object.keys(roomMeta.passkeys).filter(id => {
                             const entry = roomMeta.passkeys[id];
-                            // Strict domain matching: only count as valid for currentDomain if entry.rpId matches currentDomain
                             return entry.rpId === currentDomain;
                         });
 
@@ -1589,6 +1590,21 @@
                     true,
                     ["encrypt", "decrypt"]
                 );
+            }
+
+            static async createVerificationToken(passphrase, roomCode) {
+                const verifyKey = await CryptoEngine.deriveKeyFromPassword(passphrase, roomCode + "_verify_v1");
+                return CryptoEngine.encryptPayload(VERIFY_MAGIC_TOKEN, verifyKey);
+            }
+
+            static async verifyPassphraseToken(passphrase, roomCode, verifyCipherB64) {
+                try {
+                    const verifyKey = await CryptoEngine.deriveKeyFromPassword(passphrase, roomCode + "_verify_v1");
+                    const decrypted = await CryptoEngine.decryptPayload(verifyCipherB64, verifyKey);
+                    return decrypted === VERIFY_MAGIC_TOKEN;
+                } catch(e) {
+                    return false;
+                }
             }
 
             static async encryptPayload(plainText, key) {
@@ -2135,6 +2151,51 @@
                 return;
             }
 
+            const base = (elements.inputCustomUrl.value || AppState.customUrl).trim().replace(/\/+$/, '').replace(/\/rooms\/.*$/, '');
+            const metaEndpoint = `${base}/rooms/${encodeURIComponent(roomCode)}/meta.json`;
+            const roomEndpoint = `${base}/rooms/${encodeURIComponent(roomCode)}.json`;
+
+            // 1. Fetch Room Metadata
+            let roomMeta = null;
+            try {
+                const res = await fetch(metaEndpoint, { cache: 'no-store' });
+                if (res.ok) roomMeta = await res.json();
+            } catch(e){}
+
+            // 2. Perform Passphrase Verification if verification token exists
+            if (roomMeta && roomMeta.passphraseVerify) {
+                const isValid = await CryptoEngine.verifyPassphraseToken(passphrase, roomCode, roomMeta.passphraseVerify);
+                if (!isValid) {
+                    alert("Incorrect Master Passphrase. Access Denied.");
+                    return;
+                }
+            } else {
+                // Legacy Room Check: attempt payload decryption directly
+                try {
+                    const res = await fetch(roomEndpoint, { cache: 'no-store' });
+                    if (res.ok) {
+                        const roomData = await res.json();
+                        if (roomData && roomData.payload) {
+                            const testKey = await CryptoEngine.deriveKeyFromPassword(passphrase, roomCode);
+                            const decrypted = await CryptoEngine.decryptPayload(roomData.payload, testKey);
+                            if (!decrypted) {
+                                alert("Incorrect Master Passphrase. Access Denied.");
+                                return;
+                            }
+                        }
+                    }
+                } catch(e){}
+
+                // Auto-upgrade Legacy Room by saving passphraseVerify to DB
+                CryptoEngine.createVerificationToken(passphrase, roomCode).then(verifyToken => {
+                    fetch(`${base}/rooms/${encodeURIComponent(roomCode)}/meta/passphraseVerify.json`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(verifyToken)
+                    }).catch(e => console.error("Auto-upgrade verify token error", e));
+                });
+            }
+
             const key = await CryptoEngine.deriveKeyFromPassword(passphrase, roomCode);
             completeUnlock(roomCode, key, protocol, customUrl, false);
             showToast("Authenticated via Passphrase!");
@@ -2151,11 +2212,22 @@
                 return;
             }
 
+            if (!passphrase) {
+                alert("Please enter a Master Passphrase for the new room.");
+                return;
+            }
+
             try {
-                let passphraseKey = null;
-                if (passphrase) {
-                    passphraseKey = await CryptoEngine.deriveKeyFromPassword(passphrase, roomCode);
-                }
+                let passphraseKey = await CryptoEngine.deriveKeyFromPassword(passphrase, roomCode);
+
+                // Create and store zero-knowledge verification token
+                const verifyToken = await CryptoEngine.createVerificationToken(passphrase, roomCode);
+                const base = (elements.inputCustomUrl.value || AppState.customUrl).trim().replace(/\/+$/, '').replace(/\/rooms\/.*$/, '');
+                fetch(`${base}/rooms/${encodeURIComponent(roomCode)}/meta/passphraseVerify.json`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(verifyToken)
+                }).catch(e => console.error("Verify token save error", e));
 
                 const key = await PasskeyManager.registerOrAuthenticate(roomCode, passphraseKey, true);
                 completeUnlock(roomCode, key, protocol, customUrl, true);
