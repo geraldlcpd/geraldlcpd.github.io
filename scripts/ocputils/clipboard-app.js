@@ -3,8 +3,8 @@
 // ==========================================
 
 const APP_CONFIG = {
-    VERSION: 'v1.6',
-    BUILD_TIME: '2026-07-30 14:37:05',
+    VERSION: 'v1.7',
+    BUILD_TIME: '2026-07-30 19:30:00',
     AUTO_LOCK_MINUTES: 20, // Inactivity minutes before auto-locking (Format MM:SS displayed in header)
     POLL_INTERVAL_MS: 10000, // Background HTTPS REST polling interval (10 seconds)
     DEFAULT_ROOM_CODE: 'apilog',
@@ -177,6 +177,7 @@ const elements = {
     btnDismissRoomInfo: document.getElementById('btnDismissRoomInfo'),
     btnInfoSwitchRoom: document.getElementById('btnInfoSwitchRoom'),
     btnInfoAddPasskey: document.getElementById('btnInfoAddPasskey'),
+    btnInfoResetPassphrase: document.getElementById('btnInfoResetPassphrase'),
     infoRoomCode: document.getElementById('infoRoomCode'),
     infoSecurityStatus: document.getElementById('infoSecurityStatus'),
     infoHostDomain: document.getElementById('infoHostDomain'),
@@ -184,6 +185,13 @@ const elements = {
     infoRelayProtocol: document.getElementById('infoRelayProtocol'),
     infoPageCount: document.getElementById('infoPageCount'),
     infoModalVersionTag: document.getElementById('infoModalVersionTag'),
+
+    // Reset Passphrase Modal Elements
+    resetPassphraseModal: document.getElementById('resetPassphraseModal'),
+    resetRoomCodeName: document.getElementById('resetRoomCodeName'),
+    inputNewResetPassphrase: document.getElementById('inputNewResetPassphrase'),
+    btnCancelResetPassphrase: document.getElementById('btnCancelResetPassphrase'),
+    btnSaveResetPassphrase: document.getElementById('btnSaveResetPassphrase'),
 
     // Dynamic Stats Bar Elements
     statCharCount: document.getElementById('statCharCount'),
@@ -935,6 +943,79 @@ if (elements.btnInfoAddPasskey) {
     elements.btnInfoAddPasskey.addEventListener('click', async () => {
         closeRoomInfoModal();
         await addDomainPasskey();
+    });
+}
+
+if (elements.btnInfoResetPassphrase) {
+    elements.btnInfoResetPassphrase.addEventListener('click', () => {
+        if (!AppState.isUnlocked) {
+            showErrorModal("Room Locked", "You must unlock the room before resetting its passphrase.");
+            return;
+        }
+        closeRoomInfoModal();
+        elements.resetRoomCodeName.textContent = AppState.roomCode;
+        elements.inputNewResetPassphrase.value = '';
+        elements.resetPassphraseModal.classList.add('active');
+    });
+}
+
+if (elements.btnCancelResetPassphrase) {
+    elements.btnCancelResetPassphrase.addEventListener('click', () => {
+        elements.resetPassphraseModal.classList.remove('active');
+    });
+}
+
+if (elements.btnSaveResetPassphrase) {
+    elements.btnSaveResetPassphrase.addEventListener('click', async () => {
+        const newPassphrase = elements.inputNewResetPassphrase.value.trim();
+        if (!newPassphrase) {
+            showErrorModal("Passphrase Required", "Please enter a new Master Passphrase.");
+            return;
+        }
+
+        try {
+            setButtonLoadingState(elements.btnSaveResetPassphrase, true, "Updating...");
+            
+            // 1. Derive new master encryption key from new passphrase
+            const newMasterKey = await CryptoEngine.deriveKeyFromPassword(newPassphrase, AppState.roomCode);
+
+            // 2. Generate and store new zero-knowledge verification token
+            const verifyToken = await CryptoEngine.createVerificationToken(newPassphrase, AppState.roomCode);
+            const base = (elements.inputCustomUrl.value || AppState.customUrl).trim().replace(/\/+$/, '').replace(/\/rooms\/.*$/, '');
+            await fetch(`${base}/rooms/${encodeURIComponent(AppState.roomCode)}/meta/passphraseVerify.json`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(verifyToken)
+            });
+
+            // 3. Update active AppState master key
+            AppState.masterKey = newMasterKey;
+
+            // 4. Re-encrypt passkey for current domain if registered
+            const currentDomain = window.location.hostname || "localhost";
+            const metaEndpoint = `${base}/rooms/${encodeURIComponent(AppState.roomCode)}/meta.json`;
+            const res = await fetch(metaEndpoint, { cache: 'no-store' });
+            if (res.ok) {
+                const roomMeta = await res.json();
+                if (roomMeta && roomMeta.passkeys) {
+                    const validCreds = Object.keys(roomMeta.passkeys).filter(id => roomMeta.passkeys[id].rpId === currentDomain);
+                    if (validCreds.length > 0) {
+                        // Re-register domain passkey wrapping the new master key
+                        await PasskeyManager.registerPasskeyForCurrentDomain(AppState.roomCode, newMasterKey);
+                    }
+                }
+            }
+
+            // 5. Broadcast existing pages re-encrypted with new master key
+            SyncManager.broadcastState();
+
+            elements.resetPassphraseModal.classList.remove('active');
+            showToast("Master Passphrase updated successfully!");
+        } catch (e) {
+            showErrorModal("Passphrase Reset Error", e.message);
+        } finally {
+            setButtonLoadingState(elements.btnSaveResetPassphrase, false);
+        }
     });
 }
 

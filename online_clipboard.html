@@ -345,6 +345,11 @@
                     Register Passkey for this Domain
                 </button>
 
+                <button class="btn btn-secondary" id="btnInfoResetPassphrase" style="width: 100%; border-color: rgba(245, 158, 11, 0.4); color: var(--accent-amber);">
+                    <i data-lucide="key-round"></i>
+                    Reset / Update Master Passphrase
+                </button>
+
                 <button class="btn btn-secondary" id="btnInfoSwitchRoom" style="width: 100%;">
                     <i data-lucide="log-out"></i>
                     Switch Room / Reconfigure Settings
@@ -442,6 +447,27 @@
             <div class="modal-footer-actions">
                 <button class="btn btn-secondary" id="btnCancelRename">Cancel</button>
                 <button class="btn btn-primary" id="btnSaveRename">Save Title</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Reset Passphrase Modal -->
+    <div class="modal-overlay" id="resetPassphraseModal">
+        <div class="modal-card modal-card-sm">
+            <div class="modal-header">
+                <div class="modal-icon" style="background: rgba(245, 158, 11, 0.15); color: var(--accent-amber); border-color: rgba(245, 158, 11, 0.3);">
+                    <i data-lucide="key-round" style="width: 22px; height: 22px;"></i>
+                </div>
+                <h2 class="modal-title">Reset Room Passphrase</h2>
+                <p class="modal-desc">Set a new Master Passphrase for active room: <strong id="resetRoomCodeName" style="color: var(--text-main);">apilog</strong></p>
+            </div>
+            <div class="input-field">
+                <label class="input-label">New Passphrase</label>
+                <input type="password" class="text-input" id="inputNewResetPassphrase" placeholder="Enter new passphrase...">
+            </div>
+            <div class="modal-footer-actions">
+                <button class="btn btn-secondary" id="btnCancelResetPassphrase">Cancel</button>
+                <button class="btn btn-primary" id="btnSaveResetPassphrase" style="background: var(--accent-amber); border-color: var(--accent-amber);">Update Passphrase</button>
             </div>
         </div>
     </div>
