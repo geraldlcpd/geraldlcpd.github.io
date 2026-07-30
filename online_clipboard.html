@@ -1364,7 +1364,6 @@
             }
 
             elements.autoLockBadge.style.display = 'inline-flex';
-            elements.btnAddDomainPasskey.style.display = 'inline-flex';
             const totalSec = APP_CONFIG.AUTO_LOCK_MINUTES * 60;
             const elapsedSec = Math.floor((Date.now() - AppState.lastActivityTime) / 1000);
             const remainingSec = Math.max(0, totalSec - elapsedSec);
@@ -1516,6 +1515,7 @@
             if (!roomCode) {
                 elements.domainWarningContainer.style.display = 'none';
                 elements.activeDomainWarningContainer.style.display = 'none';
+                elements.btnAddDomainPasskey.style.display = 'none';
                 return;
             }
 
@@ -1534,12 +1534,13 @@
                         });
 
                         if (validCreds.length === 0) {
-                            // Show domain warning box
+                            // Passkey DOES NOT exist for this domain -> show warning & enable + Domain Passkey button if unlocked
                             const msg = `No Passkey registered for domain "${currentDomain}". Unlock via Passphrase below, then click "+ Domain Passkey".`;
                             elements.domainWarningText.textContent = msg;
                             elements.activeDomainWarningText.textContent = msg;
                             elements.domainWarningContainer.style.display = 'flex';
                             elements.activeDomainWarningContainer.style.display = 'flex';
+                            if (AppState.isUnlocked) elements.btnAddDomainPasskey.style.display = 'inline-flex';
                             lucide.createIcons();
                             return false;
                         }
@@ -1547,8 +1548,10 @@
                 }
             } catch(e){}
 
+            // Passkey ALREADY exists for this domain -> hide warning box and hide + Domain Passkey button
             elements.domainWarningContainer.style.display = 'none';
             elements.activeDomainWarningContainer.style.display = 'none';
+            elements.btnAddDomainPasskey.style.display = 'none';
             return true;
         }
 
