@@ -74,7 +74,10 @@ const AppState = {
     pollTimer: null,
     inactivityTimer: null,
     debounceTimer: null,
-    resetBadgeTimer: null
+    resetBadgeTimer: null,
+    tabInactiveTimer: null,
+    isTabPollingPaused: false,
+    isInitialLoaded: false
 };
 
 // --- DOM Elements ---
@@ -282,6 +285,44 @@ setInterval(() => {
         showToast(`Clipboard auto-locked (${APP_CONFIG.AUTO_LOCK_MINUTES}m inactivity)`);
     }
 }, 1000);
+
+// --- 30s Tab & Window Inactivity Monitor for Polling Pause ---
+function handleTabInactivityStart() {
+    if (AppState.tabInactiveTimer) clearTimeout(AppState.tabInactiveTimer);
+    AppState.tabInactiveTimer = setTimeout(() => {
+        if (AppState.isUnlocked && !AppState.isTabPollingPaused) {
+            AppState.isTabPollingPaused = true;
+            setSyncStatus('connected', 'Sync Paused (Tab Inactive)');
+            console.log("Tab inactive for 30s: Paused background polling.");
+        }
+    }, 30000);
+}
+
+function handleTabActivityResume() {
+    if (AppState.tabInactiveTimer) {
+        clearTimeout(AppState.tabInactiveTimer);
+        AppState.tabInactiveTimer = null;
+    }
+    if (AppState.isUnlocked && AppState.isTabPollingPaused) {
+        AppState.isTabPollingPaused = false;
+        setSyncStatus('connected', 'Resuming Sync...');
+        console.log("Tab resumed: Restoring sync.");
+        if (SyncManager && SyncManager.pollHttpsRest) {
+            const endpoint = SyncManager.getEndpointUrl(AppState.roomCode, AppState.syncProtocol);
+            SyncManager.pollHttpsRest(endpoint, AppState.masterKey, AppState.syncProtocol, true);
+        }
+    }
+}
+
+document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+        handleTabInactivityStart();
+    } else {
+        handleTabActivityResume();
+    }
+});
+window.addEventListener('blur', handleTabInactivityStart);
+window.addEventListener('focus', handleTabActivityResume);
 
 // 2-Panel Switcher Listeners
 if (elements.tabSelectExisting) {
@@ -567,15 +608,24 @@ function closeDeleteModal() {
 
 if (elements.btnCancelDelete) elements.btnCancelDelete.addEventListener('click', closeDeleteModal);
 if (elements.btnConfirmDelete) {
-    elements.btnConfirmDelete.addEventListener('click', () => {
+    elements.btnConfirmDelete.addEventListener('click', async () => {
         if (AppState.pendingDeletePageId) {
-            AppState.pages = AppState.pages.filter(p => p.id !== AppState.pendingDeletePageId);
-            if (AppState.activePageId === AppState.pendingDeletePageId) {
-                AppState.activePageId = AppState.pages[0].id;
+            const pageToDelete = AppState.pages.find(p => p.id === AppState.pendingDeletePageId);
+            const imageIds = pageToDelete && pageToDelete.type === 'image' && Array.isArray(pageToDelete.images) ? pageToDelete.images.map(i => i.id) : [];
+            const deletedId = AppState.pendingDeletePageId;
+
+            AppState.pages = AppState.pages.filter(p => p.id !== deletedId);
+            if (AppState.activePageId === deletedId) {
+                AppState.activePageId = AppState.pages.length > 0 ? AppState.pages[0].id : 'page_1';
             }
             renderPageList();
             updateEditorView();
-            SyncManager.broadcastState();
+
+            if (SyncManager.deletePage) {
+                await SyncManager.deletePage(deletedId, imageIds);
+            } else {
+                SyncManager.broadcastState();
+            }
         }
         closeDeleteModal();
     });

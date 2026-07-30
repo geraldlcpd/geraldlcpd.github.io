@@ -39,11 +39,14 @@ class SyncManager {
         setSyncStatus('connected', `Synced (${protocol.split('_')[0].toUpperCase()})`);
 
         const endpoint = SyncManager.getEndpointUrl(roomCode, protocol);
+        AppState.isInitialLoaded = false;
 
         if (isNewRoom) {
             SyncManager.broadcastState();
+            AppState.isInitialLoaded = true;
         } else {
-            SyncManager.pollHttpsRest(endpoint, key, protocol);
+            // Initial one-time full load of room pages on unlock
+            SyncManager.pollHttpsRest(endpoint, key, protocol, true);
         }
 
         AppState.pollTimer = setInterval(() => {
@@ -52,8 +55,8 @@ class SyncManager {
     }
 
     static async pollHttpsRest(endpoint, key, protocol, forceSync = false) {
-        // Pause background polling completely when in locked state
-        if (!AppState.isUnlocked && !forceSync) {
+        // Pause background polling completely when in locked state or when tab polling is paused (30s inactivity)
+        if (!AppState.isUnlocked || (AppState.isTabPollingPaused && !forceSync)) {
             return;
         }
 
@@ -136,14 +139,15 @@ class SyncManager {
                             }
                         }
 
-                        if (assembledPages.length > 0 && (forceSync || latestTime > AppState.lastUpdated)) {
-                            if (!forceSync && document.activeElement === elements.codeEditor) {
+                        if (assembledPages.length > 0 && (forceSync || !AppState.isInitialLoaded || latestTime > AppState.lastUpdated)) {
+                            if (!forceSync && AppState.isInitialLoaded && document.activeElement === elements.codeEditor) {
                                 AppState.pendingRemoteEnvelope = { lastUpdated: latestTime, pages: assembledPages };
                                 elements.syncBanner.classList.add('show');
                             } else {
                                 AppState.lastUpdated = latestTime;
                                 AppState.pages = assembledPages;
                                 AppState.pendingRemoteEnvelope = null;
+                                AppState.isInitialLoaded = true;
                                 elements.syncBanner.classList.remove('show');
                                 renderPageList();
                                 updateEditorView();
@@ -162,9 +166,10 @@ class SyncManager {
                         const decryptedStr = await CryptoEngine.decryptPayload(legData.payload, key);
                         if (decryptedStr) {
                             const remoteEnvelope = JSON.parse(decryptedStr);
-                            if (remoteEnvelope && (forceSync || remoteEnvelope.lastUpdated > AppState.lastUpdated)) {
+                            if (remoteEnvelope && (forceSync || !AppState.isInitialLoaded || remoteEnvelope.lastUpdated > AppState.lastUpdated)) {
                                 AppState.lastUpdated = remoteEnvelope.lastUpdated;
                                 AppState.pages = remoteEnvelope.pages;
+                                AppState.isInitialLoaded = true;
                                 renderPageList();
                                 updateEditorView();
                                 setSyncStatus('updated', 'Legacy payload synced (Auto-upgrading...)');
@@ -190,9 +195,10 @@ class SyncManager {
                         const decryptedStr = await CryptoEngine.decryptPayload(cipherText, key);
                         if (decryptedStr) {
                             const remoteEnvelope = JSON.parse(decryptedStr);
-                            if (remoteEnvelope && (forceSync || remoteEnvelope.lastUpdated > AppState.lastUpdated)) {
+                            if (remoteEnvelope && (forceSync || !AppState.isInitialLoaded || remoteEnvelope.lastUpdated > AppState.lastUpdated)) {
                                 AppState.lastUpdated = remoteEnvelope.lastUpdated;
                                 AppState.pages = remoteEnvelope.pages;
+                                AppState.isInitialLoaded = true;
                                 renderPageList();
                                 updateEditorView();
                                 setSyncStatus('updated', 'Remote update synced!');
@@ -256,122 +262,121 @@ class SyncManager {
         AppState.mqttClient = client;
     }
 
+    static async savePage(page) {
+        if (!AppState.isUnlocked || !AppState.masterKey) return;
+        setSyncStatus('syncing', 'Saving page...');
+        const updateTimestamp = Date.now();
+
+        try {
+            if (AppState.syncProtocol === 'firebase_rest') {
+                const base = (AppState.customUrl || APP_CONFIG.DEFAULT_FIREBASE_URL).trim().replace(/\/+$/, '').replace(/\/rooms\/.*$/, '');
+                const pageUrl = `${base}/rooms/${encodeURIComponent(AppState.roomCode)}/pages/${encodeURIComponent(page.id)}.json`;
+                const imagesBaseUrl = `${base}/rooms/${encodeURIComponent(AppState.roomCode)}/images`;
+
+                let pageToSave = { ...page };
+
+                if (page.type === 'image' && Array.isArray(page.images)) {
+                    const manifest = [];
+                    for (const img of page.images) {
+                        manifest.push(img.id);
+                        if (window.ImageCacheManager) {
+                            ImageCacheManager.setImage(img.id, img);
+                        }
+                        const imgCipher = await CryptoEngine.encryptPayload(JSON.stringify(img), AppState.masterKey);
+                        await fetch(`${imagesBaseUrl}/${encodeURIComponent(img.id)}.json`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                lastUpdated: updateTimestamp,
+                                payload: imgCipher
+                            })
+                        });
+                    }
+                    pageToSave.imageManifest = manifest;
+                    delete pageToSave.images;
+                }
+
+                const pageCipher = await CryptoEngine.encryptPayload(JSON.stringify(pageToSave), AppState.masterKey);
+                await fetch(pageUrl, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        lastUpdated: updateTimestamp,
+                        payload: pageCipher
+                    })
+                });
+
+                AppState.lastUpdated = updateTimestamp;
+            } else {
+                SyncManager.broadcastState();
+                return;
+            }
+            setSyncStatus('updated', 'Page synced!');
+        } catch (e) {
+            console.error("Save page error", e);
+            setSyncStatus('connected', 'Sync pending...');
+        }
+    }
+
+    static async deletePage(pageId, imageIds = []) {
+        if (!AppState.isUnlocked || !AppState.masterKey) return;
+        setSyncStatus('syncing', 'Deleting page...');
+        const updateTimestamp = Date.now();
+
+        try {
+            if (AppState.syncProtocol === 'firebase_rest') {
+                const base = (AppState.customUrl || APP_CONFIG.DEFAULT_FIREBASE_URL).trim().replace(/\/+$/, '').replace(/\/rooms\/.*$/, '');
+                const pageUrl = `${base}/rooms/${encodeURIComponent(AppState.roomCode)}/pages/${encodeURIComponent(pageId)}.json`;
+                await fetch(pageUrl, { method: 'DELETE' });
+
+                if (Array.isArray(imageIds) && imageIds.length > 0) {
+                    const imagesBaseUrl = `${base}/rooms/${encodeURIComponent(AppState.roomCode)}/images`;
+                    for (const imgId of imageIds) {
+                        await fetch(`${imagesBaseUrl}/${encodeURIComponent(imgId)}.json`, { method: 'DELETE' });
+                    }
+                }
+
+                AppState.lastUpdated = updateTimestamp;
+            } else {
+                SyncManager.broadcastState();
+                return;
+            }
+            setSyncStatus('updated', 'Page deleted!');
+        } catch (e) {
+            console.error("Delete page error", e);
+            setSyncStatus('connected', 'Sync pending...');
+        }
+    }
+
     static broadcastState() {
         if (!AppState.isUnlocked || !AppState.masterKey) return;
         
         clearTimeout(AppState.debounceTimer);
         AppState.debounceTimer = setTimeout(async () => {
-            setSyncStatus('syncing', 'Broadcasting changes...');
-            const updateTimestamp = Date.now();
-
-            try {
-                if (AppState.syncProtocol === 'websocket') {
-                    AppState.lastUpdated = updateTimestamp;
-                    const envelope = { lastUpdated: AppState.lastUpdated, pages: AppState.pages };
-                    const encryptedB64 = await CryptoEngine.encryptPayload(JSON.stringify(envelope), AppState.masterKey);
-                    const topic = `secure_clipboard_room_v1/${encodeURIComponent(AppState.roomCode)}`;
-                    if (AppState.mqttClient) AppState.mqttClient.publish(topic, encryptedB64, { qos: 1 });
-                } else if (AppState.syncProtocol === 'firebase_rest') {
-                    const base = (AppState.customUrl || APP_CONFIG.DEFAULT_FIREBASE_URL).trim().replace(/\/+$/, '').replace(/\/rooms\/.*$/, '');
-                    const pagesBaseUrl = `${base}/rooms/${encodeURIComponent(AppState.roomCode)}/pages`;
-                    const imagesBaseUrl = `${base}/rooms/${encodeURIComponent(AppState.roomCode)}/images`;
-
-                    const activePageIds = AppState.pages.map(p => p.id);
-                    const activeImageIds = [];
-
-                    // 1. Process each page
-                    for (const page of AppState.pages) {
-                        let pageToSave = { ...page };
-
-                        if (page.type === 'image' && Array.isArray(page.images)) {
-                            const manifest = [];
-
-                            // Save each image into individual sub-node /rooms/{roomCode}/images/{imgId}.json
-                            for (const img of page.images) {
-                                manifest.push(img.id);
-                                activeImageIds.push(img.id);
-
-                                // Save to local IndexedDB cache immediately
-                                if (window.ImageCacheManager) {
-                                    ImageCacheManager.setImage(img.id, img);
-                                }
-
-                                const imgCipher = await CryptoEngine.encryptPayload(JSON.stringify(img), AppState.masterKey);
-                                await fetch(`${imagesBaseUrl}/${encodeURIComponent(img.id)}.json`, {
-                                    method: 'PUT',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({
-                                        lastUpdated: updateTimestamp,
-                                        payload: imgCipher
-                                    })
-                                });
-                            }
-
-                            // Replace inline images with imageManifest reference list to keep page payload tiny (~1 KB)
-                            pageToSave.imageManifest = manifest;
-                            delete pageToSave.images;
-                        }
-
-                        const pageCipher = await CryptoEngine.encryptPayload(JSON.stringify(pageToSave), AppState.masterKey);
-                        await fetch(`${pagesBaseUrl}/${encodeURIComponent(page.id)}.json`, {
-                            method: 'PUT',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                lastUpdated: updateTimestamp,
-                                payload: pageCipher
-                            })
-                        });
-                    }
-
-                    // 2. Delete removed pages from Firebase
-                    try {
-                        const existingRes = await fetch(`${pagesBaseUrl}.json`, { cache: 'no-store' });
-                        if (existingRes.ok) {
-                            const existingMap = await existingRes.json();
-                            if (existingMap) {
-                                for (const remoteId of Object.keys(existingMap)) {
-                                    if (!activePageIds.includes(remoteId)) {
-                                        await fetch(`${pagesBaseUrl}/${encodeURIComponent(remoteId)}.json`, { method: 'DELETE' });
-                                    }
-                                }
-                            }
-                        }
-                    } catch(e){}
-
-                    // 3. Delete orphaned images from Firebase
-                    try {
-                        const existingImgRes = await fetch(`${imagesBaseUrl}.json`, { cache: 'no-store' });
-                        if (existingImgRes.ok) {
-                            const existingImgMap = await existingImgRes.json();
-                            if (existingImgMap) {
-                                for (const remoteImgId of Object.keys(existingImgMap)) {
-                                    if (!activeImageIds.includes(remoteImgId)) {
-                                        await fetch(`${imagesBaseUrl}/${encodeURIComponent(remoteImgId)}.json`, { method: 'DELETE' });
-                                    }
-                                }
-                            }
-                        }
-                    } catch(e){}
-
-                    // 4. Clean up legacy payload.json if it exists
-                    const legacyPayloadUrl = `${base}/rooms/${encodeURIComponent(AppState.roomCode)}/payload.json`;
-                    fetch(legacyPayloadUrl, { method: 'DELETE' }).catch(() => {});
-
-                    AppState.lastUpdated = updateTimestamp;
-                } else {
-                    AppState.lastUpdated = updateTimestamp;
-                    const envelope = { lastUpdated: AppState.lastUpdated, pages: AppState.pages };
-                    const encryptedB64 = await CryptoEngine.encryptPayload(JSON.stringify(envelope), AppState.masterKey);
-                    const endpoint = SyncManager.getEndpointUrl(AppState.roomCode, AppState.syncProtocol);
-                    await fetch(endpoint, {
-                        method: 'POST',
-                        body: encryptedB64
-                    });
-                }
+            const activePage = AppState.pages.find(p => p.id === AppState.activePageId) || AppState.pages[0];
+            if (AppState.syncProtocol === 'firebase_rest' && activePage) {
+                await SyncManager.savePage(activePage);
+            } else if (AppState.syncProtocol === 'websocket') {
+                setSyncStatus('syncing', 'Broadcasting changes...');
+                const updateTimestamp = Date.now();
+                AppState.lastUpdated = updateTimestamp;
+                const envelope = { lastUpdated: AppState.lastUpdated, pages: AppState.pages };
+                const encryptedB64 = await CryptoEngine.encryptPayload(JSON.stringify(envelope), AppState.masterKey);
+                const topic = `secure_clipboard_room_v1/${encodeURIComponent(AppState.roomCode)}`;
+                if (AppState.mqttClient) AppState.mqttClient.publish(topic, encryptedB64, { qos: 1 });
                 setSyncStatus('updated', 'Synced across devices!');
-            } catch (e) {
-                console.error("Broadcast sync error", e);
-                setSyncStatus('connected', 'Sync pending...');
+            } else {
+                setSyncStatus('syncing', 'Broadcasting changes...');
+                const updateTimestamp = Date.now();
+                AppState.lastUpdated = updateTimestamp;
+                const envelope = { lastUpdated: AppState.lastUpdated, pages: AppState.pages };
+                const encryptedB64 = await CryptoEngine.encryptPayload(JSON.stringify(envelope), AppState.masterKey);
+                const endpoint = SyncManager.getEndpointUrl(AppState.roomCode, AppState.syncProtocol);
+                await fetch(endpoint, {
+                    method: 'POST',
+                    body: encryptedB64
+                });
+                setSyncStatus('updated', 'Synced across devices!');
             }
         }, 400);
     }
