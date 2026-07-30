@@ -1260,7 +1260,7 @@
         // APP CONFIGURATION CONSTANTS (Easily Configurable)
         // ==========================================
         const APP_CONFIG = {
-            AUTO_LOCK_MINUTES: 10, // Inactivity minutes before auto-locking (Format MM:SS displayed in header)
+            AUTO_LOCK_MINUTES: 20, // Inactivity minutes before auto-locking (Format MM:SS displayed in header)
             POLL_INTERVAL_MS: 10000, // Background HTTPS REST polling interval (10 seconds)
             DEFAULT_ROOM_CODE: 'apilog',
             DEFAULT_FIREBASE_URL: 'https://bdi-online-clipboard-default-rtdb.asia-southeast1.firebasedatabase.app'
@@ -1895,6 +1895,11 @@
             }
 
             static async pollHttpsRest(endpoint, key, protocol, forceSync = false) {
+                // Pause background polling completely when in locked state
+                if (!AppState.isUnlocked && !forceSync) {
+                    return;
+                }
+
                 try {
                     let cipherText = null;
 
@@ -2201,12 +2206,32 @@
             return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
         }
 
+        // Helper to display "Unlocking..." loading indicator on buttons
+        function setButtonLoadingState(btn, isLoading, loadingText = "Unlocking room...") {
+            if (!btn) return;
+            if (isLoading) {
+                btn.disabled = true;
+                btn.dataset.origContent = btn.innerHTML;
+                btn.innerHTML = `<i data-lucide="refresh-cw" class="spin-icon" style="width: 14px; height: 14px;"></i> <span>${loadingText}</span>`;
+                lucide.createIcons();
+            } else {
+                btn.disabled = false;
+                if (btn.dataset.origContent) {
+                    btn.innerHTML = btn.dataset.origContent;
+                    lucide.createIcons();
+                }
+            }
+        }
+
         // --- App Event Handlers ---
         async function authenticateWithPasskey(isActiveRoomUnlock = false) {
+            const btn = isActiveRoomUnlock ? elements.btnActivePasskeyUnlock : elements.btnPasskeyAuthenticate;
             const roomCode = isActiveRoomUnlock ? AppState.roomCode : (elements.inputRoomCode.value.trim() || 'default-room');
             const protocol = elements.syncProtocolSelect.value;
             const customUrl = elements.inputCustomUrl.value.trim();
             const passphrase = isActiveRoomUnlock ? elements.inputActivePassphrase.value : elements.inputPassphrase.value;
+
+            setButtonLoadingState(btn, true, "Unlocking room...");
 
             try {
                 let passphraseKey = null;
@@ -2215,6 +2240,7 @@
                 }
 
                 const key = await PasskeyManager.registerOrAuthenticate(roomCode, passphraseKey, false);
+                await new Promise(r => setTimeout(r, 1000)); // 1s smooth fetching delay
                 completeUnlock(roomCode, key, protocol, customUrl, false);
                 showToast("Authenticated via Passkey!");
             } catch (err) {
@@ -2224,10 +2250,13 @@
                 } else {
                     showErrorModal("Passkey Failed", err.message);
                 }
+            } finally {
+                setButtonLoadingState(btn, false);
             }
         }
 
         async function authenticateWithPassphrase(isActiveRoomUnlock = false) {
+            const btn = isActiveRoomUnlock ? elements.btnActivePassphraseUnlock : elements.btnPassphraseAuthenticate;
             const roomCode = isActiveRoomUnlock ? AppState.roomCode : (elements.inputRoomCode.value.trim() || 'default-room');
             const protocol = elements.syncProtocolSelect.value;
             const customUrl = elements.inputCustomUrl.value.trim();
@@ -2238,54 +2267,63 @@
                 return;
             }
 
-            const base = (elements.inputCustomUrl.value || AppState.customUrl).trim().replace(/\/+$/, '').replace(/\/rooms\/.*$/, '');
-            const metaEndpoint = `${base}/rooms/${encodeURIComponent(roomCode)}/meta.json`;
-            const roomEndpoint = `${base}/rooms/${encodeURIComponent(roomCode)}.json`;
+            setButtonLoadingState(btn, true, "Unlocking room...");
 
-            // 1. Fetch Room Metadata
-            let roomMeta = null;
             try {
-                const res = await fetch(metaEndpoint, { cache: 'no-store' });
-                if (res.ok) roomMeta = await res.json();
-            } catch(e){}
+                const base = (elements.inputCustomUrl.value || AppState.customUrl).trim().replace(/\/+$/, '').replace(/\/rooms\/.*$/, '');
+                const metaEndpoint = `${base}/rooms/${encodeURIComponent(roomCode)}/meta.json`;
+                const roomEndpoint = `${base}/rooms/${encodeURIComponent(roomCode)}.json`;
 
-            // 2. Perform Passphrase Verification if verification token exists
-            if (roomMeta && roomMeta.passphraseVerify) {
-                const isValid = await CryptoEngine.verifyPassphraseToken(passphrase, roomCode, roomMeta.passphraseVerify);
-                if (!isValid) {
-                    showErrorModal("Access Denied", "Incorrect Master Passphrase. Access Denied.");
-                    return;
-                }
-            } else {
-                // Legacy Room Check: attempt payload decryption directly
+                // 1. Fetch Room Metadata
+                let roomMeta = null;
                 try {
-                    const res = await fetch(roomEndpoint, { cache: 'no-store' });
-                    if (res.ok) {
-                        const roomData = await res.json();
-                        if (roomData && roomData.payload) {
-                            const testKey = await CryptoEngine.deriveKeyFromPassword(passphrase, roomCode);
-                            const decrypted = await CryptoEngine.decryptPayload(roomData.payload, testKey);
-                            if (!decrypted) {
-                                showErrorModal("Access Denied", "Incorrect Master Passphrase. Access Denied.");
-                                return;
-                            }
-                        }
-                    }
+                    const res = await fetch(metaEndpoint, { cache: 'no-store' });
+                    if (res.ok) roomMeta = await res.json();
                 } catch(e){}
 
-                // Auto-upgrade Legacy Room by saving passphraseVerify to DB
-                CryptoEngine.createVerificationToken(passphrase, roomCode).then(verifyToken => {
-                    fetch(`${base}/rooms/${encodeURIComponent(roomCode)}/meta/passphraseVerify.json`, {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(verifyToken)
-                    }).catch(e => console.error("Auto-upgrade verify token error", e));
-                });
-            }
+                // 2. Perform Passphrase Verification if verification token exists
+                if (roomMeta && roomMeta.passphraseVerify) {
+                    const isValid = await CryptoEngine.verifyPassphraseToken(passphrase, roomCode, roomMeta.passphraseVerify);
+                    if (!isValid) {
+                        showErrorModal("Access Denied", "Incorrect Master Passphrase. Access Denied.");
+                        return;
+                    }
+                } else {
+                    // Legacy Room Check: attempt payload decryption directly
+                    try {
+                        const res = await fetch(roomEndpoint, { cache: 'no-store' });
+                        if (res.ok) {
+                            const roomData = await res.json();
+                            if (roomData && roomData.payload) {
+                                const testKey = await CryptoEngine.deriveKeyFromPassword(passphrase, roomCode);
+                                const decrypted = await CryptoEngine.decryptPayload(roomData.payload, testKey);
+                                if (!decrypted) {
+                                    showErrorModal("Access Denied", "Incorrect Master Passphrase. Access Denied.");
+                                    return;
+                                }
+                            }
+                        }
+                    } catch(e){}
 
-            const key = await CryptoEngine.deriveKeyFromPassword(passphrase, roomCode);
-            completeUnlock(roomCode, key, protocol, customUrl, false);
-            showToast("Authenticated via Passphrase!");
+                    // Auto-upgrade Legacy Room by saving passphraseVerify to DB
+                    CryptoEngine.createVerificationToken(passphrase, roomCode).then(verifyToken => {
+                        fetch(`${base}/rooms/${encodeURIComponent(roomCode)}/meta/passphraseVerify.json`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(verifyToken)
+                        }).catch(e => console.error("Auto-upgrade verify token error", e));
+                    });
+                }
+
+                await new Promise(r => setTimeout(r, 1000)); // 1s smooth fetching delay
+                const key = await CryptoEngine.deriveKeyFromPassword(passphrase, roomCode);
+                completeUnlock(roomCode, key, protocol, customUrl, false);
+                showToast("Authenticated via Passphrase!");
+            } catch(e) {
+                showErrorModal("Authentication Error", e.message);
+            } finally {
+                setButtonLoadingState(btn, false);
+            }
         }
 
         async function createNewRoom() {
