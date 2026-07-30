@@ -1148,6 +1148,11 @@
                 <label class="input-label" id="customUrlLabel">Firebase Database URL</label>
                 <input type="text" class="text-input" id="inputCustomUrl" value="https://bdi-online-clipboard-default-rtdb.asia-southeast1.firebasedatabase.app" placeholder="https://my-app-default-rtdb.asia-southeast1.firebasedatabase.app">
             </div>
+
+            <!-- Version & Build Timestamp Tag -->
+            <div style="text-align: center; font-size: 0.7rem; color: var(--text-dim); margin-top: 4px;" id="unlockModalVersionTag">
+                v1.4 • Build: 2026-07-30 14:35:15
+            </div>
         </div>
     </div>
 
@@ -1189,6 +1194,11 @@
                     <button class="btn btn-secondary" id="btnSwitchRoomLink" style="background: none; border: none; color: var(--primary); text-decoration: underline; font-size: 0.78rem; padding: 4px;">
                         Switch or Change Room
                     </button>
+                </div>
+
+                <!-- Version & Build Timestamp Tag -->
+                <div style="text-align: center; font-size: 0.7rem; color: var(--text-dim); margin-top: 2px;" id="activeModalVersionTag">
+                    v1.4 • Build: 2026-07-30 14:35:15
                 </div>
             </div>
         </div>
@@ -1260,6 +1270,8 @@
         // APP CONFIGURATION CONSTANTS (Easily Configurable)
         // ==========================================
         const APP_CONFIG = {
+            VERSION: 'v1.4',
+            BUILD_TIME: '2026-07-30 14:35:15',
             AUTO_LOCK_MINUTES: 20, // Inactivity minutes before auto-locking (Format MM:SS displayed in header)
             POLL_INTERVAL_MS: 10000, // Background HTTPS REST polling interval (10 seconds)
             DEFAULT_ROOM_CODE: 'apilog',
