@@ -798,14 +798,14 @@
             syncProtocol: 'https_rest', // 'https_rest' or 'websocket'
             masterKey: null, // CryptoKey
             activePageId: 'page_1',
+            lastUpdated: Date.now(), // Timestamp versioning for state sync
             pages: [
                 { id: 'page_1', name: 'Page 1 (General)', lang: 'plaintext', content: '' },
                 { id: 'page_2', name: 'Page 2 (Snippets)', lang: 'json', content: '{\n  "status": "success",\n  "message": "Welcome to Secure E2EE Clipboard!",\n  "features": ["Passkey Protection", "Real-Time Sync", "Multi-Page", "Syntax Highlighting"]\n}' }
             ],
             mqttClient: null,
             pollTimer: null,
-            debounceTimer: null,
-            lastRemoteHash: null
+            debounceTimer: null
         };
 
         // --- DOM Elements ---
@@ -968,7 +968,6 @@
         // --- Dual Transport Manager (HTTPS REST + WebSocket) ---
         class SyncManager {
             static connect(roomCode, key, protocol) {
-                // Stop existing connections
                 if (AppState.mqttClient) AppState.mqttClient.end();
                 if (AppState.pollTimer) clearInterval(AppState.pollTimer);
 
@@ -990,7 +989,6 @@
 
                 // Initial poll & Push initial state
                 SyncManager.pollHttpsRest(endpoint, key);
-                SyncManager.broadcastState();
 
                 // Poll every 3 seconds over HTTPS REST GET (Port 443)
                 AppState.pollTimer = setInterval(() => {
@@ -999,6 +997,9 @@
             }
 
             static async pollHttpsRest(endpoint, key) {
+                // Protect active typing focus
+                if (document.activeElement === elements.codeEditor) return;
+
                 try {
                     const res = await fetch(`${endpoint}/json?poll=1`, { cache: 'no-store' });
                     if (!res.ok) return;
@@ -1011,16 +1012,18 @@
                         try {
                             const parsed = JSON.parse(lines[i]);
                             const cipherText = parsed.message;
-                            if (cipherText && cipherText !== AppState.lastRemoteHash) {
+                            if (cipherText) {
                                 const decryptedStr = await CryptoEngine.decryptPayload(cipherText, key);
                                 if (decryptedStr) {
-                                    const remotePages = JSON.parse(decryptedStr);
-                                    if (Array.isArray(remotePages)) {
-                                        AppState.lastRemoteHash = cipherText;
-                                        AppState.pages = remotePages;
+                                    const remoteEnvelope = JSON.parse(decryptedStr);
+                                    
+                                    // Timestamp conflict resolution: only update if remote state is newer
+                                    if (remoteEnvelope && remoteEnvelope.lastUpdated > AppState.lastUpdated) {
+                                        AppState.lastUpdated = remoteEnvelope.lastUpdated;
+                                        AppState.pages = remoteEnvelope.pages;
                                         renderPageList();
                                         updateEditorView();
-                                        break; // Process latest valid remote payload
+                                        break;
                                     }
                                 }
                             }
@@ -1056,11 +1059,14 @@
                         try {
                             const decryptedStr = await CryptoEngine.decryptPayload(message.toString(), key);
                             if (decryptedStr) {
-                                const remotePages = JSON.parse(decryptedStr);
-                                if (Array.isArray(remotePages)) {
-                                    AppState.pages = remotePages;
-                                    renderPageList();
-                                    updateEditorView();
+                                const remoteEnvelope = JSON.parse(decryptedStr);
+                                if (remoteEnvelope && remoteEnvelope.lastUpdated > AppState.lastUpdated) {
+                                    if (document.activeElement !== elements.codeEditor) {
+                                        AppState.lastUpdated = remoteEnvelope.lastUpdated;
+                                        AppState.pages = remoteEnvelope.pages;
+                                        renderPageList();
+                                        updateEditorView();
+                                    }
                                 }
                             }
                         } catch (err) {}
@@ -1080,13 +1086,19 @@
                 
                 clearTimeout(AppState.debounceTimer);
                 AppState.debounceTimer = setTimeout(async () => {
-                    const jsonPages = JSON.stringify(AppState.pages);
-                    const encryptedB64 = await CryptoEngine.encryptPayload(jsonPages, AppState.masterKey);
+                    // Update timestamp on broadcast
+                    AppState.lastUpdated = Date.now();
+
+                    const envelope = {
+                        lastUpdated: AppState.lastUpdated,
+                        pages: AppState.pages
+                    };
+
+                    const encryptedB64 = await CryptoEngine.encryptPayload(JSON.stringify(envelope), AppState.masterKey);
                     
                     if (AppState.syncProtocol === 'https_rest') {
                         // Publish via HTTPS POST (Port 443)
                         const endpoint = `https://ntfy.sh/e2ee_clipboard_${encodeURIComponent(AppState.roomCode)}`;
-                        AppState.lastRemoteHash = encryptedB64;
                         fetch(endpoint, {
                             method: 'POST',
                             body: encryptedB64
@@ -1159,7 +1171,9 @@
 
         function updateEditorView() {
             const page = getActivePage();
-            elements.codeEditor.value = page.content;
+            if (document.activeElement !== elements.codeEditor) {
+                elements.codeEditor.value = page.content;
+            }
             elements.languageSelect.value = page.lang || 'plaintext';
             renderSyntaxHighlighting();
         }
