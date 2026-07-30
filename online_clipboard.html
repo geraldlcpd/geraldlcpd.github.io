@@ -771,7 +771,14 @@
                     <i data-lucide="key-round" style="width: 28px; height: 28px;"></i>
                 </div>
                 <h2 class="modal-title">Unlock Clipboard</h2>
-                <p class="modal-desc">Authenticate with your Passkey (Dashlane, TouchID, Windows Hello) or enter your secret Master Passphrase.</p>
+                <p class="modal-desc">Select an existing room or type a room code to unlock with your Passkey / Master Passphrase.</p>
+            </div>
+
+            <div class="input-field">
+                <label class="input-label">Select Existing Room (Database)</label>
+                <select class="select-input" id="selectExistingRoom" style="width: 100%;">
+                    <option value="">-- Load Rooms from Database --</option>
+                </select>
             </div>
 
             <div class="input-field">
@@ -797,7 +804,7 @@
 
             <button class="btn btn-primary" id="btnPasskeyUnlock" style="width: 100%; padding: 12px;">
                 <i data-lucide="fingerprint"></i>
-                Unlock with Passkey / Biometrics
+                Unlock / Add Passkey to Room
             </button>
 
             <div class="divider">or Master Passphrase</div>
@@ -846,6 +853,7 @@
         // --- DOM Elements ---
         const elements = {
             unlockModal: document.getElementById('unlockModal'),
+            selectExistingRoom: document.getElementById('selectExistingRoom'),
             inputRoomCode: document.getElementById('inputRoomCode'),
             syncProtocolSelect: document.getElementById('syncProtocolSelect'),
             customUrlContainer: document.getElementById('customUrlContainer'),
@@ -916,6 +924,34 @@
             lucide.createIcons();
         }
 
+        // Fetch Existing Rooms from Database
+        async function fetchExistingRooms() {
+            const base = (elements.inputCustomUrl.value || AppState.customUrl).trim().replace(/\/+$/, '').replace(/\/rooms\/.*$/, '');
+            if (!base) return;
+
+            try {
+                const res = await fetch(`${base}/rooms.json?shallow=true`, { cache: 'no-store' });
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data) {
+                        elements.selectExistingRoom.innerHTML = '<option value="">-- Select Existing Room --</option>';
+                        Object.keys(data).forEach(room => {
+                            const opt = document.createElement('option');
+                            opt.value = room;
+                            opt.textContent = `Room: ${room}`;
+                            elements.selectExistingRoom.appendChild(opt);
+                        });
+                    }
+                }
+            } catch(e) {}
+        }
+
+        elements.selectExistingRoom.addEventListener('change', (e) => {
+            if (e.target.value) {
+                elements.inputRoomCode.value = e.target.value;
+            }
+        });
+
         // Toggle Custom URL Input
         function updateProtocolUI() {
             const val = elements.syncProtocolSelect.value;
@@ -932,9 +968,11 @@
             } else {
                 elements.customUrlContainer.style.display = 'none';
             }
+            fetchExistingRooms();
         }
 
         elements.syncProtocolSelect.addEventListener('change', updateProtocolUI);
+        elements.inputCustomUrl.addEventListener('change', fetchExistingRooms);
 
         // --- Toast Notification ---
         function showToast(msg) {
@@ -1005,9 +1043,9 @@
             }
         }
 
-        // --- WebAuthn / Dashlane Passkey Handler ---
+        // --- WebAuthn / Passkey & Synced Room Keys Manager ---
         class PasskeyManager {
-            static async registerOrAuthenticate(roomCode) {
+            static async registerOrAuthenticate(roomCode, passphraseKey) {
                 if (!window.PublicKeyCredential) {
                     throw new Error("WebAuthn / Passkeys not supported in this browser.");
                 }
@@ -1015,24 +1053,46 @@
                 const challenge = new Uint8Array(32);
                 crypto.getRandomValues(challenge);
 
-                const storedCredId = localStorage.getItem(`passkey_cred_${roomCode}`);
+                const base = (elements.inputCustomUrl.value || AppState.customUrl).trim().replace(/\/+$/, '').replace(/\/rooms\/.*$/, '');
+                const metaEndpoint = `${base}/rooms/${encodeURIComponent(roomCode)}/meta.json`;
 
-                if (storedCredId) {
+                // Fetch room metadata & registered passkeys from database
+                let roomMeta = null;
+                try {
+                    const res = await fetch(metaEndpoint, { cache: 'no-store' });
+                    if (res.ok) roomMeta = await res.json();
+                } catch(e){}
+
+                if (roomMeta && roomMeta.passkeys) {
+                    // Room has registered Passkeys! Authenticate using WebAuthn get()
+                    const credIds = Object.keys(roomMeta.passkeys).map(id => ({
+                        id: Uint8Array.from(atob(id), c => c.charCodeAt(0)),
+                        type: 'public-key'
+                    }));
+
                     const credential = await navigator.credentials.get({
                         publicKey: {
                             challenge: challenge,
-                            allowCredentials: [{
-                                id: Uint8Array.from(atob(storedCredId), c => c.charCodeAt(0)),
-                                type: 'public-key'
-                            }],
+                            allowCredentials: credIds,
                             userVerification: "preferred"
                         }
                     });
 
                     const sig = new Uint8Array(credential.response.signature);
-                    const keySeed = Array.from(sig).join(',');
-                    return CryptoEngine.deriveKeyFromPassword(keySeed, roomCode);
+                    const credIdB64 = btoa(String.fromCharCode(...new Uint8Array(credential.rawId)));
+                    const passkeyDerivedKey = await CryptoEngine.deriveKeyFromPassword(Array.from(sig).join(','), roomCode);
+
+                    // Decrypt the Room Master Key stored in database for this passkey
+                    if (roomMeta.passkeys[credIdB64] && roomMeta.passkeys[credIdB64].wrappedKey) {
+                        const masterKeyJson = await CryptoEngine.decryptPayload(roomMeta.passkeys[credIdB64].wrappedKey, passkeyDerivedKey);
+                        if (masterKeyJson) {
+                            const rawKey = Uint8Array.from(atob(masterKeyJson), c => c.charCodeAt(0));
+                            return crypto.subtle.importKey("raw", rawKey, { name: "AES-GCM" }, false, ["encrypt", "decrypt"]);
+                        }
+                    }
+                    return passkeyDerivedKey;
                 } else {
+                    // Create & Register New Passkey to the Room
                     const credential = await navigator.credentials.create({
                         publicKey: {
                             challenge: challenge,
@@ -1043,19 +1103,37 @@
                                 displayName: `Clipboard Owner (${roomCode})`
                             },
                             pubKeyCredParams: [{ alg: -7, type: "public-key" }, { alg: -257, type: "public-key" }],
-                            authenticatorSelection: { 
-                                userVerification: "preferred",
-                                residentKey: "preferred"
-                            },
+                            authenticatorSelection: { userVerification: "preferred", residentKey: "preferred" },
                             timeout: 60000
                         }
                     });
 
                     const rawIdB64 = btoa(String.fromCharCode(...new Uint8Array(credential.rawId)));
-                    localStorage.setItem(`passkey_cred_${roomCode}`, rawIdB64);
+                    const sigSeed = rawIdB64 + "_passkey_secret";
+                    const masterKey = passphraseKey || await CryptoEngine.deriveKeyFromPassword(sigSeed, roomCode);
 
-                    const keySeed = rawIdB64 + "_passkey_secret";
-                    return CryptoEngine.deriveKeyFromPassword(keySeed, roomCode);
+                    // Export Master Key raw bytes
+                    const exportedRaw = await crypto.subtle.exportKey("raw", masterKey);
+                    const rawB64 = btoa(String.fromCharCode(...new Uint8Array(exportedRaw)));
+
+                    // Encrypt Master Key with Passkey Secret
+                    const passkeyKey = await CryptoEngine.deriveKeyFromPassword(sigSeed, roomCode);
+                    const wrappedKey = await CryptoEngine.encryptPayload(rawB64, passkeyKey);
+
+                    // Register Passkey metadata to Database so all devices can see it!
+                    const passkeyData = {
+                        name: `Passkey-${new Date().toLocaleDateString()}`,
+                        registeredAt: Date.now(),
+                        wrappedKey: wrappedKey
+                    };
+
+                    fetch(`${base}/rooms/${encodeURIComponent(roomCode)}/meta/passkeys/${encodeURIComponent(rawIdB64)}.json`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(passkeyData)
+                    }).catch(e => console.error("Passkey reg upload error", e));
+
+                    return masterKey;
                 }
             }
         }
@@ -1247,10 +1325,12 @@
                             const endpoint = SyncManager.getEndpointUrl(AppState.roomCode, AppState.syncProtocol);
                             
                             if (AppState.syncProtocol === 'firebase_rest') {
-                                await fetch(endpoint, {
+                                // Save payload without erasing room meta node!
+                                const baseEndpoint = endpoint.replace(/\.json$/, '/payload.json');
+                                await fetch(baseEndpoint, {
                                     method: 'PUT',
                                     headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({ payload: encryptedB64 })
+                                    body: JSON.stringify(encryptedB64)
                                 });
                             } else if (AppState.syncProtocol === 'kvdb_rest') {
                                 await fetch(endpoint, {
@@ -1358,8 +1438,15 @@
             const roomCode = elements.inputRoomCode.value.trim() || 'default-room';
             const protocol = elements.syncProtocolSelect.value;
             const customUrl = elements.inputCustomUrl.value.trim();
+            const passphrase = elements.inputPassphrase.value;
+
             try {
-                const key = await PasskeyManager.registerOrAuthenticate(roomCode);
+                let passphraseKey = null;
+                if (passphrase) {
+                    passphraseKey = await CryptoEngine.deriveKeyFromPassword(passphrase, roomCode);
+                }
+
+                const key = await PasskeyManager.registerOrAuthenticate(roomCode, passphraseKey);
                 completeUnlock(roomCode, key, protocol, customUrl);
                 showToast("Unlocked via Passkey!");
             } catch (err) {
@@ -1409,6 +1496,7 @@
             elements.lockBtnText.textContent = 'Unlock';
             setSyncStatus('locked', 'Locked');
             lucide.createIcons();
+            fetchExistingRooms();
         }
 
         // --- Listeners ---
@@ -1420,11 +1508,13 @@
                 lockClipboard();
             } else {
                 elements.unlockModal.classList.add('active');
+                fetchExistingRooms();
             }
         });
 
         elements.btnRoomConfig.addEventListener('click', () => {
             elements.unlockModal.classList.add('active');
+            fetchExistingRooms();
         });
 
         elements.codeEditor.addEventListener('input', (e) => {
@@ -1509,6 +1599,9 @@
         elements.btnToggleSidebar.addEventListener('click', () => {
             elements.sidebar.classList.toggle('open');
         });
+
+        // Initial fetch of rooms
+        fetchExistingRooms();
     </script>
 </body>
 </html>
