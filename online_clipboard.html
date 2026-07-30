@@ -258,6 +258,20 @@
             border-radius: var(--radius-md);
         }
 
+        .domain-warning-box {
+            background: rgba(245, 158, 11, 0.12);
+            border: 1px solid rgba(245, 158, 11, 0.35);
+            color: #fcd34d;
+            padding: 10px 12px;
+            border-radius: var(--radius-md);
+            font-size: 0.78rem;
+            line-height: 1.4;
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
         /* --- Main Layout --- */
         .app-container {
             display: flex;
@@ -1027,6 +1041,12 @@
                     <input type="text" class="text-input" id="inputRoomCode" placeholder="e.g. my-private-clipboard-123" value="apilog">
                 </div>
 
+                <!-- Domain Passkey Warning Banner Container -->
+                <div id="domainWarningContainer" class="domain-warning-box" style="display: none;">
+                    <i data-lucide="alert-triangle" style="width: 16px; height: 16px; flex-shrink: 0; color: var(--accent-amber);"></i>
+                    <span id="domainWarningText">No Passkey registered for this domain. Please unlock with Passphrase first.</span>
+                </div>
+
                 <button class="btn btn-primary" id="btnPasskeyAuthenticate" style="width: 100%; padding: 10px;">
                     <i data-lucide="fingerprint"></i>
                     Authenticate with Passkey
@@ -1095,6 +1115,12 @@
             </div>
 
             <div class="panel-content">
+                <!-- Active Room Domain Warning Banner Container -->
+                <div id="activeDomainWarningContainer" class="domain-warning-box" style="display: none;">
+                    <i data-lucide="alert-triangle" style="width: 16px; height: 16px; flex-shrink: 0; color: var(--accent-amber);"></i>
+                    <span id="activeDomainWarningText">No Passkey registered for this domain. Please unlock with Passphrase below.</span>
+                </div>
+
                 <button class="btn btn-primary" id="btnActivePasskeyUnlock" style="width: 100%; padding: 10px;">
                     <i data-lucide="fingerprint"></i>
                     Unlock with Passkey
@@ -1259,6 +1285,12 @@
             inputPassphrase: document.getElementById('inputPassphrase'),
             btnPasskeyAuthenticate: document.getElementById('btnPasskeyAuthenticate'),
             btnPassphraseAuthenticate: document.getElementById('btnPassphraseAuthenticate'),
+
+            domainWarningContainer: document.getElementById('domainWarningContainer'),
+            domainWarningText: document.getElementById('domainWarningText'),
+
+            activeDomainWarningContainer: document.getElementById('activeDomainWarningContainer'),
+            activeDomainWarningText: document.getElementById('activeDomainWarningText'),
 
             inputNewRoomCode: document.getElementById('inputNewRoomCode'),
             inputNewPassphrase: document.getElementById('inputNewPassphrase'),
@@ -1449,7 +1481,12 @@
         elements.selectExistingRoom.addEventListener('change', (e) => {
             if (e.target.value) {
                 elements.inputRoomCode.value = e.target.value;
+                checkDomainPasskeyRegistration(e.target.value);
             }
+        });
+
+        elements.inputRoomCode.addEventListener('input', (e) => {
+            checkDomainPasskeyRegistration(e.target.value.trim());
         });
 
         // Toggle Custom URL Input
@@ -1473,6 +1510,47 @@
 
         elements.syncProtocolSelect.addEventListener('change', updateProtocolUI);
         elements.inputCustomUrl.addEventListener('change', fetchExistingRooms);
+
+        // Check if current domain has a passkey registered for the target room
+        async function checkDomainPasskeyRegistration(roomCode) {
+            if (!roomCode) {
+                elements.domainWarningContainer.style.display = 'none';
+                elements.activeDomainWarningContainer.style.display = 'none';
+                return;
+            }
+
+            const currentDomain = window.location.hostname || "localhost";
+            const base = (elements.inputCustomUrl.value || AppState.customUrl).trim().replace(/\/+$/, '').replace(/\/rooms\/.*$/, '');
+            const metaEndpoint = `${base}/rooms/${encodeURIComponent(roomCode)}/meta.json`;
+
+            try {
+                const res = await fetch(metaEndpoint, { cache: 'no-store' });
+                if (res.ok) {
+                    const roomMeta = await res.json();
+                    if (roomMeta && roomMeta.passkeys) {
+                        const validCreds = Object.keys(roomMeta.passkeys).filter(id => {
+                            const entry = roomMeta.passkeys[id];
+                            return !entry.rpId || entry.rpId === currentDomain;
+                        });
+
+                        if (validCreds.length === 0) {
+                            // Show domain warning box
+                            const msg = `No Passkey registered for domain "${currentDomain}". Unlock via Passphrase below, then click "+ Domain Passkey".`;
+                            elements.domainWarningText.textContent = msg;
+                            elements.activeDomainWarningText.textContent = msg;
+                            elements.domainWarningContainer.style.display = 'flex';
+                            elements.activeDomainWarningContainer.style.display = 'flex';
+                            lucide.createIcons();
+                            return false;
+                        }
+                    }
+                }
+            } catch(e){}
+
+            elements.domainWarningContainer.style.display = 'none';
+            elements.activeDomainWarningContainer.style.display = 'none';
+            return true;
+        }
 
         // --- Toast Notification ---
         function showToast(msg) {
@@ -1572,7 +1650,7 @@
                     });
 
                     if (validCredKeys.length === 0) {
-                        throw new Error(`No Passkey registered for domain "${currentDomain}". Authenticate via Passphrase first, then click "+ Domain Passkey".`);
+                        throw new Error(`No Passkey registered for domain "${currentDomain}". Unlock via Passphrase below, then click "+ Domain Passkey".`);
                     }
 
                     const credIds = validCredKeys.map(id => ({
@@ -2031,7 +2109,12 @@
                 completeUnlock(roomCode, key, protocol, customUrl, false);
                 showToast("Authenticated via Passkey!");
             } catch (err) {
-                alert("Passkey authentication failed: " + err.message);
+                const isDomainError = err.message.includes("No Passkey registered for domain");
+                if (isDomainError) {
+                    checkDomainPasskeyRegistration(roomCode);
+                } else {
+                    alert("Passkey authentication failed: " + err.message);
+                }
             }
         }
 
@@ -2082,6 +2165,7 @@
             try {
                 await PasskeyManager.registerPasskeyForCurrentDomain(AppState.roomCode, AppState.masterKey);
                 showToast(`Passkey registered for ${currentDomain}!`);
+                checkDomainPasskeyRegistration(AppState.roomCode);
             } catch(e) {
                 alert("Passkey registration failed: " + e.message);
             }
@@ -2121,6 +2205,7 @@
             elements.lockIcon.setAttribute('data-lucide', 'lock');
             elements.lockBtnText.textContent = 'Unlock';
             setSyncStatus('locked', 'Locked');
+            checkDomainPasskeyRegistration(AppState.roomCode);
             lucide.createIcons();
         }
 
@@ -2135,6 +2220,7 @@
             elements.activeRoomUnlockModal.classList.remove('active');
             elements.unlockModal.classList.add('active');
             fetchExistingRooms();
+            checkDomainPasskeyRegistration(elements.inputRoomCode.value);
         });
 
         elements.btnCreateRoom.addEventListener('click', createNewRoom);
@@ -2146,9 +2232,11 @@
                 if (AppState.roomCode) {
                     elements.lockedRoomCodeName.textContent = AppState.roomCode;
                     elements.activeRoomUnlockModal.classList.add('active');
+                    checkDomainPasskeyRegistration(AppState.roomCode);
                 } else {
                     elements.unlockModal.classList.add('active');
                     fetchExistingRooms();
+                    checkDomainPasskeyRegistration(elements.inputRoomCode.value);
                 }
             }
         });
@@ -2157,6 +2245,7 @@
             elements.activeRoomUnlockModal.classList.remove('active');
             elements.unlockModal.classList.add('active');
             fetchExistingRooms();
+            checkDomainPasskeyRegistration(elements.inputRoomCode.value);
         });
 
         elements.codeEditor.addEventListener('input', (e) => {
@@ -2241,6 +2330,7 @@
 
         // Initial fetch of rooms
         fetchExistingRooms();
+        checkDomainPasskeyRegistration(elements.inputRoomCode.value);
     </script>
 </body>
 </html>
