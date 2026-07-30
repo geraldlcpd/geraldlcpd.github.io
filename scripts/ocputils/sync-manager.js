@@ -96,15 +96,31 @@ class SyncManager {
                                         if (pageObj.images && Array.isArray(pageObj.images) && pageObj.images.length > 0 && pageObj.images[0].dataUrl) {
                                             resolvedImages = pageObj.images;
                                         } else if (pageObj.imageManifest && Array.isArray(pageObj.imageManifest)) {
-                                            // Resolve each image from sub-nodes
+                                            // Resolve each image from sub-nodes or IndexedDB cache
                                             for (const imgId of pageObj.imageManifest) {
-                                                const imgNode = imagesMap[imgId];
-                                                if (imgNode && imgNode.payload) {
-                                                    const imgStr = await CryptoEngine.decryptPayload(imgNode.payload, key);
-                                                    if (imgStr) {
-                                                        try {
-                                                            resolvedImages.push(JSON.parse(imgStr));
-                                                        } catch (e) {}
+                                                // 1. Check local IndexedDB cache first
+                                                let cachedImg = null;
+                                                if (window.ImageCacheManager) {
+                                                    cachedImg = await ImageCacheManager.getImage(imgId);
+                                                }
+
+                                                if (cachedImg) {
+                                                    resolvedImages.push(cachedImg);
+                                                } else {
+                                                    // 2. Fetch/Decrypt from remote sub-node if not in cache
+                                                    const imgNode = imagesMap[imgId];
+                                                    if (imgNode && imgNode.payload) {
+                                                        const imgStr = await CryptoEngine.decryptPayload(imgNode.payload, key);
+                                                        if (imgStr) {
+                                                            try {
+                                                                const parsedImg = JSON.parse(imgStr);
+                                                                resolvedImages.push(parsedImg);
+                                                                // Save to IndexedDB cache
+                                                                if (window.ImageCacheManager) {
+                                                                    ImageCacheManager.setImage(imgId, parsedImg);
+                                                                }
+                                                            } catch (e) {}
+                                                        }
                                                     }
                                                 }
                                             }
@@ -274,6 +290,11 @@ class SyncManager {
                             for (const img of page.images) {
                                 manifest.push(img.id);
                                 activeImageIds.push(img.id);
+
+                                // Save to local IndexedDB cache immediately
+                                if (window.ImageCacheManager) {
+                                    ImageCacheManager.setImage(img.id, img);
+                                }
 
                                 const imgCipher = await CryptoEngine.encryptPayload(JSON.stringify(img), AppState.masterKey);
                                 await fetch(`${imagesBaseUrl}/${encodeURIComponent(img.id)}.json`, {

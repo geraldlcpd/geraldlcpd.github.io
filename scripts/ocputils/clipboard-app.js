@@ -688,7 +688,17 @@ function compressImageTo720p(fileOrBlobInput, targetMaxDim = 720) {
                 const ctx = canvas.getContext('2d');
                 ctx.drawImage(img, 0, 0, width, height);
 
-                const compressedDataUrl = canvas.toDataURL('image/webp', 0.80);
+                // Feature detect AVIF support, fallback to WebP
+                let format = 'image/webp';
+                try {
+                    const testUrl = canvas.toDataURL('image/avif');
+                    if (testUrl.startsWith('data:image/avif')) {
+                        format = 'image/avif';
+                    }
+                } catch (e) {}
+
+                const quality = format === 'image/avif' ? 0.65 : 0.70;
+                const compressedDataUrl = canvas.toDataURL(format, quality);
                 const sizeKB = Math.round((compressedDataUrl.length * 0.75) / 1024);
 
                 resolve({
