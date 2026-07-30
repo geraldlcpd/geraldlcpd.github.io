@@ -759,7 +759,7 @@
             <div class="input-field">
                 <label class="input-label">Corporate Bypass Relay Provider</label>
                 <select class="select-input" id="syncProtocolSelect" style="width: 100%;">
-                    <option value="firebase_rest">Google Firebase Database (Enter Database URL Below)</option>
+                    <option value="firebase_rest" selected>Google Firebase Database (Personal Project - Port 443)</option>
                     <option value="kvdb_rest">KVDB Storage (Categorized: Developer Tools - Port 443)</option>
                     <option value="ntfy_rest">ntfy Pub/Sub (Port 443)</option>
                     <option value="websocket">WebSockets (WSS Port 8084)</option>
@@ -769,7 +769,7 @@
 
             <div class="input-field" id="customUrlContainer" style="display: flex;">
                 <label class="input-label" id="customUrlLabel">Firebase Database URL</label>
-                <input type="text" class="text-input" id="inputCustomUrl" placeholder="https://my-app-default-rtdb.asia-southeast1.firebasedatabase.app">
+                <input type="text" class="text-input" id="inputCustomUrl" value="https://bdi-online-clipboard-default-rtdb.asia-southeast1.firebasedatabase.app" placeholder="https://my-app-default-rtdb.asia-southeast1.firebasedatabase.app">
             </div>
 
             <button class="btn btn-primary" id="btnPasskeyUnlock" style="width: 100%; padding: 12px;">
@@ -806,7 +806,7 @@
             isUnlocked: false,
             roomCode: 'my-sync-room-1',
             syncProtocol: 'firebase_rest',
-            customUrl: '',
+            customUrl: 'https://bdi-online-clipboard-default-rtdb.asia-southeast1.firebasedatabase.app',
             masterKey: null, // CryptoKey
             activePageId: 'page_1',
             lastUpdated: Date.now(),
@@ -864,7 +864,9 @@
             if (val === 'firebase_rest') {
                 elements.customUrlContainer.style.display = 'flex';
                 elements.customUrlLabel.textContent = 'Firebase Database URL';
-                elements.inputCustomUrl.placeholder = 'https://my-app-default-rtdb.asia-southeast1.firebasedatabase.app';
+                if (!elements.inputCustomUrl.value) {
+                    elements.inputCustomUrl.value = 'https://bdi-online-clipboard-default-rtdb.asia-southeast1.firebasedatabase.app';
+                }
             } else if (val === 'custom_rest') {
                 elements.customUrlContainer.style.display = 'flex';
                 elements.customUrlLabel.textContent = 'Custom HTTPS Endpoint URL';
@@ -1004,7 +1006,7 @@
                 if (AppState.pollTimer) clearInterval(AppState.pollTimer);
 
                 AppState.syncProtocol = protocol;
-                AppState.customUrl = customUrl;
+                AppState.customUrl = customUrl || AppState.customUrl;
 
                 if (protocol === 'websocket') {
                     SyncManager.initWebSocket(roomCode, key);
@@ -1017,8 +1019,7 @@
                 const safeRoom = encodeURIComponent(roomCode);
                 
                 if (protocol === 'firebase_rest') {
-                    let base = (AppState.customUrl || '').trim();
-                    if (!base) base = 'https://bdi-online-clipboard-default-rtdb.asia-southeast1.firebasedatabase.app';
+                    let base = (AppState.customUrl || 'https://bdi-online-clipboard-default-rtdb.asia-southeast1.firebasedatabase.app').trim();
                     // Strip trailing slashes and path if user pasted full path
                     base = base.replace(/\/+$/, '').replace(/\/rooms\/.*$/, '');
                     return `${base}/rooms/${safeRoom}.json`;
@@ -1038,7 +1039,7 @@
                     return url.replace('{roomCode}', safeRoom).replace('{room}', safeRoom);
                 }
 
-                return `https://ntfy.sh/e2ee_clipboard_${safeRoom}`;
+                return `https://bdi-online-clipboard-default-rtdb.asia-southeast1.firebasedatabase.app/rooms/${safeRoom}.json`;
             }
 
             // --- HTTPS REST Transport (Port 443) ---
@@ -1062,7 +1063,6 @@
                     let cipherText = null;
 
                     if (protocol === 'firebase_rest') {
-                        // Firebase REST API: Clean GET request directly to .json
                         const res = await fetch(endpoint, { cache: 'no-store' });
                         if (res.ok) {
                             const data = await res.json();
