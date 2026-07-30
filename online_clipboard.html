@@ -481,12 +481,14 @@
             border: 1px solid var(--border-color);
             border-radius: var(--radius-lg);
             width: 100%;
-            max-width: 440px;
+            max-width: 460px;
             padding: 28px;
             box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
             display: flex;
             flex-direction: column;
-            gap: 20px;
+            gap: 18px;
+            max-height: 90vh;
+            overflow-y: auto;
             animation: modalPop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
 
@@ -755,11 +757,19 @@
             </div>
 
             <div class="input-field">
-                <label class="input-label">Network Sync Protocol</label>
+                <label class="input-label">Corporate Bypass Relay Provider</label>
                 <select class="select-input" id="syncProtocolSelect" style="width: 100%;">
-                    <option value="https_rest">Standard HTTPS REST (Corporate Firewall Friendly - Port 443)</option>
+                    <option value="firebase_rest">Google Firebase Cloud (Categorized: Enterprise/API - Port 443)</option>
+                    <option value="kvdb_rest">KVDB Storage (Categorized: Developer Tools - Port 443)</option>
+                    <option value="ntfy_rest">ntfy Pub/Sub (Port 443)</option>
                     <option value="websocket">WebSockets (WSS Port 8084)</option>
+                    <option value="custom_rest">Custom HTTPS Relay URL (Enterprise Webhook)</option>
                 </select>
+            </div>
+
+            <div class="input-field" id="customUrlContainer" style="display: none;">
+                <label class="input-label">Custom HTTPS Relay URL</label>
+                <input type="text" class="text-input" id="inputCustomUrl" placeholder="https://api.mycompany.com/clipboard">
             </div>
 
             <button class="btn btn-primary" id="btnPasskeyUnlock" style="width: 100%; padding: 12px;">
@@ -795,10 +805,11 @@
         const AppState = {
             isUnlocked: false,
             roomCode: 'my-sync-room-1',
-            syncProtocol: 'https_rest', // 'https_rest' or 'websocket'
+            syncProtocol: 'firebase_rest',
+            customUrl: '',
             masterKey: null, // CryptoKey
             activePageId: 'page_1',
-            lastUpdated: Date.now(), // Timestamp versioning for state sync
+            lastUpdated: Date.now(),
             pages: [
                 { id: 'page_1', name: 'Page 1 (General)', lang: 'plaintext', content: '' },
                 { id: 'page_2', name: 'Page 2 (Snippets)', lang: 'json', content: '{\n  "status": "success",\n  "message": "Welcome to Secure E2EE Clipboard!",\n  "features": ["Passkey Protection", "Real-Time Sync", "Multi-Page", "Syntax Highlighting"]\n}' }
@@ -813,6 +824,8 @@
             unlockModal: document.getElementById('unlockModal'),
             inputRoomCode: document.getElementById('inputRoomCode'),
             syncProtocolSelect: document.getElementById('syncProtocolSelect'),
+            customUrlContainer: document.getElementById('customUrlContainer'),
+            inputCustomUrl: document.getElementById('inputCustomUrl'),
             inputPassphrase: document.getElementById('inputPassphrase'),
             btnPasskeyUnlock: document.getElementById('btnPasskeyUnlock'),
             btnPassphraseUnlock: document.getElementById('btnPassphraseUnlock'),
@@ -843,6 +856,11 @@
             toast: document.getElementById('toast'),
             toastMsg: document.getElementById('toastMsg')
         };
+
+        // Toggle Custom URL Input
+        elements.syncProtocolSelect.addEventListener('change', (e) => {
+            elements.customUrlContainer.style.display = e.target.value === 'custom_rest' ? 'flex' : 'none';
+        });
 
         // --- Toast Notification ---
         function showToast(msg) {
@@ -965,76 +983,103 @@
             }
         }
 
-        // --- Dual Transport Manager (HTTPS REST + WebSocket) ---
+        // --- Multi-Provider Corporate Transport Manager ---
         class SyncManager {
-            static connect(roomCode, key, protocol) {
+            static connect(roomCode, key, protocol, customUrl) {
                 if (AppState.mqttClient) AppState.mqttClient.end();
                 if (AppState.pollTimer) clearInterval(AppState.pollTimer);
 
                 AppState.syncProtocol = protocol;
+                AppState.customUrl = customUrl;
 
-                if (protocol === 'https_rest') {
-                    SyncManager.initHttpsRest(roomCode, key);
-                } else {
+                if (protocol === 'websocket') {
                     SyncManager.initWebSocket(roomCode, key);
+                } else {
+                    SyncManager.initHttpsRest(roomCode, key, protocol);
                 }
             }
 
-            // --- 1. Standard HTTPS REST Transport (Port 443 - Corporate Firewall Friendly) ---
-            static initHttpsRest(roomCode, key) {
+            static getEndpointUrl(roomCode, protocol) {
+                const safeRoom = encodeURIComponent(roomCode);
+                switch (protocol) {
+                    case 'firebase_rest':
+                        return `https://clipboard-e2ee-default-rtdb.firebaseio.com/rooms/${safeRoom}.json`;
+                    case 'kvdb_rest':
+                        return `https://kvdb.io/4yHhF3aM4PjQn8V9B7R1/${safeRoom}`;
+                    case 'ntfy_rest':
+                        return `https://ntfy.sh/e2ee_clipboard_${safeRoom}`;
+                    case 'custom_rest':
+                        return AppState.customUrl || `https://ntfy.sh/e2ee_clipboard_${safeRoom}`;
+                    default:
+                        return `https://clipboard-e2ee-default-rtdb.firebaseio.com/rooms/${safeRoom}.json`;
+                }
+            }
+
+            // --- HTTPS REST Transport (Port 443) ---
+            static initHttpsRest(roomCode, key, protocol) {
                 elements.statusDot.className = 'status-dot connected';
-                elements.statusText.textContent = 'HTTPS Synced (443)';
+                elements.statusText.textContent = `HTTPS Synced (${protocol.split('_')[0].toUpperCase()})`;
 
-                const endpoint = `https://ntfy.sh/e2ee_clipboard_${encodeURIComponent(roomCode)}`;
+                const endpoint = SyncManager.getEndpointUrl(roomCode, protocol);
 
-                // Initial poll & Push initial state
-                SyncManager.pollHttpsRest(endpoint, key);
+                SyncManager.pollHttpsRest(endpoint, key, protocol);
 
-                // Poll every 3 seconds over HTTPS REST GET (Port 443)
                 AppState.pollTimer = setInterval(() => {
-                    SyncManager.pollHttpsRest(endpoint, key);
+                    SyncManager.pollHttpsRest(endpoint, key, protocol);
                 }, 3000);
             }
 
-            static async pollHttpsRest(endpoint, key) {
-                // Protect active typing focus
+            static async pollHttpsRest(endpoint, key, protocol) {
                 if (document.activeElement === elements.codeEditor) return;
 
                 try {
-                    const res = await fetch(`${endpoint}/json?poll=1`, { cache: 'no-store' });
-                    if (!res.ok) return;
+                    let cipherText = null;
 
-                    const text = await res.text();
-                    const lines = text.trim().split('\n');
-                    
-                    for (let i = lines.length - 1; i >= 0; i--) {
-                        if (!lines[i]) continue;
-                        try {
-                            const parsed = JSON.parse(lines[i]);
-                            const cipherText = parsed.message;
-                            if (cipherText) {
-                                const decryptedStr = await CryptoEngine.decryptPayload(cipherText, key);
-                                if (decryptedStr) {
-                                    const remoteEnvelope = JSON.parse(decryptedStr);
-                                    
-                                    // Timestamp conflict resolution: only update if remote state is newer
-                                    if (remoteEnvelope && remoteEnvelope.lastUpdated > AppState.lastUpdated) {
-                                        AppState.lastUpdated = remoteEnvelope.lastUpdated;
-                                        AppState.pages = remoteEnvelope.pages;
-                                        renderPageList();
-                                        updateEditorView();
+                    if (protocol === 'firebase_rest') {
+                        const res = await fetch(endpoint, { cache: 'no-store' });
+                        if (res.ok) {
+                            const data = await res.json();
+                            if (data && data.payload) cipherText = data.payload;
+                        }
+                    } else if (protocol === 'kvdb_rest') {
+                        const res = await fetch(endpoint, { cache: 'no-store' });
+                        if (res.ok) cipherText = await res.text();
+                    } else {
+                        // ntfy or custom
+                        const res = await fetch(`${endpoint}/json?poll=1`, { cache: 'no-store' });
+                        if (res.ok) {
+                            const text = await res.text();
+                            const lines = text.trim().split('\n');
+                            for (let i = lines.length - 1; i >= 0; i--) {
+                                try {
+                                    const parsed = JSON.parse(lines[i]);
+                                    if (parsed.message) {
+                                        cipherText = parsed.message;
                                         break;
                                     }
-                                }
+                                } catch(e){}
                             }
-                        } catch (e) {}
+                        }
+                    }
+
+                    if (cipherText) {
+                        const decryptedStr = await CryptoEngine.decryptPayload(cipherText, key);
+                        if (decryptedStr) {
+                            const remoteEnvelope = JSON.parse(decryptedStr);
+                            if (remoteEnvelope && remoteEnvelope.lastUpdated > AppState.lastUpdated) {
+                                AppState.lastUpdated = remoteEnvelope.lastUpdated;
+                                AppState.pages = remoteEnvelope.pages;
+                                renderPageList();
+                                updateEditorView();
+                            }
+                        }
                     }
                 } catch (err) {
                     console.warn("HTTPS REST poll error", err);
                 }
             }
 
-            // --- 2. WebSocket Transport ---
+            // --- WebSocket Transport ---
             static initWebSocket(roomCode, key) {
                 elements.statusDot.className = 'status-dot connecting';
                 elements.statusText.textContent = 'Connecting WSS...';
@@ -1075,7 +1120,7 @@
 
                 client.on('error', () => {
                     elements.statusDot.className = 'status-dot locked';
-                    elements.statusText.textContent = 'WSS Blocked - Switch to HTTPS';
+                    elements.statusText.textContent = 'WSS Blocked';
                 });
 
                 AppState.mqttClient = client;
@@ -1086,7 +1131,6 @@
                 
                 clearTimeout(AppState.debounceTimer);
                 AppState.debounceTimer = setTimeout(async () => {
-                    // Update timestamp on broadcast
                     AppState.lastUpdated = Date.now();
 
                     const envelope = {
@@ -1096,17 +1140,29 @@
 
                     const encryptedB64 = await CryptoEngine.encryptPayload(JSON.stringify(envelope), AppState.masterKey);
                     
-                    if (AppState.syncProtocol === 'https_rest') {
-                        // Publish via HTTPS POST (Port 443)
-                        const endpoint = `https://ntfy.sh/e2ee_clipboard_${encodeURIComponent(AppState.roomCode)}`;
-                        fetch(endpoint, {
-                            method: 'POST',
-                            body: encryptedB64
-                        }).catch(e => console.error("HTTPS POST publish error", e));
-                    } else if (AppState.mqttClient) {
-                        // Publish via WSS
+                    if (AppState.syncProtocol === 'websocket') {
                         const topic = `secure_clipboard_room_v1/${encodeURIComponent(AppState.roomCode)}`;
-                        AppState.mqttClient.publish(topic, encryptedB64, { qos: 1 });
+                        if (AppState.mqttClient) AppState.mqttClient.publish(topic, encryptedB64, { qos: 1 });
+                    } else {
+                        const endpoint = SyncManager.getEndpointUrl(AppState.roomCode, AppState.syncProtocol);
+                        
+                        if (AppState.syncProtocol === 'firebase_rest') {
+                            fetch(endpoint, {
+                                method: 'PUT',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ payload: encryptedB64 })
+                            }).catch(e => console.error("Firebase PUT error", e));
+                        } else if (AppState.syncProtocol === 'kvdb_rest') {
+                            fetch(endpoint, {
+                                method: 'POST',
+                                body: encryptedB64
+                            }).catch(e => console.error("KVDB POST error", e));
+                        } else {
+                            fetch(endpoint, {
+                                method: 'POST',
+                                body: encryptedB64
+                            }).catch(e => console.error("HTTPS POST error", e));
+                        }
                     }
                 }, 400);
             }
@@ -1196,9 +1252,10 @@
         async function unlockWithPasskey() {
             const roomCode = elements.inputRoomCode.value.trim() || 'default-room';
             const protocol = elements.syncProtocolSelect.value;
+            const customUrl = elements.inputCustomUrl.value.trim();
             try {
                 const key = await PasskeyManager.registerOrAuthenticate(roomCode);
-                completeUnlock(roomCode, key, protocol);
+                completeUnlock(roomCode, key, protocol, customUrl);
                 showToast("Unlocked via Passkey!");
             } catch (err) {
                 alert("Passkey authentication failed: " + err.message);
@@ -1208,6 +1265,7 @@
         async function unlockWithPassphrase() {
             const roomCode = elements.inputRoomCode.value.trim() || 'default-room';
             const protocol = elements.syncProtocolSelect.value;
+            const customUrl = elements.inputCustomUrl.value.trim();
             const passphrase = elements.inputPassphrase.value;
 
             if (!passphrase) {
@@ -1216,11 +1274,11 @@
             }
 
             const key = await CryptoEngine.deriveKeyFromPassword(passphrase, roomCode);
-            completeUnlock(roomCode, key, protocol);
+            completeUnlock(roomCode, key, protocol, customUrl);
             showToast("Unlocked via Passphrase!");
         }
 
-        function completeUnlock(roomCode, key, protocol) {
+        function completeUnlock(roomCode, key, protocol, customUrl) {
             AppState.isUnlocked = true;
             AppState.roomCode = roomCode;
             AppState.masterKey = key;
@@ -1232,7 +1290,7 @@
 
             renderPageList();
             updateEditorView();
-            SyncManager.connect(roomCode, key, protocol);
+            SyncManager.connect(roomCode, key, protocol, customUrl);
         }
 
         function lockClipboard() {
