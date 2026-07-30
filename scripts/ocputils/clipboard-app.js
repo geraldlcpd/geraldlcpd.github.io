@@ -850,6 +850,43 @@ if (elements.btnActivePasskeyUnlock) elements.btnActivePasskeyUnlock.addEventLis
 if (elements.btnActivePassphraseUnlock) elements.btnActivePassphraseUnlock.addEventListener('click', () => authenticateWithPassphrase(true));
 if (elements.btnAddDomainPasskey) elements.btnAddDomainPasskey.addEventListener('click', addDomainPasskey);
 
+// Enter key submit handlers for Passphrase input boxes
+if (elements.inputPassphrase) {
+    elements.inputPassphrase.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            authenticateWithPassphrase(false);
+        }
+    });
+}
+
+if (elements.inputActivePassphrase) {
+    elements.inputActivePassphrase.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            authenticateWithPassphrase(true);
+        }
+    });
+}
+
+if (elements.inputNewPassphrase) {
+    elements.inputNewPassphrase.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            createNewRoom();
+        }
+    });
+}
+
+if (elements.inputNewResetPassphrase) {
+    elements.inputNewResetPassphrase.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            if (elements.btnSaveResetPassphrase) elements.btnSaveResetPassphrase.click();
+        }
+    });
+}
+
 if (elements.btnSwitchRoomLink) {
     elements.btnSwitchRoomLink.addEventListener('click', () => {
         elements.activeRoomUnlockModal.classList.remove('active');
