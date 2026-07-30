@@ -339,6 +339,17 @@
                 </div>
             </div>
 
+            <!-- Passkey Debug Info Sub-Panel -->
+            <div id="debugPasskeyPanel" style="display: none; background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 10px 12px; margin-top: -6px;">
+                <div style="font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--accent-cyan); margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
+                    <i data-lucide="terminal" style="width: 13px; height: 13px;"></i>
+                    <span>Registered Passkey Debug Info</span>
+                </div>
+                <div id="debugPasskeyContainer" style="display: flex; flex-direction: column; gap: 6px; font-family: var(--font-mono); font-size: 0.72rem;">
+                    <!-- Dynamically Populated Passkey Entries -->
+                </div>
+            </div>
+
             <div class="panel-content" style="gap: 8px;">
                 <button class="btn btn-secondary" id="btnInfoAddPasskey" style="width: 100%; border-color: rgba(99, 102, 241, 0.4); color: #a5b4fc; display: none;">
                     <i data-lucide="fingerprint"></i>

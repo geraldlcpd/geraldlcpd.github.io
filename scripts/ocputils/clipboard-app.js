@@ -185,6 +185,8 @@ const elements = {
     infoRelayProtocol: document.getElementById('infoRelayProtocol'),
     infoPageCount: document.getElementById('infoPageCount'),
     infoModalVersionTag: document.getElementById('infoModalVersionTag'),
+    debugPasskeyPanel: document.getElementById('debugPasskeyPanel'),
+    debugPasskeyContainer: document.getElementById('debugPasskeyContainer'),
 
     // Reset Passphrase Modal Elements
     resetPassphraseModal: document.getElementById('resetPassphraseModal'),
@@ -899,11 +901,33 @@ async function updateRoomInfoModal() {
     if (proto === 'custom_rest') protoText = 'Custom HTTPS Endpoint';
     elements.infoRelayProtocol.textContent = protoText;
 
-    // Check Passkey registration status for domain
+    // Check Passkey registration status for domain & render debug info
     elements.infoPasskeyStatus.textContent = 'Checking...';
-    const hasPasskey = await checkDomainPasskeyRegistration(roomCode);
+    elements.debugPasskeyContainer.innerHTML = '';
+    elements.debugPasskeyPanel.style.display = 'none';
+
+    const base = (elements.inputCustomUrl.value || AppState.customUrl).trim().replace(/\/+$/, '').replace(/\/rooms\/.*$/, '');
+    const metaEndpoint = `${base}/rooms/${encodeURIComponent(roomCode)}/meta.json`;
+    let passkeyEntries = [];
+
+    try {
+        const res = await fetch(metaEndpoint, { cache: 'no-store' });
+        if (res.ok) {
+            const roomMeta = await res.json();
+            if (roomMeta && roomMeta.passkeys) {
+                Object.keys(roomMeta.passkeys).forEach(id => {
+                    const entry = roomMeta.passkeys[id];
+                    passkeyEntries.push({ id, ...entry });
+                });
+            }
+        }
+    } catch(e){}
+
+    const validCreds = passkeyEntries.filter(entry => entry.rpId === currentDomain);
+    const hasPasskey = validCreds.length > 0;
+
     if (hasPasskey) {
-        elements.infoPasskeyStatus.innerHTML = '<span style="color: var(--accent-green);">Registered (1 Key)</span>';
+        elements.infoPasskeyStatus.innerHTML = `<span style="color: var(--accent-green);">Registered (${validCreds.length} Key${validCreds.length > 1 ? 's' : ''})</span>`;
         elements.btnInfoAddPasskey.style.display = 'none';
     } else {
         elements.infoPasskeyStatus.innerHTML = '<span style="color: var(--accent-amber);">Not Registered</span>';
@@ -913,6 +937,39 @@ async function updateRoomInfoModal() {
             elements.btnInfoAddPasskey.style.display = 'none';
         }
     }
+
+    if (passkeyEntries.length > 0) {
+        elements.debugPasskeyPanel.style.display = 'block';
+        passkeyEntries.forEach(entry => {
+            const maskedId = entry.id ? `${entry.id.substring(0, 4)}...` : 'N/A';
+            const isoDate = entry.registeredAt ? new Date(entry.registeredAt).toISOString() : 'N/A';
+            const name = entry.name || 'Passkey';
+            const rpId = entry.rpId || currentDomain;
+            const isMatch = entry.rpId === currentDomain;
+
+            const row = document.createElement('div');
+            row.style.background = 'rgba(30, 41, 59, 0.7)';
+            row.style.border = '1px solid rgba(255, 255, 255, 0.08)';
+            row.style.borderRadius = '4px';
+            row.style.padding = '6px 8px';
+            row.style.display = 'flex';
+            row.style.flexDirection = 'column';
+            row.style.gap = '2px';
+
+            row.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="color: ${isMatch ? 'var(--accent-green)' : 'var(--text-muted)'}; font-weight: 600;">${escapeHtml(name)}</span>
+                    <span style="color: var(--text-dim); font-size: 0.68rem;">ID: <strong style="color: #cbd5e1;">${escapeHtml(maskedId)}</strong></span>
+                </div>
+                <div style="display: flex; justify-content: space-between; color: var(--text-muted); font-size: 0.68rem;">
+                    <span>rpId: <strong style="color: #94a3b8;">${escapeHtml(rpId)}</strong></span>
+                    <span>Registered: <strong style="color: #94a3b8;">${escapeHtml(isoDate)}</strong></span>
+                </div>
+            `;
+            elements.debugPasskeyContainer.appendChild(row);
+        });
+    }
+
     if (window.lucide) lucide.createIcons();
 }
 
