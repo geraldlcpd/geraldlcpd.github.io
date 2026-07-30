@@ -613,13 +613,15 @@ function updateEditorView() {
     const page = getActivePage();
 
     if (page.type === 'image') {
-        // Show Image Gallery View, Hide Text Editor & Preview
+        // Full Width Image Mode
+        if (elements.editorContainer) elements.editorContainer.classList.add('image-mode');
         if (elements.editorPane) elements.editorPane.style.display = 'none';
         if (elements.renderPane) elements.renderPane.style.display = 'none';
         if (elements.imageGalleryContainer) elements.imageGalleryContainer.style.display = 'flex';
         renderImageGalleryView(page);
     } else {
-        // Show Text Editor View, Hide Image Gallery
+        // Dual Pane Text Editor Mode
+        if (elements.editorContainer) elements.editorContainer.classList.remove('image-mode');
         if (elements.imageGalleryContainer) elements.imageGalleryContainer.style.display = 'none';
         if (elements.editorPane) elements.editorPane.style.display = 'flex';
         if (elements.renderPane) elements.renderPane.style.display = 'flex';
