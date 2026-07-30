@@ -855,6 +855,27 @@
                 display: flex;
             }
 
+            header {
+                padding: 8px 10px;
+                gap: 6px;
+            }
+
+            .brand span {
+                font-size: 0.95rem;
+            }
+
+            .header-actions {
+                gap: 4px;
+            }
+
+            .header-actions .btn-text-hide {
+                display: none;
+            }
+
+            .badge-status span:not(.status-dot) {
+                display: none;
+            }
+
             .sidebar {
                 position: absolute;
                 left: 0;
@@ -886,10 +907,6 @@
             }
 
             .editor-container.view-edit .render-pane {
-                display: none;
-            }
-
-            .header-actions .btn-text-hide {
                 display: none;
             }
         }
@@ -2077,6 +2094,11 @@
                     AppState.activePageId = page.id;
                     renderPageList();
                     updateEditorView();
+
+                    // Auto-close sidebar on mobile after selecting page
+                    if (window.innerWidth <= 868) {
+                        elements.sidebar.classList.remove('open');
+                    }
                 });
 
                 elements.pageList.appendChild(item);
@@ -2468,8 +2490,20 @@
             elements.btnToggleEdit.classList.remove('active');
         });
 
-        elements.btnToggleSidebar.addEventListener('click', () => {
+        elements.btnToggleSidebar.addEventListener('click', (e) => {
+            e.stopPropagation();
             elements.sidebar.classList.toggle('open');
+        });
+
+        // Close sidebar on mobile when clicking outside
+        document.addEventListener('click', (e) => {
+            if (window.innerWidth <= 868) {
+                if (elements.sidebar.classList.contains('open') && 
+                    !elements.sidebar.contains(e.target) && 
+                    !elements.btnToggleSidebar.contains(e.target)) {
+                    elements.sidebar.classList.remove('open');
+                }
+            }
         });
 
         // Initial fetch of rooms
