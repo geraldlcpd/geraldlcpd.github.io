@@ -1530,7 +1530,8 @@
                     if (roomMeta && roomMeta.passkeys) {
                         const validCreds = Object.keys(roomMeta.passkeys).filter(id => {
                             const entry = roomMeta.passkeys[id];
-                            return !entry.rpId || entry.rpId === currentDomain;
+                            // Strict domain matching: only count as valid for currentDomain if entry.rpId matches currentDomain
+                            return entry.rpId === currentDomain;
                         });
 
                         if (validCreds.length === 0) {
@@ -1540,7 +1541,9 @@
                             elements.activeDomainWarningText.textContent = msg;
                             elements.domainWarningContainer.style.display = 'flex';
                             elements.activeDomainWarningContainer.style.display = 'flex';
-                            if (AppState.isUnlocked) elements.btnAddDomainPasskey.style.display = 'inline-flex';
+                            if (AppState.isUnlocked) {
+                                elements.btnAddDomainPasskey.style.display = 'inline-flex';
+                            }
                             lucide.createIcons();
                             return false;
                         }
@@ -1646,10 +1649,10 @@
                 } catch(e){}
 
                 if (!isNewCreation && roomMeta && roomMeta.passkeys) {
-                    // Filter passkeys matching current domain or legacy passkeys
+                    // Filter passkeys strictly matching current domain
                     const validCredKeys = Object.keys(roomMeta.passkeys).filter(id => {
                         const entry = roomMeta.passkeys[id];
-                        return !entry.rpId || entry.rpId === currentDomain;
+                        return entry.rpId === currentDomain;
                     });
 
                     if (validCredKeys.length === 0) {
@@ -2190,6 +2193,7 @@
             renderPageList();
             updateEditorView();
             SyncManager.connect(roomCode, key, protocol, customUrl, isNewRoom);
+            checkDomainPasskeyRegistration(roomCode);
         }
 
         function lockClipboard() {
