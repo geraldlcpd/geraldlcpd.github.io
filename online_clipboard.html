@@ -1136,9 +1136,7 @@
             <div class="input-field">
                 <label class="input-label">Relay Provider</label>
                 <select class="select-input" id="syncProtocolSelect" style="width: 100%;">
-                    <option value="firebase_rest" selected>Google Firebase Database (Personal Project - Port 443)</option>
-                    <option value="kvdb_rest">KVDB Storage (Categorized: Developer Tools - Port 443)</option>
-                    <option value="ntfy_rest">ntfy Pub/Sub (Port 443)</option>
+                    <option value="firebase_rest" selected>Google Firebase Database (Port 443)</option>
                     <option value="websocket">WebSockets (WSS Port 8084)</option>
                     <option value="custom_rest">Custom HTTPS Endpoint URL</option>
                 </select>
@@ -1270,8 +1268,8 @@
         // APP CONFIGURATION CONSTANTS (Easily Configurable)
         // ==========================================
         const APP_CONFIG = {
-            VERSION: 'v1.5',
-            BUILD_TIME: '2026-07-30 14:36:10',
+            VERSION: 'v1.6',
+            BUILD_TIME: '2026-07-30 14:37:05',
             AUTO_LOCK_MINUTES: 20, // Inactivity minutes before auto-locking (Format MM:SS displayed in header)
             POLL_INTERVAL_MS: 10000, // Background HTTPS REST polling interval (10 seconds)
             DEFAULT_ROOM_CODE: 'apilog',
@@ -1880,17 +1878,9 @@
                     return `${base}/rooms/${safeRoom}.json`;
                 }
 
-                if (protocol === 'kvdb_rest') {
-                    return `https://kvdb.io/4yHhF3aM4PjQn8V9B7R1/${safeRoom}`;
-                }
-
-                if (protocol === 'ntfy_rest') {
-                    return `https://ntfy.sh/e2ee_clipboard_${safeRoom}`;
-                }
-
                 if (protocol === 'custom_rest') {
                     let url = (AppState.customUrl || '').trim();
-                    if (!url) return `https://ntfy.sh/e2ee_clipboard_${safeRoom}`;
+                    if (!url) return `${APP_CONFIG.DEFAULT_FIREBASE_URL}/rooms/${safeRoom}.json`;
                     return url.replace('{roomCode}', safeRoom).replace('{room}', safeRoom);
                 }
 
@@ -1929,9 +1919,6 @@
                             const data = await res.json();
                             if (data && data.payload) cipherText = data.payload;
                         }
-                    } else if (protocol === 'kvdb_rest') {
-                        const res = await fetch(endpoint, { cache: 'no-store' });
-                        if (res.ok) cipherText = await res.text();
                     } else if (protocol === 'custom_rest') {
                         const res = await fetch(endpoint, { cache: 'no-store' });
                         if (res.ok) {
@@ -1941,22 +1928,6 @@
                                 cipherText = data.payload || data.message || data.content;
                             } else {
                                 cipherText = await res.text();
-                            }
-                        }
-                    } else {
-                        // ntfy.sh
-                        const res = await fetch(`${endpoint}/json?poll=1`, { cache: 'no-store' });
-                        if (res.ok) {
-                            const text = await res.text();
-                            const lines = text.trim().split('\n');
-                            for (let i = lines.length - 1; i >= 0; i--) {
-                                try {
-                                    const parsed = JSON.parse(lines[i]);
-                                    if (parsed.message) {
-                                        cipherText = parsed.message;
-                                        break;
-                                    }
-                                } catch(e){}
                             }
                         }
                     }
