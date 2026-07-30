@@ -1085,6 +1085,7 @@
                     ["deriveKey"]
                 );
 
+                // Set extractable = true so key can be wrapped for passkey registry
                 return crypto.subtle.deriveKey(
                     {
                         name: "PBKDF2",
@@ -1094,7 +1095,7 @@
                     },
                     keyMaterial,
                     { name: "AES-GCM", length: 256 },
-                    false,
+                    true,
                     ["encrypt", "decrypt"]
                 );
             }
