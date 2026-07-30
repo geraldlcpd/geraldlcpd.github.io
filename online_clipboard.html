@@ -1,0 +1,1261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Secure Online Clipboard</title>
+    
+    <!-- Fonts & Icons -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <!-- Highlight.js Syntax Highlighting CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/tokyo-night-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/json.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/typescript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/css.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/xml.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/cpp.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/java.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/sql.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/rust.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/go.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/bash.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/yaml.min.js"></script>
+
+    <!-- MQTT WebSocket Client for E2EE Sync -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mqtt/4.3.7/mqtt.min.js"></script>
+
+    <style>
+        :root {
+            --bg-base: #0f172a;
+            --bg-surface: #1e293b;
+            --bg-surface-elevated: #334155;
+            --border-color: rgba(255, 255, 255, 0.1);
+            --border-focus: #6366f1;
+            
+            --primary: #6366f1;
+            --primary-hover: #4f46e5;
+            --primary-light: rgba(99, 102, 241, 0.15);
+            
+            --accent-green: #10b981;
+            --accent-amber: #f59e0b;
+            --accent-rose: #f43f5e;
+            --accent-cyan: #06b6d4;
+
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --text-dim: #64748b;
+
+            --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+            --font-mono: 'Fira Code', monospace;
+
+            --radius-lg: 16px;
+            --radius-md: 10px;
+            --radius-sm: 6px;
+
+            --shadow-glow: 0 0 25px rgba(99, 102, 241, 0.25);
+            --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+        }
+
+        /* --- Header Styling --- */
+        header {
+            background: rgba(30, 41, 59, 0.8);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border-color);
+            padding: 12px 20px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 700;
+            font-size: 1.15rem;
+            letter-spacing: -0.02em;
+        }
+
+        .brand-icon {
+            background: linear-gradient(135deg, var(--primary), var(--accent-cyan));
+            color: #fff;
+            padding: 8px;
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: var(--shadow-glow);
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .badge-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.78rem;
+            padding: 6px 12px;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            font-weight: 500;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: var(--text-dim);
+            transition: var(--transition);
+        }
+
+        .status-dot.connected { background-color: var(--accent-green); box-shadow: 0 0 8px var(--accent-green); }
+        .status-dot.connecting { background-color: var(--accent-amber); }
+        .status-dot.locked { background-color: var(--accent-rose); }
+
+        /* --- Buttons --- */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 8px 14px;
+            border-radius: var(--radius-md);
+            font-size: 0.88rem;
+            font-weight: 500;
+            cursor: pointer;
+            border: 1px solid transparent;
+            transition: var(--transition);
+            font-family: inherit;
+            white-space: nowrap;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), var(--primary-hover));
+            color: white;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 18px rgba(99, 102, 241, 0.45);
+        }
+
+        .btn-secondary {
+            background: var(--bg-surface-elevated);
+            color: var(--text-main);
+            border-color: var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            background: #475569;
+        }
+
+        .btn-icon {
+            padding: 8px;
+            border-radius: var(--radius-md);
+        }
+
+        /* --- Main Layout --- */
+        .app-container {
+            display: flex;
+            flex: 1;
+            height: calc(100vh - 61px);
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* --- Sidebar (Pages Navigation) --- */
+        .sidebar {
+            width: 260px;
+            background: rgba(15, 23, 42, 0.95);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            transition: var(--transition);
+            z-index: 50;
+        }
+
+        .sidebar-header {
+            padding: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .sidebar-title {
+            font-size: 0.82rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            font-weight: 600;
+        }
+
+        .page-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .page-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 12px;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            color: var(--text-muted);
+            transition: var(--transition);
+            font-size: 0.9rem;
+            font-weight: 500;
+            user-select: none;
+        }
+
+        .page-item:hover {
+            background: rgba(255, 255, 255, 0.04);
+            color: var(--text-main);
+        }
+
+        .page-item.active {
+            background: var(--primary-light);
+            color: #a5b4fc;
+            border: 1px solid rgba(99, 102, 241, 0.3);
+        }
+
+        .page-item-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .page-actions {
+            display: flex;
+            align-items: center;
+            gap: 2px;
+            opacity: 0;
+            transition: var(--transition);
+        }
+
+        .page-item:hover .page-actions, .page-item.active .page-actions {
+            opacity: 1;
+        }
+
+        .page-action-btn {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            padding: 4px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .page-action-btn:hover {
+            color: var(--text-main);
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        /* --- Workspace Area --- */
+        .workspace {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: var(--bg-base);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .workspace-toolbar {
+            background: var(--bg-surface);
+            padding: 10px 16px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .toolbar-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .select-input {
+            background: var(--bg-surface-elevated);
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
+            padding: 6px 12px;
+            border-radius: var(--radius-md);
+            font-size: 0.85rem;
+            outline: none;
+            font-family: inherit;
+            cursor: pointer;
+        }
+
+        .select-input:focus {
+            border-color: var(--border-focus);
+        }
+
+        .view-toggle {
+            display: flex;
+            background: var(--bg-surface-elevated);
+            padding: 3px;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-color);
+        }
+
+        .toggle-btn {
+            padding: 6px 14px;
+            font-size: 0.82rem;
+            border-radius: var(--radius-sm);
+            border: none;
+            background: transparent;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-weight: 500;
+            transition: var(--transition);
+        }
+
+        .toggle-btn.active {
+            background: var(--primary);
+            color: white;
+            box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+        }
+
+        /* Editor & Render Split Container */
+        .editor-container {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            height: calc(100% - 53px);
+            position: relative;
+        }
+
+        .editor-pane, .render-pane {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .editor-pane {
+            border-right: 1px solid var(--border-color);
+        }
+
+        .pane-label {
+            position: absolute;
+            top: 10px;
+            right: 14px;
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-dim);
+            font-weight: 600;
+            pointer-events: none;
+            z-index: 10;
+            background: rgba(15, 23, 42, 0.7);
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
+
+        textarea.code-editor {
+            width: 100%;
+            height: 100%;
+            background: rgba(15, 23, 42, 0.6);
+            color: #f1f5f9;
+            border: none;
+            padding: 16px;
+            font-family: var(--font-mono);
+            font-size: 0.92rem;
+            line-height: 1.6;
+            resize: none;
+            outline: none;
+            tab-size: 4;
+        }
+
+        .render-pane pre {
+            margin: 0;
+            height: 100%;
+            overflow: auto;
+            padding: 16px;
+            background: #1a1b26 !important;
+            font-family: var(--font-mono);
+            font-size: 0.92rem;
+            line-height: 1.6;
+        }
+
+        .render-pane code {
+            font-family: var(--font-mono) !important;
+        }
+
+        /* Floating Copy Toast */
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: var(--bg-surface-elevated);
+            color: var(--text-main);
+            border: 1px solid var(--border-focus);
+            padding: 12px 20px;
+            border-radius: var(--radius-md);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.88rem;
+            z-index: 999;
+            transform: translateY(100px);
+            opacity: 0;
+            transition: var(--transition);
+        }
+
+        .toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        /* --- Modal Backdrop & Lock Screen --- */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(16px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+            padding: 20px;
+            opacity: 0;
+            pointer-events: none;
+            transition: var(--transition);
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            width: 100%;
+            max-width: 440px;
+            padding: 28px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            animation: modalPop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        @keyframes modalPop {
+            from { transform: scale(0.92); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        .modal-header {
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .modal-icon {
+            width: 52px;
+            height: 52px;
+            border-radius: 50%;
+            background: var(--primary-light);
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid rgba(99, 102, 241, 0.3);
+        }
+
+        .modal-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+        }
+
+        .modal-desc {
+            font-size: 0.86rem;
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+
+        .input-field {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .input-label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        .text-input {
+            width: 100%;
+            background: var(--bg-base);
+            border: 1px solid var(--border-color);
+            padding: 10px 14px;
+            border-radius: var(--radius-md);
+            color: var(--text-main);
+            font-size: 0.95rem;
+            outline: none;
+            font-family: inherit;
+        }
+
+        .text-input:focus {
+            border-color: var(--border-focus);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+        }
+
+        .divider {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--text-dim);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            margin: 4px 0;
+        }
+
+        .divider::before, .divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--border-color);
+        }
+
+        /* --- Mobile Navigation Drawer / Tabs --- */
+        .mobile-nav-toggle {
+            display: none;
+        }
+
+        @media (max-width: 868px) {
+            .app-container {
+                flex-direction: column;
+            }
+
+            .mobile-nav-toggle {
+                display: flex;
+            }
+
+            .sidebar {
+                position: absolute;
+                left: 0;
+                top: 0;
+                bottom: 0;
+                width: 280px;
+                transform: translateX(-100%);
+                box-shadow: 10px 0 30px rgba(0,0,0,0.5);
+            }
+
+            .sidebar.open {
+                transform: translateX(0);
+            }
+
+            .editor-container {
+                grid-template-columns: 1fr;
+            }
+
+            .editor-container.view-code .editor-pane {
+                display: none;
+            }
+
+            .editor-container.view-code .render-pane {
+                display: flex;
+            }
+
+            .editor-container.view-edit .editor-pane {
+                display: flex;
+            }
+
+            .editor-container.view-edit .render-pane {
+                display: none;
+            }
+
+            .header-actions .btn-text-hide {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header -->
+    <header>
+        <div class="brand">
+            <button class="btn btn-secondary btn-icon mobile-nav-toggle" id="btnToggleSidebar" title="Toggle Pages">
+                <i data-lucide="menu"></i>
+            </button>
+            <div class="brand-icon">
+                <i data-lucide="shield-check"></i>
+            </div>
+            <span>Online Clipboard</span>
+        </div>
+
+        <div class="header-actions">
+            <div class="badge-status" id="badgeStatus">
+                <span class="status-dot locked" id="statusDot"></span>
+                <span id="statusText">Locked</span>
+            </div>
+
+            <button class="btn btn-secondary" id="btnRoomConfig" title="Room & Encryption Settings">
+                <i data-lucide="radio"></i>
+                <span class="btn-text-hide">Room Settings</span>
+            </button>
+
+            <button class="btn btn-primary" id="btnLockUnlock">
+                <i data-lucide="lock" id="lockIcon"></i>
+                <span id="lockBtnText">Unlock</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <div class="app-container">
+        
+        <!-- Sidebar Navigation (Pages) -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <span class="sidebar-title">Clipboard Pages</span>
+                <button class="btn btn-secondary btn-icon" id="btnAddPage" title="New Page">
+                    <i data-lucide="plus"></i>
+                </button>
+            </div>
+            <div class="page-list" id="pageList">
+                <!-- Dynamic Page Items rendered here -->
+            </div>
+        </aside>
+
+        <!-- Main Workspace -->
+        <main class="workspace">
+            <!-- Toolbar -->
+            <div class="workspace-toolbar">
+                <div class="toolbar-group">
+                    <select class="select-input" id="languageSelect">
+                        <option value="plaintext">Plain Text</option>
+                        <option value="json">JSON</option>
+                        <option value="javascript">JavaScript</option>
+                        <option value="typescript">TypeScript</option>
+                        <option value="python">Python</option>
+                        <option value="xml">HTML / XML</option>
+                        <option value="css">CSS</option>
+                        <option value="cpp">C / C++</option>
+                        <option value="java">Java</option>
+                        <option value="sql">SQL</option>
+                        <option value="rust">Rust</option>
+                        <option value="go">Go</option>
+                        <option value="bash">Bash / Shell</option>
+                        <option value="yaml">YAML</option>
+                    </select>
+
+                    <button class="btn btn-secondary" id="btnFormatJson" title="Format JSON">
+                        <i data-lucide="wand-2"></i>
+                        <span class="btn-text-hide">Format JSON</span>
+                    </button>
+                </div>
+
+                <div class="toolbar-group">
+                    <!-- Mobile Split/Toggle View -->
+                    <div class="view-toggle" id="viewToggleGroup">
+                        <button class="toggle-btn active" id="btnToggleEdit">Edit</button>
+                        <button class="toggle-btn" id="btnToggleCode">Syntax View</button>
+                    </div>
+
+                    <button class="btn btn-secondary btn-icon" id="btnCopyContent" title="Copy to Clipboard">
+                        <i data-lucide="copy"></i>
+                    </button>
+
+                    <button class="btn btn-secondary btn-icon" id="btnDownloadContent" title="Download Snippet">
+                        <i data-lucide="download"></i>
+                    </button>
+
+                    <button class="btn btn-secondary btn-icon" id="btnClearPage" title="Clear Content">
+                        <i data-lucide="trash-2"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Dual Editor Container -->
+            <div class="editor-container view-edit" id="editorContainer">
+                <div class="editor-pane">
+                    <span class="pane-label">Editor Input</span>
+                    <textarea class="code-editor" id="codeEditor" placeholder="Paste or type content here... Data syncs automatically across devices." spellcheck="false"></textarea>
+                </div>
+
+                <div class="render-pane">
+                    <span class="pane-label">Syntax Preview</span>
+                    <pre><code id="codeRender" class="language-plaintext"></code></pre>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Security & Room Unlock Modal -->
+    <div class="modal-overlay active" id="unlockModal">
+        <div class="modal-card">
+            <div class="modal-header">
+                <div class="modal-icon">
+                    <i data-lucide="key-round" style="width: 28px; height: 28px;"></i>
+                </div>
+                <h2 class="modal-title">Unlock Clipboard</h2>
+                <p class="modal-desc">Authenticate with your Passkey (Dashlane, TouchID, Windows Hello) or enter your secret Master Passphrase.</p>
+            </div>
+
+            <div class="input-field">
+                <label class="input-label">Sync Room Code</label>
+                <input type="text" class="text-input" id="inputRoomCode" placeholder="e.g. my-private-clipboard-123" value="my-sync-room-1">
+            </div>
+
+            <button class="btn btn-primary" id="btnPasskeyUnlock" style="width: 100%; padding: 12px;">
+                <i data-lucide="fingerprint"></i>
+                Unlock with Passkey / Biometrics
+            </button>
+
+            <div class="divider">or Master Passphrase</div>
+
+            <div class="input-field">
+                <label class="input-label">Master Passphrase</label>
+                <input type="password" class="text-input" id="inputPassphrase" placeholder="Enter passphrase...">
+            </div>
+
+            <button class="btn btn-secondary" id="btnPassphraseUnlock" style="width: 100%; padding: 10px;">
+                Unlock with Passphrase
+            </button>
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div class="toast" id="toast">
+        <i data-lucide="check-circle-2" style="color: var(--accent-green);"></i>
+        <span id="toastMsg">Copied to clipboard!</span>
+    </div>
+
+    <!-- App Application Script -->
+    <script>
+        // Initialize Icons
+        lucide.createIcons();
+
+        // --- State Management ---
+        const AppState = {
+            isUnlocked: false,
+            roomCode: 'my-sync-room-1',
+            masterKey: null, // CryptoKey
+            activePageId: 'page_1',
+            pages: [
+                { id: 'page_1', name: 'Page 1 (General)', lang: 'plaintext', content: '' },
+                { id: 'page_2', name: 'Page 2 (Snippets)', lang: 'json', content: '{\n  "status": "success",\n  "message": "Welcome to Secure E2EE Clipboard!",\n  "features": ["Passkey Protection", "Real-Time Sync", "Multi-Page", "Syntax Highlighting"]\n}' }
+            ],
+            mqttClient: null,
+            debounceTimer: null
+        };
+
+        // --- DOM Elements ---
+        const elements = {
+            unlockModal: document.getElementById('unlockModal'),
+            inputRoomCode: document.getElementById('inputRoomCode'),
+            inputPassphrase: document.getElementById('inputPassphrase'),
+            btnPasskeyUnlock: document.getElementById('btnPasskeyUnlock'),
+            btnPassphraseUnlock: document.getElementById('btnPassphraseUnlock'),
+            btnLockUnlock: document.getElementById('btnLockUnlock'),
+            lockIcon: document.getElementById('lockIcon'),
+            lockBtnText: document.getElementById('lockBtnText'),
+            statusDot: document.getElementById('statusDot'),
+            statusText: document.getElementById('statusText'),
+            badgeStatus: document.getElementById('badgeStatus'),
+
+            pageList: document.getElementById('pageList'),
+            btnAddPage: document.getElementById('btnAddPage'),
+            codeEditor: document.getElementById('codeEditor'),
+            codeRender: document.getElementById('codeRender'),
+            languageSelect: document.getElementById('languageSelect'),
+            
+            btnFormatJson: document.getElementById('btnFormatJson'),
+            btnCopyContent: document.getElementById('btnCopyContent'),
+            btnDownloadContent: document.getElementById('btnDownloadContent'),
+            btnClearPage: document.getElementById('btnClearPage'),
+            btnRoomConfig: document.getElementById('btnRoomConfig'),
+
+            editorContainer: document.getElementById('editorContainer'),
+            btnToggleEdit: document.getElementById('btnToggleEdit'),
+            btnToggleCode: document.getElementById('btnToggleCode'),
+            btnToggleSidebar: document.getElementById('btnToggleSidebar'),
+            sidebar: document.getElementById('sidebar'),
+            toast: document.getElementById('toast'),
+            toastMsg: document.getElementById('toastMsg')
+        };
+
+        // --- Toast Notification ---
+        function showToast(msg) {
+            elements.toastMsg.textContent = msg;
+            elements.toast.classList.add('show');
+            setTimeout(() => elements.toast.classList.remove('show'), 2500);
+        }
+
+        // --- Crypto Engine (AES-256-GCM + PBKDF2) ---
+        class CryptoEngine {
+            static async deriveKeyFromPassword(password, saltString) {
+                const enc = new TextEncoder();
+                const keyMaterial = await crypto.subtle.importKey(
+                    "raw",
+                    enc.encode(password),
+                    "PBKDF2",
+                    false,
+                    ["deriveKey"]
+                );
+
+                return crypto.subtle.deriveKey(
+                    {
+                        name: "PBKDF2",
+                        salt: enc.encode(saltString),
+                        iterations: 100000,
+                        hash: "SHA-256"
+                    },
+                    keyMaterial,
+                    { name: "AES-GCM", length: 256 },
+                    false,
+                    ["encrypt", "decrypt"]
+                );
+            }
+
+            static async encryptPayload(plainText, key) {
+                const enc = new TextEncoder();
+                const iv = crypto.getRandomValues(new Uint8Array(12));
+                const encrypted = await crypto.subtle.encrypt(
+                    { name: "AES-GCM", iv: iv },
+                    key,
+                    enc.encode(plainText)
+                );
+
+                const combined = new Uint8Array(iv.length + encrypted.byteLength);
+                combined.set(iv, 0);
+                combined.set(new Uint8Array(encrypted), iv.length);
+
+                return btoa(String.fromCharCode.apply(null, combined));
+            }
+
+            static async decryptPayload(cipherTextB64, key) {
+                try {
+                    const combined = new Uint8Array(atob(cipherTextB64).split("").map(c => c.charCodeAt(0)));
+                    const iv = combined.slice(0, 12);
+                    const data = combined.slice(12);
+
+                    const decrypted = await crypto.subtle.decrypt(
+                        { name: "AES-GCM", iv: iv },
+                        key,
+                        data
+                    );
+
+                    return new TextDecoder().decode(decrypted);
+                } catch (e) {
+                    console.error("Decryption failed", e);
+                    return null;
+                }
+            }
+        }
+
+        // --- WebAuthn / Dashlane Passkey Handler ---
+        class PasskeyManager {
+            static async registerOrAuthenticate(roomCode) {
+                // Check WebAuthn support
+                if (!window.PublicKeyCredential) {
+                    throw new Error("WebAuthn / Passkeys not supported in this browser.");
+                }
+
+                const challenge = new Uint8Array(32);
+                crypto.getRandomValues(challenge);
+
+                // Check stored credential
+                const storedCredId = localStorage.getItem(`passkey_cred_${roomCode}`);
+
+                if (storedCredId) {
+                    // Authenticate Existing Passkey
+                    const credential = await navigator.credentials.get({
+                        publicKey: {
+                            challenge: challenge,
+                            allowCredentials: [{
+                                id: Uint8Array.from(atob(storedCredId), c => c.charCodeAt(0)),
+                                type: 'public-key'
+                            }],
+                            userVerification: "preferred"
+                        }
+                    });
+
+                    // Use assertion signature as key seed
+                    const sig = new Uint8Array(credential.response.signature);
+                    const keySeed = Array.from(sig).join(',');
+                    return CryptoEngine.deriveKeyFromPassword(keySeed, roomCode);
+                } else {
+                    // Create New Passkey (Saved to Dashlane / System Passkey Manager)
+                    const credential = await navigator.credentials.create({
+                        publicKey: {
+                            challenge: challenge,
+                            rp: { name: "Online Clipboard App", id: window.location.hostname || "localhost" },
+                            user: {
+                                id: new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]),
+                                name: `user@${roomCode}`,
+                                displayName: `Clipboard Owner (${roomCode})`
+                            },
+                            pubKeyCredParams: [{ alg: -7, type: "public-key" }, { alg: -257, type: "public-key" }],
+                            authenticatorSelection: { userVerification: "preferred" },
+                            timeout: 60000
+                        }
+                    });
+
+                    // Save Credential ID for future quick unlocks
+                    const rawIdB64 = btoa(String.fromCharCode(...new Uint8Array(credential.rawId)));
+                    localStorage.setItem(`passkey_cred_${roomCode}`, rawIdB64);
+
+                    const keySeed = rawIdB64 + "_passkey_secret";
+                    return CryptoEngine.deriveKeyFromPassword(keySeed, roomCode);
+                }
+            }
+        }
+
+        // --- MQTT Real-Time E2EE Sync Manager ---
+        class SyncManager {
+            static connect(roomCode, key) {
+                if (AppState.mqttClient) {
+                    AppState.mqttClient.end();
+                }
+
+                elements.statusDot.className = 'status-dot connecting';
+                elements.statusText.textContent = 'Connecting...';
+
+                // Connect to public secure WebSocket MQTT broker
+                const client = mqtt.connect('wss://broker.emqx.io:8084/mqtt', {
+                    clientId: 'clipboard_' + Math.random().toString(16).substring(2, 10),
+                    keepalive: 30,
+                    clean: true
+                });
+
+                const topic = `secure_clipboard_room_v1/${encodeURIComponent(roomCode)}`;
+
+                client.on('connect', () => {
+                    elements.statusDot.className = 'status-dot connected';
+                    elements.statusText.textContent = 'Synced';
+                    client.subscribe(topic, { qos: 1 });
+                    SyncManager.broadcastState(); // Sync initial state
+                });
+
+                client.on('message', async (t, message) => {
+                    if (t === topic) {
+                        try {
+                            const decryptedStr = await CryptoEngine.decryptPayload(message.toString(), key);
+                            if (decryptedStr) {
+                                const remotePages = JSON.parse(decryptedStr);
+                                if (Array.isArray(remotePages)) {
+                                    AppState.pages = remotePages;
+                                    renderPageList();
+                                    updateEditorView();
+                                }
+                            }
+                        } catch (err) {
+                            console.warn("Received invalid/encrypted message from different key");
+                        }
+                    }
+                });
+
+                client.on('error', () => {
+                    elements.statusDot.className = 'status-dot locked';
+                    elements.statusText.textContent = 'Sync Offline';
+                });
+
+                AppState.mqttClient = client;
+            }
+
+            static broadcastState() {
+                if (!AppState.mqttClient || !AppState.masterKey) return;
+                
+                clearTimeout(AppState.debounceTimer);
+                AppState.debounceTimer = setTimeout(async () => {
+                    const jsonPages = JSON.stringify(AppState.pages);
+                    const encryptedB64 = await CryptoEngine.encryptPayload(jsonPages, AppState.masterKey);
+                    const topic = `secure_clipboard_room_v1/${encodeURIComponent(AppState.roomCode)}`;
+                    AppState.mqttClient.publish(topic, encryptedB64, { qos: 1 });
+                }, 400);
+            }
+        }
+
+        // --- Page & View Controller ---
+        function renderPageList() {
+            elements.pageList.innerHTML = '';
+            AppState.pages.forEach(page => {
+                const item = document.createElement('div');
+                item.className = `page-item ${page.id === AppState.activePageId ? 'active' : ''}`;
+                item.innerHTML = `
+                    <div class="page-item-info">
+                        <i data-lucide="file-text" style="width: 16px; height: 16px;"></i>
+                        <span>${escapeHtml(page.name)}</span>
+                    </div>
+                    <div class="page-actions">
+                        <button class="page-action-btn btn-rename" title="Rename"><i data-lucide="edit-2" style="width: 14px; height: 14px;"></i></button>
+                        ${AppState.pages.length > 1 ? '<button class="page-action-btn btn-delete" title="Delete"><i data-lucide="trash" style="width: 14px; height: 14px;"></i></button>' : ''}
+                    </div>
+                `;
+
+                item.addEventListener('click', (e) => {
+                    if (e.target.closest('.btn-rename')) {
+                        e.stopPropagation();
+                        const newName = prompt('Enter page name:', page.name);
+                        if (newName) {
+                            page.name = newName.trim();
+                            renderPageList();
+                            SyncManager.broadcastState();
+                        }
+                        return;
+                    }
+
+                    if (e.target.closest('.btn-delete')) {
+                        e.stopPropagation();
+                        if (confirm(`Delete "${page.name}"?`)) {
+                            AppState.pages = AppState.pages.filter(p => p.id !== page.id);
+                            if (AppState.activePageId === page.id) {
+                                AppState.activePageId = AppState.pages[0].id;
+                            }
+                            renderPageList();
+                            updateEditorView();
+                            SyncManager.broadcastState();
+                        }
+                        return;
+                    }
+
+                    AppState.activePageId = page.id;
+                    renderPageList();
+                    updateEditorView();
+                });
+
+                elements.pageList.appendChild(item);
+            });
+            lucide.createIcons();
+        }
+
+        function getActivePage() {
+            return AppState.pages.find(p => p.id === AppState.activePageId) || AppState.pages[0];
+        }
+
+        function updateEditorView() {
+            const page = getActivePage();
+            elements.codeEditor.value = page.content;
+            elements.languageSelect.value = page.lang || 'plaintext';
+            renderSyntaxHighlighting();
+        }
+
+        function renderSyntaxHighlighting() {
+            const page = getActivePage();
+            const lang = elements.languageSelect.value;
+            page.lang = lang;
+
+            elements.codeRender.className = `language-${lang}`;
+            elements.codeRender.textContent = page.content || '// Empty snippet';
+            hljs.highlightElement(elements.codeRender);
+        }
+
+        function escapeHtml(str) {
+            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        }
+
+        // --- App Event Handlers ---
+        async function unlockWithPasskey() {
+            const roomCode = elements.inputRoomCode.value.trim() || 'default-room';
+            try {
+                const key = await PasskeyManager.registerOrAuthenticate(roomCode);
+                completeUnlock(roomCode, key);
+                showToast("Unlocked via Passkey!");
+            } catch (err) {
+                alert("Passkey authentication failed: " + err.message);
+            }
+        }
+
+        async function unlockWithPassphrase() {
+            const roomCode = elements.inputRoomCode.value.trim() || 'default-room';
+            const passphrase = elements.inputPassphrase.value;
+
+            if (!passphrase) {
+                alert("Please enter a Master Passphrase.");
+                return;
+            }
+
+            const key = await CryptoEngine.deriveKeyFromPassword(passphrase, roomCode);
+            completeUnlock(roomCode, key);
+            showToast("Unlocked via Passphrase!");
+        }
+
+        function completeUnlock(roomCode, key) {
+            AppState.isUnlocked = true;
+            AppState.roomCode = roomCode;
+            AppState.masterKey = key;
+
+            elements.unlockModal.classList.remove('active');
+            elements.lockIcon.setAttribute('data-lucide', 'lock-keyhole-open');
+            elements.lockBtnText.textContent = 'Lock';
+            elements.statusDot.className = 'status-dot connected';
+            elements.statusText.textContent = 'Unlocked';
+            lucide.createIcons();
+
+            renderPageList();
+            updateEditorView();
+            SyncManager.connect(roomCode, key);
+        }
+
+        function lockClipboard() {
+            AppState.isUnlocked = false;
+            AppState.masterKey = null;
+            if (AppState.mqttClient) AppState.mqttClient.end();
+
+            elements.unlockModal.classList.add('active');
+            elements.lockIcon.setAttribute('data-lucide', 'lock');
+            elements.lockBtnText.textContent = 'Unlock';
+            elements.statusDot.className = 'status-dot locked';
+            elements.statusText.textContent = 'Locked';
+            lucide.createIcons();
+        }
+
+        // --- Listeners ---
+        elements.btnPasskeyUnlock.addEventListener('click', unlockWithPasskey);
+        elements.btnPassphraseUnlock.addEventListener('click', unlockWithPassphrase);
+
+        elements.btnLockUnlock.addEventListener('click', () => {
+            if (AppState.isUnlocked) {
+                lockClipboard();
+            } else {
+                elements.unlockModal.classList.add('active');
+            }
+        });
+
+        elements.btnRoomConfig.addEventListener('click', () => {
+            elements.unlockModal.classList.add('active');
+        });
+
+        elements.codeEditor.addEventListener('input', (e) => {
+            const page = getActivePage();
+            page.content = e.target.value;
+            renderSyntaxHighlighting();
+            SyncManager.broadcastState();
+        });
+
+        elements.languageSelect.addEventListener('change', () => {
+            renderSyntaxHighlighting();
+            SyncManager.broadcastState();
+        });
+
+        elements.btnAddPage.addEventListener('click', () => {
+            const id = 'page_' + Date.now();
+            const newPage = { id, name: `Page ${AppState.pages.length + 1}`, lang: 'plaintext', content: '' };
+            AppState.pages.push(newPage);
+            AppState.activePageId = id;
+            renderPageList();
+            updateEditorView();
+            SyncManager.broadcastState();
+        });
+
+        elements.btnFormatJson.addEventListener('click', () => {
+            const page = getActivePage();
+            try {
+                const parsed = JSON.parse(page.content);
+                page.content = JSON.stringify(parsed, null, 2);
+                page.lang = 'json';
+                elements.languageSelect.value = 'json';
+                updateEditorView();
+                SyncManager.broadcastState();
+                showToast("Formatted JSON!");
+            } catch (err) {
+                alert("Invalid JSON format: " + err.message);
+            }
+        });
+
+        elements.btnCopyContent.addEventListener('click', () => {
+            const page = getActivePage();
+            navigator.clipboard.writeText(page.content).then(() => {
+                showToast("Copied to clipboard!");
+            });
+        });
+
+        elements.btnDownloadContent.addEventListener('click', () => {
+            const page = getActivePage();
+            const blob = new Blob([page.content], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${page.name.toLowerCase().replace(/[^a-z0-9]/g, '_')}.${page.lang || 'txt'}`;
+            a.click();
+            URL.revokeObjectURL(url);
+        });
+
+        elements.btnClearPage.addEventListener('click', () => {
+            if (confirm("Clear current page content?")) {
+                const page = getActivePage();
+                page.content = '';
+                updateEditorView();
+                SyncManager.broadcastState();
+            }
+        });
+
+        // Mobile View Toggle
+        elements.btnToggleEdit.addEventListener('click', () => {
+            elements.editorContainer.classList.remove('view-code');
+            elements.editorContainer.classList.add('view-edit');
+            elements.btnToggleEdit.classList.add('active');
+            elements.btnToggleCode.classList.remove('active');
+        });
+
+        elements.btnToggleCode.addEventListener('click', () => {
+            elements.editorContainer.classList.remove('view-edit');
+            elements.editorContainer.classList.add('view-code');
+            elements.btnToggleCode.classList.add('active');
+            elements.btnToggleEdit.classList.remove('active');
+        });
+
+        elements.btnToggleSidebar.addEventListener('click', () => {
+            elements.sidebar.classList.toggle('open');
+        });
+    </script>
+</body>
+</html>
