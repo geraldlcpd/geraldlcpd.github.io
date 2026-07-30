@@ -2395,12 +2395,32 @@
 
         function lockClipboard() {
             AppState.isUnlocked = false;
-            AppState.masterKey = null;
-            if (AppState.mqttClient) AppState.mqttClient.end();
-            if (AppState.pollTimer) clearInterval(AppState.pollTimer);
+            AppState.masterKey = null; // Purge encryption key
+            AppState.lastUpdated = 0;
+
+            // Purge all plaintext clipboard content from memory and DOM
+            AppState.pages = [
+                { id: 'page_1', name: 'Page 1 (General)', lang: 'plaintext', content: '' }
+            ];
+            AppState.activePageId = 'page_1';
+
+            if (elements.codeEditor) elements.codeEditor.value = '';
+            if (elements.codeRender) elements.codeRender.textContent = '';
+            if (elements.markdownRender) elements.markdownRender.innerHTML = '';
+
+            if (AppState.mqttClient) {
+                AppState.mqttClient.end(true);
+                AppState.mqttClient = null;
+            }
+            if (AppState.pollTimer) {
+                clearInterval(AppState.pollTimer);
+                AppState.pollTimer = null;
+            }
 
             elements.lockedRoomCodeName.textContent = AppState.roomCode;
             elements.inputActivePassphrase.value = '';
+            elements.inputPassphrase.value = '';
+            elements.inputNewPassphrase.value = '';
             elements.activeRoomUnlockModal.classList.add('active');
             elements.unlockModal.classList.remove('active');
             elements.autoLockBadge.style.display = 'none';
