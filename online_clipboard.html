@@ -1270,8 +1270,8 @@
         // APP CONFIGURATION CONSTANTS (Easily Configurable)
         // ==========================================
         const APP_CONFIG = {
-            VERSION: 'v1.4',
-            BUILD_TIME: '2026-07-30 14:35:15',
+            VERSION: 'v1.5',
+            BUILD_TIME: '2026-07-30 14:36:10',
             AUTO_LOCK_MINUTES: 20, // Inactivity minutes before auto-locking (Format MM:SS displayed in header)
             POLL_INTERVAL_MS: 10000, // Background HTTPS REST polling interval (10 seconds)
             DEFAULT_ROOM_CODE: 'apilog',
@@ -1431,8 +1431,16 @@
             btnToggleSidebar: document.getElementById('btnToggleSidebar'),
             sidebar: document.getElementById('sidebar'),
             toast: document.getElementById('toast'),
-            toastMsg: document.getElementById('toastMsg')
+            toastMsg: document.getElementById('toastMsg'),
+
+            unlockModalVersionTag: document.getElementById('unlockModalVersionTag'),
+            activeModalVersionTag: document.getElementById('activeModalVersionTag')
         };
+
+        // Render Version & Build Time on Modals
+        const buildVerString = `${APP_CONFIG.VERSION} • Build: ${APP_CONFIG.BUILD_TIME}`;
+        if (elements.unlockModalVersionTag) elements.unlockModalVersionTag.textContent = buildVerString;
+        if (elements.activeModalVersionTag) elements.activeModalVersionTag.textContent = buildVerString;
 
         // --- Custom Error Modal Handler ---
         function showErrorModal(title, message) {
