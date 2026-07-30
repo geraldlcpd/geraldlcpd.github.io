@@ -508,12 +508,41 @@
             line-height: 1.6;
         }
 
-        .render-pane pre {
-            font-family: var(--font-mono);
+        /* --- High-Vibrancy Syntax Highlighting Overrides (VS Code Dark Pro Theme) --- */
+        .hljs {
+            background: #181e29 !important;
+            color: #e2e8f0 !important;
         }
 
-        .render-pane code {
-            font-family: var(--font-mono) !important;
+        .hljs-keyword, .hljs-selector-tag, .hljs-literal, .hljs-section, .hljs-link {
+            color: #c586c0 !important; /* Vibrant Purple/Magenta Keywords (for, while, in, def, import) */
+            font-weight: 600;
+        }
+
+        .hljs-title.function_, .hljs-function .hljs-title, .hljs-title {
+            color: #dcdcaa !important; /* Gold Function Names (print, len, range) */
+            font-weight: 600;
+        }
+
+        .hljs-string, .hljs-meta .hljs-string, .hljs-doctag {
+            color: #ce9178 !important; /* Warm Coral Strings ("apple", "banana") */
+        }
+
+        .hljs-number, .hljs-literal, .hljs-built_in {
+            color: #4ec9b0 !important; /* Mint Cyan Numbers & Built-ins */
+        }
+
+        .hljs-comment, .hljs-quote {
+            color: #6a9955 !important; /* Slate Green Comments */
+            font-style: italic;
+        }
+
+        .hljs-variable, .hljs-template-variable, .hljs-attribute, .hljs-params {
+            color: #9cdcfe !important; /* Light Cyan Variables */
+        }
+
+        .hljs-operator, .hljs-punctuation {
+            color: #f1f5f9 !important;
         }
 
         /* --- GitHub Diff Highlighting Styles --- */
