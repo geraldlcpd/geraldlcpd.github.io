@@ -904,7 +904,7 @@
             customUrl: 'https://bdi-online-clipboard-default-rtdb.asia-southeast1.firebasedatabase.app',
             masterKey: null, // CryptoKey
             activePageId: 'page_1',
-            lastUpdated: Date.now(),
+            lastUpdated: 0,
             pages: [
                 { id: 'page_1', name: 'Page 1 (General)', lang: 'plaintext', content: '' },
                 { id: 'page_2', name: 'Page 2 (Snippets)', lang: 'json', content: '{\n  "status": "success",\n  "message": "Welcome to Secure E2EE Clipboard!",\n  "features": ["Passkey Protection", "Real-Time Sync", "Multi-Page", "Syntax Highlighting"]\n}' }
@@ -1085,7 +1085,6 @@
                     ["deriveKey"]
                 );
 
-                // Set extractable = true so key can be wrapped for passkey registry
                 return crypto.subtle.deriveKey(
                     {
                         name: "PBKDF2",
@@ -1179,7 +1178,7 @@
                         const masterKeyJson = await CryptoEngine.decryptPayload(roomMeta.passkeys[credIdB64].wrappedKey, passkeyDerivedKey);
                         if (masterKeyJson) {
                             const rawKey = Uint8Array.from(atob(masterKeyJson), c => c.charCodeAt(0));
-                            return crypto.subtle.importKey("raw", rawKey, { name: "AES-GCM" }, false, ["encrypt", "decrypt"]);
+                            return crypto.subtle.importKey("raw", rawKey, { name: "AES-GCM" }, true, ["encrypt", "decrypt"]);
                         }
                     }
                     return passkeyDerivedKey;
@@ -1588,6 +1587,7 @@
             AppState.isUnlocked = true;
             AppState.roomCode = roomCode;
             AppState.masterKey = key;
+            AppState.lastUpdated = 0; // Reset to 0 so remote data is immediately accepted!
 
             elements.unlockModal.classList.remove('active');
             elements.lockIcon.setAttribute('data-lucide', 'lock-keyhole-open');
