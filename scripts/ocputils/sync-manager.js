@@ -52,8 +52,8 @@ class SyncManager {
     }
 
     static async pollHttpsRest(endpoint, key, protocol, forceSync = false) {
-        // Pause background polling completely when in locked state or when tab/window is hidden in background
-        if ((!AppState.isUnlocked || document.hidden) && !forceSync) {
+        // Pause background polling completely when in locked state
+        if (!AppState.isUnlocked && !forceSync) {
             return;
         }
 
@@ -274,12 +274,3 @@ class SyncManager {
         }, 400);
     }
 }
-
-// Immediately refresh sync state when user switches back to this tab
-document.addEventListener('visibilitychange', () => {
-    if (!document.hidden && AppState.isUnlocked && AppState.masterKey) {
-        const endpoint = SyncManager.getEndpointUrl(AppState.roomCode, AppState.syncProtocol);
-        SyncManager.pollHttpsRest(endpoint, AppState.masterKey, AppState.syncProtocol, true);
-    }
-});
-
