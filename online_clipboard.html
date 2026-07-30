@@ -1092,15 +1092,16 @@
                     }
                     return passkeyDerivedKey;
                 } else {
-                    // Create & Register New Passkey to the Room
+                    // Create & Register New Passkey with Unique 6-Digit PIN
+                    const pin = Math.floor(100000 + Math.random() * 900000); // 6-digit unique pin e.g. 849302
                     const credential = await navigator.credentials.create({
                         publicKey: {
                             challenge: challenge,
                             rp: { name: "Online Clipboard App", id: window.location.hostname || "localhost" },
                             user: {
-                                id: new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]),
-                                name: `user@${roomCode}`,
-                                displayName: `Clipboard Owner (${roomCode})`
+                                id: crypto.getRandomValues(new Uint8Array(16)),
+                                name: `${roomCode}-${pin}`,
+                                displayName: `Clipboard Key #${pin} (${roomCode})`
                             },
                             pubKeyCredParams: [{ alg: -7, type: "public-key" }, { alg: -257, type: "public-key" }],
                             authenticatorSelection: { userVerification: "preferred", residentKey: "preferred" },
@@ -1122,7 +1123,7 @@
 
                     // Register Passkey metadata to Database so all devices can see it!
                     const passkeyData = {
-                        name: `Passkey-${new Date().toLocaleDateString()}`,
+                        name: `Passkey #${pin}`,
                         registeredAt: Date.now(),
                         wrappedKey: wrappedKey
                     };
@@ -1325,7 +1326,6 @@
                             const endpoint = SyncManager.getEndpointUrl(AppState.roomCode, AppState.syncProtocol);
                             
                             if (AppState.syncProtocol === 'firebase_rest') {
-                                // Save payload without erasing room meta node!
                                 const baseEndpoint = endpoint.replace(/\.json$/, '/payload.json');
                                 await fetch(baseEndpoint, {
                                     method: 'PUT',
