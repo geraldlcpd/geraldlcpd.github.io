@@ -1192,6 +1192,7 @@
             static async decryptPayload(cipherTextB64, key) {
                 try {
                     const combined = new Uint8Array(atob(cipherTextB64).split("").map(c => c.charCodeAt(0)));
+                    if (combined.length < 13) return null;
                     const iv = combined.slice(0, 12);
                     const data = combined.slice(12);
 
@@ -1203,7 +1204,7 @@
 
                     return new TextDecoder().decode(decrypted);
                 } catch (e) {
-                    console.error("Decryption failed", e);
+                    // Silently ignore key mismatch from legacy/stale database payloads
                     return null;
                 }
             }
@@ -1245,7 +1246,6 @@
                     });
 
                     const credIdB64 = btoa(String.fromCharCode(...new Uint8Array(credential.rawId)));
-                    // Deterministic key derivation from fixed Passkey rawId!
                     const passkeyDerivedKey = await CryptoEngine.deriveKeyFromPassword(credIdB64 + "_passkey_key", roomCode);
 
                     if (roomMeta.passkeys[credIdB64] && roomMeta.passkeys[credIdB64].wrappedKey) {
@@ -1280,7 +1280,6 @@
                     const exportedRaw = await crypto.subtle.exportKey("raw", masterKey);
                     const rawB64 = btoa(String.fromCharCode(...new Uint8Array(exportedRaw)));
 
-                    // Deterministic key derivation from fixed Passkey rawId!
                     const passkeyKey = await CryptoEngine.deriveKeyFromPassword(rawIdB64 + "_passkey_key", roomCode);
                     const wrappedKey = await CryptoEngine.encryptPayload(rawB64, passkeyKey);
 
@@ -1303,7 +1302,7 @@
 
         // --- Multi-Provider Corporate Transport Manager ---
         class SyncManager {
-            static connect(roomCode, key, protocol, customUrl) {
+            static connect(roomCode, key, protocol, customUrl, isNewRoom = false) {
                 if (AppState.mqttClient) AppState.mqttClient.end();
                 if (AppState.pollTimer) clearInterval(AppState.pollTimer);
 
@@ -1313,7 +1312,7 @@
                 if (protocol === 'websocket') {
                     SyncManager.initWebSocket(roomCode, key);
                 } else {
-                    SyncManager.initHttpsRest(roomCode, key, protocol);
+                    SyncManager.initHttpsRest(roomCode, key, protocol, isNewRoom);
                 }
             }
 
@@ -1344,12 +1343,16 @@
             }
 
             // --- HTTPS REST Transport (Port 443) ---
-            static initHttpsRest(roomCode, key, protocol) {
+            static initHttpsRest(roomCode, key, protocol, isNewRoom = false) {
                 setSyncStatus('connected', `Synced (${protocol.split('_')[0].toUpperCase()})`);
 
                 const endpoint = SyncManager.getEndpointUrl(roomCode, protocol);
 
-                SyncManager.pollHttpsRest(endpoint, key, protocol);
+                if (isNewRoom) {
+                    SyncManager.broadcastState();
+                } else {
+                    SyncManager.pollHttpsRest(endpoint, key, protocol);
+                }
 
                 AppState.pollTimer = setInterval(() => {
                     SyncManager.pollHttpsRest(endpoint, key, protocol);
@@ -1404,11 +1407,9 @@
                             const remoteEnvelope = JSON.parse(decryptedStr);
                             if (remoteEnvelope && (forceSync || remoteEnvelope.lastUpdated > AppState.lastUpdated)) {
                                 if (!forceSync && document.activeElement === elements.codeEditor) {
-                                    // User is currently typing! Show floating banner option to sync
                                     AppState.pendingRemoteEnvelope = remoteEnvelope;
                                     elements.syncBanner.classList.add('show');
                                 } else {
-                                    // Auto apply remote sync
                                     AppState.lastUpdated = remoteEnvelope.lastUpdated;
                                     AppState.pages = remoteEnvelope.pages;
                                     AppState.pendingRemoteEnvelope = null;
@@ -1619,7 +1620,7 @@
                 }
 
                 const key = await PasskeyManager.registerOrAuthenticate(roomCode, passphraseKey, false);
-                completeUnlock(roomCode, key, protocol, customUrl);
+                completeUnlock(roomCode, key, protocol, customUrl, false);
                 showToast("Authenticated via Passkey!");
             } catch (err) {
                 alert("Passkey authentication failed: " + err.message);
@@ -1638,7 +1639,7 @@
             }
 
             const key = await CryptoEngine.deriveKeyFromPassword(passphrase, roomCode);
-            completeUnlock(roomCode, key, protocol, customUrl);
+            completeUnlock(roomCode, key, protocol, customUrl, false);
             showToast("Authenticated via Passphrase!");
         }
 
@@ -1660,14 +1661,14 @@
                 }
 
                 const key = await PasskeyManager.registerOrAuthenticate(roomCode, passphraseKey, true);
-                completeUnlock(roomCode, key, protocol, customUrl);
+                completeUnlock(roomCode, key, protocol, customUrl, true);
                 showToast(`Created & Unlocked Room "${roomCode}"!`);
             } catch (err) {
                 alert("Room creation failed: " + err.message);
             }
         }
 
-        function completeUnlock(roomCode, key, protocol, customUrl) {
+        function completeUnlock(roomCode, key, protocol, customUrl, isNewRoom = false) {
             AppState.isUnlocked = true;
             AppState.roomCode = roomCode;
             AppState.masterKey = key;
@@ -1680,7 +1681,7 @@
 
             renderPageList();
             updateEditorView();
-            SyncManager.connect(roomCode, key, protocol, customUrl);
+            SyncManager.connect(roomCode, key, protocol, customUrl, isNewRoom);
         }
 
         function lockClipboard() {
