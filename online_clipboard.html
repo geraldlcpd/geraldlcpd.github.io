@@ -5,35 +5,35 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Secure Online Clipboard</title>
     
-    <!-- Fonts & Icons -->
+    <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <script src="https://unpkg.com/lucide@latest"></script>
     
-    <!-- Marked.js Markdown Parser CDN -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/11.1.1/marked.min.js"></script>
+    <!-- Local Vendor CSS -->
+    <link rel="stylesheet" href="./scripts/tokyo-night-dark.min.css">
 
-    <!-- Highlight.js Syntax Highlighting CDN -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/tokyo-night-dark.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/json.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/python.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/javascript.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/typescript.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/css.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/xml.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/cpp.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/java.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/sql.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/rust.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/go.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/bash.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/yaml.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/markdown.min.js"></script>
-
-    <!-- MQTT WebSocket Client -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/mqtt/4.3.7/mqtt.min.js"></script>
+    <!-- Local Vendor Scripts -->
+    <script src="./scripts/lucide.min.js"></script>
+    <script src="./scripts/marked.min.js"></script>
+    <script src="./scripts/mermaid.min.js"></script>
+    <script src="./scripts/highlight.min.js"></script>
+    <script src="./scripts/json.min.js"></script>
+    <script src="./scripts/python.min.js"></script>
+    <script src="./scripts/javascript.min.js"></script>
+    <script src="./scripts/typescript.min.js"></script>
+    <script src="./scripts/css.min.js"></script>
+    <script src="./scripts/xml.min.js"></script>
+    <script src="./scripts/cpp.min.js"></script>
+    <script src="./scripts/java.min.js"></script>
+    <script src="./scripts/sql.min.js"></script>
+    <script src="./scripts/rust.min.js"></script>
+    <script src="./scripts/go.min.js"></script>
+    <script src="./scripts/bash.min.js"></script>
+    <script src="./scripts/yaml.min.js"></script>
+    <script src="./scripts/markdown.min.js"></script>
+    <script src="./scripts/diff.min.js"></script>
+    <script src="./scripts/mqtt.min.js"></script>
 
     <style>
         :root {
@@ -82,7 +82,7 @@
             display: flex;
             flex-direction: column;
             overflow-x: hidden;
-            font-size: 0.82rem; /* Decreased font size */
+            font-size: 0.82rem;
         }
 
         /* --- Banner Notification --- */
@@ -460,7 +460,7 @@
             border: none;
             padding: 14px;
             font-family: var(--font-mono);
-            font-size: 0.8rem; /* Decreased by 2pt */
+            font-size: 0.8rem;
             line-height: 1.5;
             resize: none;
             outline: none;
@@ -473,7 +473,7 @@
             overflow: auto;
             padding: 16px;
             background: #1a1b26 !important;
-            font-size: 0.8rem; /* Decreased by 2pt */
+            font-size: 0.8rem;
             line-height: 1.6;
         }
 
@@ -485,7 +485,24 @@
             font-family: var(--font-mono) !important;
         }
 
-        /* Rich Markdown Rendered Preview Styling */
+        /* --- GitHub Diff Highlighting Styles --- */
+        .hljs-deletion {
+            background-color: rgba(244, 63, 94, 0.25) !important;
+            color: #f43f5e !important;
+            display: block;
+            margin: 0 -16px;
+            padding: 0 16px;
+        }
+
+        .hljs-addition {
+            background-color: rgba(16, 185, 129, 0.25) !important;
+            color: #10b981 !important;
+            display: block;
+            margin: 0 -16px;
+            padding: 0 16px;
+        }
+
+        /* --- Rich Markdown & GFM Styling --- */
         .markdown-body {
             color: #c0caf5;
             font-family: var(--font-sans);
@@ -512,6 +529,7 @@
         }
 
         .markdown-body li { margin-bottom: 0.3rem; }
+        .markdown-body input[type="checkbox"] { margin-right: 6px; accent-color: var(--primary); }
 
         .markdown-body blockquote {
             border-left: 4px solid var(--primary);
@@ -557,6 +575,17 @@
         .markdown-body a {
             color: #7dcfff;
             text-decoration: underline;
+        }
+
+        .mermaid-container {
+            display: flex;
+            justify-content: center;
+            background: #1a1b26;
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            border: 1px solid var(--border-color);
+            overflow-x: auto;
         }
 
         /* Floating Copy Toast */
@@ -867,6 +896,7 @@
                     <select class="select-input" id="languageSelect">
                         <option value="plaintext">Plain Text</option>
                         <option value="markdown">Markdown</option>
+                        <option value="diff">Diff (Patch)</option>
                         <option value="json">JSON</option>
                         <option value="javascript">JavaScript</option>
                         <option value="typescript">TypeScript</option>
@@ -1023,6 +1053,41 @@
         // Initialize Icons
         lucide.createIcons();
 
+        // Initialize Mermaid.js
+        if (window.mermaid) {
+            mermaid.initialize({
+                startOnLoad: false,
+                theme: 'dark',
+                securityLevel: 'loose'
+            });
+        }
+
+        // Configure Marked.js GFM & Custom Renderer
+        if (window.marked) {
+            marked.use({ gfm: true, breaks: true });
+            const renderer = new marked.Renderer();
+            
+            renderer.code = function(code, language) {
+                const lang = (language || '').trim().toLowerCase();
+
+                if (lang === 'mermaid') {
+                    const cleanCode = code.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
+                    return `<div class="mermaid-container"><div class="mermaid">${escapeHtml(cleanCode)}</div></div>`;
+                }
+
+                if (lang && hljs.getLanguage(lang)) {
+                    try {
+                        const highlighted = hljs.highlight(code, { language: lang }).value;
+                        return `<pre><code class="hljs language-${lang}">${highlighted}</code></pre>`;
+                    } catch(e){}
+                }
+
+                return `<pre><code class="hljs">${escapeHtml(code)}</code></pre>`;
+            };
+
+            marked.setOptions({ renderer: renderer });
+        }
+
         // --- State Management ---
         const AppState = {
             isUnlocked: false,
@@ -1035,7 +1100,7 @@
             pendingRemoteEnvelope: null,
             pages: [
                 { id: 'page_1', name: 'Page 1 (General)', lang: 'plaintext', content: '' },
-                { id: 'page_2', name: 'Page 2 (Snippets)', lang: 'json', content: '{\n  "status": "success",\n  "message": "Welcome to Secure E2EE Clipboard!",\n  "features": ["Passkey Protection", "Real-Time Sync", "Multi-Page", "Syntax Highlighting"]\n}' }
+                { id: 'page_2', name: 'Page 2 (Snippets)', lang: 'markdown', content: '# Welcome to Markdown & Mermaid!\n\nHere is a GitHub Diff example:\n```diff\n- const oldSecret = "insecure";\n+ const newSecret = "AES-256-GCM";\n```\n\nHere is a Mermaid flowchart:\n```mermaid\ngraph TD;\n    A[Mobile Passkey] --> B(Firebase Database);\n    B --> C[Desktop Clipboard];\n```\n' }
             ],
             mqttClient: null,
             pollTimer: null,
@@ -1685,7 +1750,15 @@
             if (lang === 'markdown') {
                 elements.preContainer.style.display = 'none';
                 elements.markdownRender.style.display = 'block';
-                elements.markdownRender.innerHTML = marked.parse(page.content || '_Empty markdown content_');
+                elements.markdownRender.innerHTML = window.marked ? marked.parse(page.content || '_Empty markdown content_') : escapeHtml(page.content);
+
+                if (window.mermaid) {
+                    setTimeout(() => {
+                        try {
+                            mermaid.run({ querySelector: '.mermaid' });
+                        } catch(e) {}
+                    }, 50);
+                }
             } else {
                 elements.markdownRender.style.display = 'none';
                 elements.preContainer.style.display = 'block';
@@ -1885,7 +1958,7 @@
         elements.btnToggleCode.addEventListener('click', () => {
             elements.editorContainer.classList.remove('view-edit');
             elements.editorContainer.classList.add('view-code');
-            elements.btnToggleCode.classList.active;
+            elements.btnToggleCode.classList.add('active');
             elements.btnToggleEdit.classList.remove('active');
         });
 
