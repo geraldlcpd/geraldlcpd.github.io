@@ -759,17 +759,17 @@
             <div class="input-field">
                 <label class="input-label">Corporate Bypass Relay Provider</label>
                 <select class="select-input" id="syncProtocolSelect" style="width: 100%;">
-                    <option value="firebase_rest">Google Firebase Cloud (Categorized: Enterprise/API - Port 443)</option>
+                    <option value="firebase_rest">Google Firebase Database (Enter Database URL Below)</option>
                     <option value="kvdb_rest">KVDB Storage (Categorized: Developer Tools - Port 443)</option>
                     <option value="ntfy_rest">ntfy Pub/Sub (Port 443)</option>
                     <option value="websocket">WebSockets (WSS Port 8084)</option>
-                    <option value="custom_rest">Custom HTTPS Relay URL (Enterprise Webhook)</option>
+                    <option value="custom_rest">Custom HTTPS Endpoint URL</option>
                 </select>
             </div>
 
-            <div class="input-field" id="customUrlContainer" style="display: none;">
-                <label class="input-label">Custom HTTPS Relay URL</label>
-                <input type="text" class="text-input" id="inputCustomUrl" placeholder="https://api.mycompany.com/clipboard">
+            <div class="input-field" id="customUrlContainer" style="display: flex;">
+                <label class="input-label" id="customUrlLabel">Firebase Database URL</label>
+                <input type="text" class="text-input" id="inputCustomUrl" placeholder="https://my-app-default-rtdb.asia-southeast1.firebasedatabase.app">
             </div>
 
             <button class="btn btn-primary" id="btnPasskeyUnlock" style="width: 100%; padding: 12px;">
@@ -825,6 +825,7 @@
             inputRoomCode: document.getElementById('inputRoomCode'),
             syncProtocolSelect: document.getElementById('syncProtocolSelect'),
             customUrlContainer: document.getElementById('customUrlContainer'),
+            customUrlLabel: document.getElementById('customUrlLabel'),
             inputCustomUrl: document.getElementById('inputCustomUrl'),
             inputPassphrase: document.getElementById('inputPassphrase'),
             btnPasskeyUnlock: document.getElementById('btnPasskeyUnlock'),
@@ -858,9 +859,22 @@
         };
 
         // Toggle Custom URL Input
-        elements.syncProtocolSelect.addEventListener('change', (e) => {
-            elements.customUrlContainer.style.display = e.target.value === 'custom_rest' ? 'flex' : 'none';
-        });
+        function updateProtocolUI() {
+            const val = elements.syncProtocolSelect.value;
+            if (val === 'firebase_rest') {
+                elements.customUrlContainer.style.display = 'flex';
+                elements.customUrlLabel.textContent = 'Firebase Database URL';
+                elements.inputCustomUrl.placeholder = 'https://my-app-default-rtdb.asia-southeast1.firebasedatabase.app';
+            } else if (val === 'custom_rest') {
+                elements.customUrlContainer.style.display = 'flex';
+                elements.customUrlLabel.textContent = 'Custom HTTPS Endpoint URL';
+                elements.inputCustomUrl.placeholder = 'https://api.mycompany.com/clipboard/{roomCode}';
+            } else {
+                elements.customUrlContainer.style.display = 'none';
+            }
+        }
+
+        elements.syncProtocolSelect.addEventListener('change', updateProtocolUI);
 
         // --- Toast Notification ---
         function showToast(msg) {
@@ -1001,18 +1015,30 @@
 
             static getEndpointUrl(roomCode, protocol) {
                 const safeRoom = encodeURIComponent(roomCode);
-                switch (protocol) {
-                    case 'firebase_rest':
-                        return `https://clipboard-e2ee-default-rtdb.firebaseio.com/rooms/${safeRoom}.json`;
-                    case 'kvdb_rest':
-                        return `https://kvdb.io/4yHhF3aM4PjQn8V9B7R1/${safeRoom}`;
-                    case 'ntfy_rest':
-                        return `https://ntfy.sh/e2ee_clipboard_${safeRoom}`;
-                    case 'custom_rest':
-                        return AppState.customUrl || `https://ntfy.sh/e2ee_clipboard_${safeRoom}`;
-                    default:
-                        return `https://clipboard-e2ee-default-rtdb.firebaseio.com/rooms/${safeRoom}.json`;
+                
+                if (protocol === 'firebase_rest') {
+                    let base = (AppState.customUrl || '').trim();
+                    if (!base) base = 'https://bdi-online-clipboard-default-rtdb.asia-southeast1.firebasedatabase.app';
+                    // Strip trailing slashes and path if user pasted full path
+                    base = base.replace(/\/+$/, '').replace(/\/rooms\/.*$/, '');
+                    return `${base}/rooms/${safeRoom}.json`;
                 }
+
+                if (protocol === 'kvdb_rest') {
+                    return `https://kvdb.io/4yHhF3aM4PjQn8V9B7R1/${safeRoom}`;
+                }
+
+                if (protocol === 'ntfy_rest') {
+                    return `https://ntfy.sh/e2ee_clipboard_${safeRoom}`;
+                }
+
+                if (protocol === 'custom_rest') {
+                    let url = (AppState.customUrl || '').trim();
+                    if (!url) return `https://ntfy.sh/e2ee_clipboard_${safeRoom}`;
+                    return url.replace('{roomCode}', safeRoom).replace('{room}', safeRoom);
+                }
+
+                return `https://ntfy.sh/e2ee_clipboard_${safeRoom}`;
             }
 
             // --- HTTPS REST Transport (Port 443) ---
@@ -1036,6 +1062,7 @@
                     let cipherText = null;
 
                     if (protocol === 'firebase_rest') {
+                        // Firebase REST API: Clean GET request directly to .json
                         const res = await fetch(endpoint, { cache: 'no-store' });
                         if (res.ok) {
                             const data = await res.json();
@@ -1044,8 +1071,19 @@
                     } else if (protocol === 'kvdb_rest') {
                         const res = await fetch(endpoint, { cache: 'no-store' });
                         if (res.ok) cipherText = await res.text();
+                    } else if (protocol === 'custom_rest') {
+                        const res = await fetch(endpoint, { cache: 'no-store' });
+                        if (res.ok) {
+                            const contentType = res.headers.get('content-type') || '';
+                            if (contentType.includes('application/json')) {
+                                const data = await res.json();
+                                cipherText = data.payload || data.message || data.content;
+                            } else {
+                                cipherText = await res.text();
+                            }
+                        }
                     } else {
-                        // ntfy or custom
+                        // ntfy.sh
                         const res = await fetch(`${endpoint}/json?poll=1`, { cache: 'no-store' });
                         if (res.ok) {
                             const text = await res.text();
