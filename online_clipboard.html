@@ -1146,6 +1146,22 @@
         </div>
     </div>
 
+    <!-- Custom Error / Alert Modal -->
+    <div class="modal-overlay" id="errorModal" style="z-index: 300;">
+        <div class="modal-card modal-card-sm">
+            <div class="modal-header">
+                <div class="modal-icon" style="background: rgba(244, 63, 94, 0.15); color: var(--accent-rose); border-color: rgba(244, 63, 94, 0.3);">
+                    <i data-lucide="shield-alert" style="width: 24px; height: 24px;"></i>
+                </div>
+                <h2 class="modal-title" id="errorModalTitle">Authentication Error</h2>
+                <p class="modal-desc" id="errorModalMessage">Incorrect Master Passphrase. Access Denied.</p>
+            </div>
+            <div class="modal-footer-actions" style="justify-content: center; margin-top: 8px;">
+                <button class="btn btn-primary" id="btnDismissError" style="width: 100%; padding: 10px;">OK</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Custom Rename Page Modal -->
     <div class="modal-overlay" id="renameModal">
         <div class="modal-card modal-card-sm">
@@ -1306,6 +1322,12 @@
             btnActivePassphraseUnlock: document.getElementById('btnActivePassphraseUnlock'),
             btnSwitchRoomLink: document.getElementById('btnSwitchRoomLink'),
 
+            // Custom Error Modal
+            errorModal: document.getElementById('errorModal'),
+            errorModalTitle: document.getElementById('errorModalTitle'),
+            errorModalMessage: document.getElementById('errorModalMessage'),
+            btnDismissError: document.getElementById('btnDismissError'),
+
             // Custom Modals
             renameModal: document.getElementById('renameModal'),
             inputRenameTitle: document.getElementById('inputRenameTitle'),
@@ -1351,6 +1373,18 @@
             toast: document.getElementById('toast'),
             toastMsg: document.getElementById('toastMsg')
         };
+
+        // --- Custom Error Modal Handler ---
+        function showErrorModal(title, message) {
+            elements.errorModalTitle.textContent = title || "Authentication Error";
+            elements.errorModalMessage.textContent = message || "An unexpected error occurred.";
+            elements.errorModal.classList.add('active');
+            lucide.createIcons();
+        }
+
+        elements.btnDismissError.addEventListener('click', () => {
+            elements.errorModal.classList.remove('active');
+        });
 
         // --- Auto-Lock & Inactivity Countdown Manager ---
         function resetInactivityTimer() {
@@ -2135,7 +2169,7 @@
                 if (isDomainError) {
                     checkDomainPasskeyRegistration(roomCode);
                 } else {
-                    alert("Passkey authentication failed: " + err.message);
+                    showErrorModal("Passkey Failed", err.message);
                 }
             }
         }
@@ -2147,7 +2181,7 @@
             const passphrase = isActiveRoomUnlock ? elements.inputActivePassphrase.value : elements.inputPassphrase.value;
 
             if (!passphrase) {
-                alert("Please enter a Master Passphrase.");
+                showErrorModal("Passphrase Required", "Please enter a Master Passphrase.");
                 return;
             }
 
@@ -2166,7 +2200,7 @@
             if (roomMeta && roomMeta.passphraseVerify) {
                 const isValid = await CryptoEngine.verifyPassphraseToken(passphrase, roomCode, roomMeta.passphraseVerify);
                 if (!isValid) {
-                    alert("Incorrect Master Passphrase. Access Denied.");
+                    showErrorModal("Access Denied", "Incorrect Master Passphrase. Access Denied.");
                     return;
                 }
             } else {
@@ -2179,7 +2213,7 @@
                             const testKey = await CryptoEngine.deriveKeyFromPassword(passphrase, roomCode);
                             const decrypted = await CryptoEngine.decryptPayload(roomData.payload, testKey);
                             if (!decrypted) {
-                                alert("Incorrect Master Passphrase. Access Denied.");
+                                showErrorModal("Access Denied", "Incorrect Master Passphrase. Access Denied.");
                                 return;
                             }
                         }
@@ -2208,12 +2242,12 @@
             const customUrl = elements.inputCustomUrl.value.trim();
 
             if (!roomCode) {
-                alert("Please enter a New Room Code.");
+                showErrorModal("Missing Room Code", "Please enter a New Room Code.");
                 return;
             }
 
             if (!passphrase) {
-                alert("Please enter a Master Passphrase for the new room.");
+                showErrorModal("Missing Passphrase", "Please enter a Master Passphrase for the new room.");
                 return;
             }
 
@@ -2233,7 +2267,7 @@
                 completeUnlock(roomCode, key, protocol, customUrl, true);
                 showToast(`Created & Unlocked Room "${roomCode}"!`);
             } catch (err) {
-                alert("Room creation failed: " + err.message);
+                showErrorModal("Room Creation Failed", err.message);
             }
         }
 
@@ -2245,7 +2279,7 @@
                 showToast(`Passkey registered for ${currentDomain}!`);
                 checkDomainPasskeyRegistration(AppState.roomCode);
             } catch(e) {
-                alert("Passkey registration failed: " + e.message);
+                showErrorModal("Passkey Registration Failed", e.message);
             }
         }
 
@@ -2361,7 +2395,7 @@
                 SyncManager.broadcastState();
                 showToast("Formatted JSON!");
             } catch (err) {
-                alert("Invalid JSON format: " + err.message);
+                showErrorModal("Invalid JSON", "Invalid JSON format: " + err.message);
             }
         });
 
