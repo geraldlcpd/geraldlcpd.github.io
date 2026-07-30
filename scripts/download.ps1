@@ -25,7 +25,11 @@ $h = [ordered]@{
 
 foreach ($key in $h.Keys) {
     $url = $h[$key]
-    $outFile = Join-Path $dir $key
+    if ($key -like '*.css') {
+        $outFile = Join-Path $dir "ocputils\styles\$key"
+    } else {
+        $outFile = Join-Path $dir "ocputils\syntax\$key"
+    }
     Write-Host "Downloading $key..."
     Invoke-WebRequest -Uri $url -OutFile $outFile
 }

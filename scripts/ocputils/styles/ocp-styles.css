@@ -934,3 +934,34 @@ textarea.code-editor {
         display: none;
     }
 }
+
+/* --- Editor Stats Bar Styling --- */
+.editor-stats-bar {
+    background: var(--bg-surface, #1e293b);
+    border-top: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));
+    padding: 6px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.78rem;
+    color: var(--text-muted, #94a3b8);
+    border-bottom-left-radius: 8px;
+    border-bottom-right-radius: 8px;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+.editor-stats-bar .stat-group {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+.editor-stats-bar .stat-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+.editor-stats-bar .stat-item strong {
+    color: var(--text-main, #f8fafc);
+    font-weight: 600;
+}
