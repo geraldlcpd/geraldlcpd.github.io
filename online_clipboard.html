@@ -124,13 +124,26 @@
         .badge-status {
             display: inline-flex;
             align-items: center;
-            gap: 6px;
+            gap: 8px;
             font-size: 0.78rem;
-            padding: 6px 12px;
+            padding: 6px 14px;
             border-radius: 20px;
             background: rgba(255, 255, 255, 0.05);
             border: 1px solid var(--border-color);
             font-weight: 500;
+            transition: var(--transition);
+        }
+
+        .badge-status.syncing {
+            border-color: rgba(6, 182, 212, 0.4);
+            background: rgba(6, 182, 212, 0.1);
+            color: #67e8f9;
+        }
+
+        .badge-status.updated {
+            border-color: rgba(16, 185, 129, 0.4);
+            background: rgba(16, 185, 129, 0.1);
+            color: #6ee7b7;
         }
 
         .status-dot {
@@ -144,6 +157,15 @@
         .status-dot.connected { background-color: var(--accent-green); box-shadow: 0 0 8px var(--accent-green); }
         .status-dot.connecting { background-color: var(--accent-amber); }
         .status-dot.locked { background-color: var(--accent-rose); }
+
+        .spin-icon {
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
 
         /* --- Buttons --- */
         .btn {
@@ -643,6 +665,7 @@
         </div>
 
         <div class="header-actions">
+            <!-- Sync Indicator Badge -->
             <div class="badge-status" id="badgeStatus">
                 <span class="status-dot locked" id="statusDot"></span>
                 <span id="statusText">Locked</span>
@@ -816,7 +839,8 @@
             ],
             mqttClient: null,
             pollTimer: null,
-            debounceTimer: null
+            debounceTimer: null,
+            resetBadgeTimer: null
         };
 
         // --- DOM Elements ---
@@ -857,6 +881,40 @@
             toast: document.getElementById('toast'),
             toastMsg: document.getElementById('toastMsg')
         };
+
+        // UI Status Helper
+        function setSyncStatus(state, message) {
+            clearTimeout(AppState.resetBadgeTimer);
+            elements.badgeStatus.className = 'badge-status';
+
+            if (state === 'syncing') {
+                elements.badgeStatus.classList.add('syncing');
+                elements.badgeStatus.innerHTML = `
+                    <i data-lucide="refresh-cw" class="spin-icon" style="width: 14px; height: 14px;"></i>
+                    <span>${message || 'Syncing...'}</span>
+                `;
+            } else if (state === 'updated') {
+                elements.badgeStatus.classList.add('updated');
+                elements.badgeStatus.innerHTML = `
+                    <i data-lucide="check" style="width: 14px; height: 14px; color: var(--accent-green);"></i>
+                    <span>${message || 'Synced!'}</span>
+                `;
+                AppState.resetBadgeTimer = setTimeout(() => {
+                    setSyncStatus('connected', `Synced (${AppState.syncProtocol.split('_')[0].toUpperCase()})`);
+                }, 2000);
+            } else if (state === 'connected') {
+                elements.badgeStatus.innerHTML = `
+                    <span class="status-dot connected"></span>
+                    <span>${message || 'Synced'}</span>
+                `;
+            } else {
+                elements.badgeStatus.innerHTML = `
+                    <span class="status-dot locked"></span>
+                    <span>${message || 'Locked'}</span>
+                `;
+            }
+            lucide.createIcons();
+        }
 
         // Toggle Custom URL Input
         function updateProtocolUI() {
@@ -1020,7 +1078,6 @@
                 
                 if (protocol === 'firebase_rest') {
                     let base = (AppState.customUrl || 'https://bdi-online-clipboard-default-rtdb.asia-southeast1.firebasedatabase.app').trim();
-                    // Strip trailing slashes and path if user pasted full path
                     base = base.replace(/\/+$/, '').replace(/\/rooms\/.*$/, '');
                     return `${base}/rooms/${safeRoom}.json`;
                 }
@@ -1044,8 +1101,7 @@
 
             // --- HTTPS REST Transport (Port 443) ---
             static initHttpsRest(roomCode, key, protocol) {
-                elements.statusDot.className = 'status-dot connected';
-                elements.statusText.textContent = `HTTPS Synced (${protocol.split('_')[0].toUpperCase()})`;
+                setSyncStatus('connected', `Synced (${protocol.split('_')[0].toUpperCase()})`);
 
                 const endpoint = SyncManager.getEndpointUrl(roomCode, protocol);
 
@@ -1105,10 +1161,12 @@
                         if (decryptedStr) {
                             const remoteEnvelope = JSON.parse(decryptedStr);
                             if (remoteEnvelope && remoteEnvelope.lastUpdated > AppState.lastUpdated) {
+                                setSyncStatus('syncing', 'Receiving update...');
                                 AppState.lastUpdated = remoteEnvelope.lastUpdated;
                                 AppState.pages = remoteEnvelope.pages;
                                 renderPageList();
                                 updateEditorView();
+                                setSyncStatus('updated', 'Remote update synced!');
                             }
                         }
                     }
@@ -1119,8 +1177,7 @@
 
             // --- WebSocket Transport ---
             static initWebSocket(roomCode, key) {
-                elements.statusDot.className = 'status-dot connecting';
-                elements.statusText.textContent = 'Connecting WSS...';
+                setSyncStatus('connecting', 'Connecting WSS...');
 
                 const client = mqtt.connect('wss://broker.emqx.io:8084/mqtt', {
                     clientId: 'clipboard_' + Math.random().toString(16).substring(2, 10),
@@ -1131,8 +1188,7 @@
                 const topic = `secure_clipboard_room_v1/${encodeURIComponent(roomCode)}`;
 
                 client.on('connect', () => {
-                    elements.statusDot.className = 'status-dot connected';
-                    elements.statusText.textContent = 'WSS Synced';
+                    setSyncStatus('connected', 'WSS Synced');
                     client.subscribe(topic, { qos: 1 });
                     SyncManager.broadcastState();
                 });
@@ -1145,10 +1201,12 @@
                                 const remoteEnvelope = JSON.parse(decryptedStr);
                                 if (remoteEnvelope && remoteEnvelope.lastUpdated > AppState.lastUpdated) {
                                     if (document.activeElement !== elements.codeEditor) {
+                                        setSyncStatus('syncing', 'Receiving WSS update...');
                                         AppState.lastUpdated = remoteEnvelope.lastUpdated;
                                         AppState.pages = remoteEnvelope.pages;
                                         renderPageList();
                                         updateEditorView();
+                                        setSyncStatus('updated', 'Remote update synced!');
                                     }
                                 }
                             }
@@ -1157,8 +1215,7 @@
                 });
 
                 client.on('error', () => {
-                    elements.statusDot.className = 'status-dot locked';
-                    elements.statusText.textContent = 'WSS Blocked';
+                    setSyncStatus('locked', 'WSS Blocked');
                 });
 
                 AppState.mqttClient = client;
@@ -1169,6 +1226,7 @@
                 
                 clearTimeout(AppState.debounceTimer);
                 AppState.debounceTimer = setTimeout(async () => {
+                    setSyncStatus('syncing', 'Broadcasting changes...');
                     AppState.lastUpdated = Date.now();
 
                     const envelope = {
@@ -1178,29 +1236,35 @@
 
                     const encryptedB64 = await CryptoEngine.encryptPayload(JSON.stringify(envelope), AppState.masterKey);
                     
-                    if (AppState.syncProtocol === 'websocket') {
-                        const topic = `secure_clipboard_room_v1/${encodeURIComponent(AppState.roomCode)}`;
-                        if (AppState.mqttClient) AppState.mqttClient.publish(topic, encryptedB64, { qos: 1 });
-                    } else {
-                        const endpoint = SyncManager.getEndpointUrl(AppState.roomCode, AppState.syncProtocol);
-                        
-                        if (AppState.syncProtocol === 'firebase_rest') {
-                            fetch(endpoint, {
-                                method: 'PUT',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ payload: encryptedB64 })
-                            }).catch(e => console.error("Firebase PUT error", e));
-                        } else if (AppState.syncProtocol === 'kvdb_rest') {
-                            fetch(endpoint, {
-                                method: 'POST',
-                                body: encryptedB64
-                            }).catch(e => console.error("KVDB POST error", e));
+                    try {
+                        if (AppState.syncProtocol === 'websocket') {
+                            const topic = `secure_clipboard_room_v1/${encodeURIComponent(AppState.roomCode)}`;
+                            if (AppState.mqttClient) AppState.mqttClient.publish(topic, encryptedB64, { qos: 1 });
                         } else {
-                            fetch(endpoint, {
-                                method: 'POST',
-                                body: encryptedB64
-                            }).catch(e => console.error("HTTPS POST error", e));
+                            const endpoint = SyncManager.getEndpointUrl(AppState.roomCode, AppState.syncProtocol);
+                            
+                            if (AppState.syncProtocol === 'firebase_rest') {
+                                await fetch(endpoint, {
+                                    method: 'PUT',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ payload: encryptedB64 })
+                                });
+                            } else if (AppState.syncProtocol === 'kvdb_rest') {
+                                await fetch(endpoint, {
+                                    method: 'POST',
+                                    body: encryptedB64
+                                });
+                            } else {
+                                await fetch(endpoint, {
+                                    method: 'POST',
+                                    body: encryptedB64
+                                });
+                            }
                         }
+                        setSyncStatus('updated', 'Synced across devices!');
+                    } catch (e) {
+                        console.error("Broadcast sync error", e);
+                        setSyncStatus('connected', 'Sync pending...');
                     }
                 }, 400);
             }
@@ -1340,8 +1404,7 @@
             elements.unlockModal.classList.add('active');
             elements.lockIcon.setAttribute('data-lucide', 'lock');
             elements.lockBtnText.textContent = 'Unlock';
-            elements.statusDot.className = 'status-dot locked';
-            elements.statusText.textContent = 'Locked';
+            setSyncStatus('locked', 'Locked');
             lucide.createIcons();
         }
 
