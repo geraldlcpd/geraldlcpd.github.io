@@ -5,7 +5,7 @@
 const APP_CONFIG = {
     VERSION: 'v1.8',
     BUILD_TIME: '2026-07-30 20:15:00',
-    AUTO_LOCK_MINUTES: 20, // Inactivity minutes before auto-locking (Format MM:SS displayed in header)
+    AUTO_LOCK_MINUTES: 30, // Inactivity minutes before auto-locking (Format MM:SS displayed in header)
     POLL_INTERVAL_MS: 10000, // Background HTTPS REST polling interval (10 seconds)
     DEFAULT_ROOM_CODE: 'apilog',
     DEFAULT_FIREBASE_URL: 'https://bdi-online-clipboard-default-rtdb.asia-southeast1.firebasedatabase.app',
@@ -1021,24 +1021,73 @@ function renderFileBucketView(page) {
             </div>
         `;
 
-        // Download file item
-        card.querySelector('.btn-download-file').addEventListener('click', (e) => {
+        // Download & Decrypt file item
+        card.querySelector('.btn-download-file').addEventListener('click', async (e) => {
             e.stopPropagation();
-            if (fileItem.dataUrl) {
-                const a = document.createElement('a');
-                a.href = fileItem.dataUrl;
-                a.download = fileItem.name || 'attachment';
-                a.click();
-            } else if (fileItem.url) {
-                window.open(fileItem.url, '_blank');
-            } else {
-                showToast("File URL unavailable.");
+            try {
+                if (fileItem.encryptedPayload) {
+                    // Decrypt local or inline payload
+                    const decryptedStr = await CryptoEngine.decryptPayload(fileItem.encryptedPayload, AppState.masterKey);
+                    if (decryptedStr) {
+                        const a = document.createElement('a');
+                        a.href = decryptedStr;
+                        a.download = fileItem.name || 'attachment';
+                        a.click();
+                    }
+                } else if (fileItem.url) {
+                    showToast("Downloading & decrypting file...");
+                    const res = await fetch(fileItem.url, {
+                        headers: fileItem.provider === 'supabase_storage' ? {
+                            'apikey': APP_CONFIG.DEFAULT_SUPABASE_ANON_KEY,
+                            'Authorization': `Bearer ${APP_CONFIG.DEFAULT_SUPABASE_ANON_KEY}`
+                        } : {}
+                    });
+
+                    if (!res.ok) throw new Error(`Download failed HTTP ${res.status}`);
+                    const encryptedCipher = await res.text();
+                    const decryptedDataUrl = await CryptoEngine.decryptPayload(encryptedCipher, AppState.masterKey);
+
+                    if (decryptedDataUrl) {
+                        const a = document.createElement('a');
+                        a.href = decryptedDataUrl;
+                        a.download = fileItem.name || 'attachment';
+                        a.click();
+                        showToast("Decrypted and saved file!");
+                    } else {
+                        throw new Error("Decryption failed. Check room key.");
+                    }
+                } else if (fileItem.dataUrl) {
+                    const a = document.createElement('a');
+                    a.href = fileItem.dataUrl;
+                    a.download = fileItem.name || 'attachment';
+                    a.click();
+                } else {
+                    showToast("File URL unavailable.");
+                }
+            } catch (err) {
+                showErrorModal("Download & Decrypt Error", err.message);
             }
         });
 
         // Delete file item
-        card.querySelector('.btn-delete-file').addEventListener('click', (e) => {
+        card.querySelector('.btn-delete-file').addEventListener('click', async (e) => {
             e.stopPropagation();
+
+            // Perform remote delete if Supabase Storage
+            if (fileItem.provider === 'supabase_storage' && fileItem.remotePath) {
+                try {
+                    const baseUrl = (APP_CONFIG.DEFAULT_SUPABASE_URL || '').replace(/\/+$/, '');
+                    const deleteEndpoint = `${baseUrl}/storage/v1/object/${APP_CONFIG.DEFAULT_SUPABASE_BUCKET}/${encodeURIComponent(fileItem.remotePath)}`;
+                    await fetch(deleteEndpoint, {
+                        method: 'DELETE',
+                        headers: {
+                            'apikey': APP_CONFIG.DEFAULT_SUPABASE_ANON_KEY,
+                            'Authorization': `Bearer ${APP_CONFIG.DEFAULT_SUPABASE_ANON_KEY}`
+                        }
+                    });
+                } catch (e) { }
+            }
+
             page.files = page.files.filter(f => f.id !== fileItem.id);
             renderFileBucketView(page);
             SyncManager.broadcastState();
@@ -1063,27 +1112,76 @@ async function addFileAttachmentToBucket(file) {
     try {
         const reader = new FileReader();
         reader.onload = async (e) => {
-            const dataUrl = e.target.result;
-            const sizeKB = Math.round(dataUrl.length / 1024);
+            const rawDataUrl = e.target.result;
+            const sizeKB = Math.round(rawDataUrl.length / 1024);
+            const fileId = 'file_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
+            const fileNameOnStore = `${AppState.roomCode}/${fileId}.bin`;
 
-            const newFile = {
-                id: 'file_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
+            // 1. Encrypt raw file DataURL in browser memory with AES-256-GCM
+            const encryptedCipher = await CryptoEngine.encryptPayload(rawDataUrl, AppState.masterKey);
+
+            let fileRecord = {
+                id: fileId,
                 name: file.name,
                 mimeType: file.type || 'application/octet-stream',
                 sizeKB: sizeKB,
                 provider: activeProvider,
-                dataUrl: dataUrl,
                 timestamp: Date.now()
             };
 
-            page.files.unshift(newFile);
+            if (activeProvider === 'supabase_storage') {
+                // Direct HTTP upload to Supabase Storage REST endpoint
+                const baseUrl = (APP_CONFIG.DEFAULT_SUPABASE_URL || '').replace(/\/+$/, '').replace(/\/storage\/v1\/s3$/, '');
+                const uploadEndpoint = `${baseUrl}/storage/v1/object/${APP_CONFIG.DEFAULT_SUPABASE_BUCKET}/${fileNameOnStore}`;
+
+                const uploadRes = await fetch(uploadEndpoint, {
+                    method: 'POST',
+                    headers: {
+                        'apikey': APP_CONFIG.DEFAULT_SUPABASE_ANON_KEY,
+                        'Authorization': `Bearer ${APP_CONFIG.DEFAULT_SUPABASE_ANON_KEY}`,
+                        'Content-Type': 'text/plain',
+                        'x-upsert': 'true'
+                    },
+                    body: encryptedCipher
+                });
+
+                if (!uploadRes.ok) {
+                    const errText = await uploadRes.text();
+                    throw new Error(`Supabase Storage upload failed (${uploadRes.status}): ${errText}`);
+                }
+
+                // Construct Public / Signed GET Download URL
+                fileRecord.remotePath = fileNameOnStore;
+                fileRecord.url = `${baseUrl}/storage/v1/object/public/${APP_CONFIG.DEFAULT_SUPABASE_BUCKET}/${fileNameOnStore}`;
+            } else if (activeProvider === 'catbox') {
+                // Direct FormData upload to Catbox API
+                const formData = new FormData();
+                formData.append('reqtype', 'fileupload');
+                formData.append('fileToUpload', new Blob([encryptedCipher], { type: 'text/plain' }), `${fileId}.bin`);
+
+                const catboxRes = await fetch('https://catbox.moe/user/api.php', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (catboxRes.ok) {
+                    fileRecord.url = (await catboxRes.text()).trim();
+                } else {
+                    fileRecord.encryptedPayload = encryptedCipher;
+                }
+            } else {
+                // Firebase RTDB Inline Payload Fallback
+                fileRecord.encryptedPayload = encryptedCipher;
+            }
+
+            page.files.unshift(fileRecord);
             renderFileBucketView(page);
             SyncManager.broadcastState();
-            showToast(`Attached ${file.name} (${sizeKB} KB)!`);
+            showToast(`Uploaded & attached ${file.name} (${sizeKB} KB)!`);
         };
         reader.readAsDataURL(file);
     } catch (err) {
-        showErrorModal("File Processing Error", err.message);
+        showErrorModal("File Upload Error", err.message);
     }
 }
 
