@@ -8,7 +8,10 @@ const APP_CONFIG = {
     AUTO_LOCK_MINUTES: 20, // Inactivity minutes before auto-locking (Format MM:SS displayed in header)
     POLL_INTERVAL_MS: 10000, // Background HTTPS REST polling interval (10 seconds)
     DEFAULT_ROOM_CODE: 'apilog',
-    DEFAULT_FIREBASE_URL: 'https://bdi-online-clipboard-default-rtdb.asia-southeast1.firebasedatabase.app'
+    DEFAULT_FIREBASE_URL: 'https://bdi-online-clipboard-default-rtdb.asia-southeast1.firebasedatabase.app',
+    DEFAULT_SUPABASE_URL: 'https://<your-supabase-project-id>.supabase.co',
+    DEFAULT_SUPABASE_ANON_KEY: '<your-supabase-anon-key>',
+    DEFAULT_SUPABASE_BUCKET: 'clipboard-files'
 };
 
 const VERIFY_MAGIC_TOKEN = "ROOM_VERIFY_VALID_2026";
@@ -969,6 +972,7 @@ function renderFileBucketView(page) {
     if (elements.badgeBucketProvider) {
         const providerNames = {
             firebase_rtdb: 'Firebase RTDB (Inline Sub-nodes)',
+            supabase_storage: 'Supabase Storage (Free Plan Bucket)',
             firebase_storage: 'Firebase Storage (GCS Bucket)',
             catbox: 'Catbox.moe (Public Free Host)',
             custom_r2: 'Cloudflare R2 / Custom Presigned API'
