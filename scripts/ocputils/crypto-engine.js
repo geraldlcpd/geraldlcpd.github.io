@@ -41,6 +41,16 @@ class CryptoEngine {
         }
     }
 
+    static bytesToBase64(uint8Array) {
+        let binary = '';
+        const len = uint8Array.byteLength;
+        const CHUNK_SIZE = 0x8000; // 32KB chunk limit for stack safety
+        for (let i = 0; i < len; i += CHUNK_SIZE) {
+            binary += String.fromCharCode.apply(null, uint8Array.subarray(i, i + CHUNK_SIZE));
+        }
+        return btoa(binary);
+    }
+
     static async encryptPayload(plainText, key) {
         const enc = new TextEncoder();
         const iv = crypto.getRandomValues(new Uint8Array(12));
@@ -54,15 +64,20 @@ class CryptoEngine {
         combined.set(iv, 0);
         combined.set(new Uint8Array(encrypted), iv.length);
 
-        return btoa(String.fromCharCode.apply(null, combined));
+        return CryptoEngine.bytesToBase64(combined);
     }
 
     static async decryptPayload(cipherTextB64, key) {
         try {
-            const combined = new Uint8Array(atob(cipherTextB64).split("").map(c => c.charCodeAt(0)));
-            if (combined.length < 13) return null;
-            const iv = combined.slice(0, 12);
-            const data = combined.slice(12);
+            const binaryStr = atob(cipherTextB64);
+            const len = binaryStr.length;
+            if (len < 13) return null;
+            const combined = new Uint8Array(len);
+            for (let i = 0; i < len; i++) {
+                combined[i] = binaryStr.charCodeAt(i);
+            }
+            const iv = combined.subarray(0, 12);
+            const data = combined.subarray(12);
 
             const decrypted = await crypto.subtle.decrypt(
                 { name: "AES-GCM", iv: iv },
