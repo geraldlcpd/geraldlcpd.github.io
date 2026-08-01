@@ -221,6 +221,37 @@
                         <!-- Dynamically Populated Image Cards -->
                     </div>
                 </div>
+
+                <!-- File Bucket Page View -->
+                <div class="image-gallery-container" id="fileBucketContainer" style="display: none;">
+                    <!-- Storage Provider Selection Bar -->
+                    <div style="display: flex; align-items: center; justify-content: space-between; background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 8px 12px; gap: 10px; flex-wrap: wrap;">
+                        <div style="display: flex; align-items: center; gap: 8px; font-size: 0.78rem;">
+                            <i data-lucide="cloud" style="width: 14px; height: 14px; color: var(--accent-cyan);"></i>
+                            <span style="color: var(--text-muted); font-weight: 500;">Active Hosting Provider:</span>
+                            <select class="select-input" id="selectBucketProvider" style="padding: 4px 8px; font-size: 0.78rem; width: auto; background: var(--bg-surface-elevated);">
+                                <option value="firebase_rtdb">Firebase RTDB (Inline Sub-nodes)</option>
+                                <option value="firebase_storage">Firebase Storage (GCS Bucket)</option>
+                                <option value="catbox" selected>Catbox.moe (Public Free Host)</option>
+                                <option value="custom_r2">Cloudflare R2 / Custom Presigned API</option>
+                            </select>
+                        </div>
+                        <span class="badge" style="background: rgba(56, 189, 248, 0.15); color: var(--accent-cyan); border: 1px solid rgba(56, 189, 248, 0.3); font-size: 0.72rem;" id="badgeBucketProvider">
+                            E2E AES-256 Encrypted Uploads
+                        </span>
+                    </div>
+
+                    <div class="image-dropzone" id="fileDropzone" style="border-color: rgba(56, 189, 248, 0.4);">
+                        <i data-lucide="upload-cloud" style="width: 32px; height: 32px; color: var(--accent-cyan);"></i>
+                        <div style="font-weight: 600; font-size: 0.9rem; color: var(--text-main);">Drop files here or click to attach</div>
+                        <div style="font-size: 0.75rem;" id="fileDropzoneDesc">Supports any file up to 50MB. Files are AES-256 encrypted before upload.</div>
+                    </div>
+                    <input type="file" id="bucketFileInput" multiple style="display: none;">
+
+                    <div class="image-gallery-grid" id="fileBucketGrid">
+                        <!-- Dynamically Populated File Attachment Cards -->
+                    </div>
+                </div>
             </div>
 
             <!-- Dynamic Information / Stats Bar -->
@@ -502,6 +533,14 @@
                     <div style="flex: 1; min-width: 0;">
                         <div style="font-weight: 600; color: var(--text-main); margin-bottom: 2px;">Image Gallery Page</div>
                         <div style="font-size: 0.72rem; color: var(--text-muted); white-space: normal; line-height: 1.35;">Store pasted screenshots & uploaded images auto-compressed to 720p.</div>
+                    </div>
+                </button>
+
+                <button class="btn btn-secondary" id="btnChooseFilePage" style="justify-content: flex-start; padding: 12px; gap: 12px; height: auto; text-align: left; border-color: rgba(56, 189, 248, 0.4);">
+                    <i data-lucide="folder-archive" style="width: 20px; height: 20px; color: var(--accent-cyan); flex-shrink: 0;"></i>
+                    <div style="flex: 1; min-width: 0;">
+                        <div style="font-weight: 600; color: var(--text-main); margin-bottom: 2px;">File Bucket Page</div>
+                        <div style="font-size: 0.72rem; color: var(--text-muted); white-space: normal; line-height: 1.35;">Store encrypted file attachments with multi-provider host selection.</div>
                     </div>
                 </button>
             </div>

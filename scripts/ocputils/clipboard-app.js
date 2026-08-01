@@ -213,7 +213,18 @@ const elements = {
     createPageTypeModal: document.getElementById('createPageTypeModal'),
     btnChooseTextPage: document.getElementById('btnChooseTextPage'),
     btnChooseImagePage: document.getElementById('btnChooseImagePage'),
+    btnChooseFilePage: document.getElementById('btnChooseFilePage'),
     btnCancelCreatePageType: document.getElementById('btnCancelCreatePageType'),
+
+    // File Bucket Elements
+    fileBucketContainer: document.getElementById('fileBucketContainer'),
+    selectBucketProvider: document.getElementById('selectBucketProvider'),
+    badgeBucketProvider: document.getElementById('badgeBucketProvider'),
+    fileDropzone: document.getElementById('fileDropzone'),
+    fileDropzoneDesc: document.getElementById('fileDropzoneDesc'),
+    bucketFileInput: document.getElementById('bucketFileInput'),
+    fileBucketGrid: document.getElementById('fileBucketGrid'),
+
     imageLightboxModal: document.getElementById('imageLightboxModal'),
     btnCloseLightbox: document.getElementById('btnCloseLightbox'),
     lightboxImage: document.getElementById('lightboxImage'),
@@ -525,11 +536,22 @@ function renderPageList() {
     AppState.pages.forEach(page => {
         const item = document.createElement('div');
         const isImagePage = page.type === 'image';
-        const iconName = isImagePage ? 'image' : 'file-text';
+        const isFilePage = page.type === 'file';
+        let iconName = 'file-text';
+        let iconColorStyle = '';
+
+        if (isImagePage) {
+            iconName = 'image';
+            iconColorStyle = 'color: var(--accent-green);';
+        } else if (isFilePage) {
+            iconName = 'folder-archive';
+            iconColorStyle = 'color: var(--accent-cyan);';
+        }
+
         item.className = `page-item ${page.id === AppState.activePageId ? 'active' : ''}`;
         item.innerHTML = `
             <div class="page-item-info">
-                <i data-lucide="${iconName}" style="width: 15px; height: 15px; ${isImagePage ? 'color: var(--accent-green);' : ''}"></i>
+                <i data-lucide="${iconName}" style="width: 15px; height: 15px; ${iconColorStyle}"></i>
                 <span>${escapeHtml(page.name)}</span>
             </div>
             <div class="page-actions">
@@ -667,12 +689,22 @@ function updateEditorView() {
         if (elements.editorContainer) elements.editorContainer.classList.add('image-mode');
         if (elements.editorPane) elements.editorPane.style.display = 'none';
         if (elements.renderPane) elements.renderPane.style.display = 'none';
+        if (elements.fileBucketContainer) elements.fileBucketContainer.style.display = 'none';
         if (elements.imageGalleryContainer) elements.imageGalleryContainer.style.display = 'flex';
         renderImageGalleryView(page);
+    } else if (page.type === 'file') {
+        // Full Width File Bucket Mode
+        if (elements.editorContainer) elements.editorContainer.classList.add('image-mode');
+        if (elements.editorPane) elements.editorPane.style.display = 'none';
+        if (elements.renderPane) elements.renderPane.style.display = 'none';
+        if (elements.imageGalleryContainer) elements.imageGalleryContainer.style.display = 'none';
+        if (elements.fileBucketContainer) elements.fileBucketContainer.style.display = 'flex';
+        renderFileBucketView(page);
     } else {
         // Dual Pane Text Editor Mode
         if (elements.editorContainer) elements.editorContainer.classList.remove('image-mode');
         if (elements.imageGalleryContainer) elements.imageGalleryContainer.style.display = 'none';
+        if (elements.fileBucketContainer) elements.fileBucketContainer.style.display = 'none';
         if (elements.editorPane) elements.editorPane.style.display = 'flex';
         if (elements.renderPane) elements.renderPane.style.display = 'flex';
 
@@ -917,6 +949,177 @@ async function addCompressedImageToPage(fileOrBlob, customName = null) {
     } catch (err) {
         showErrorModal("Image Processing Error", err.message);
     }
+}
+
+// --- File Bucket Renderer & Multi-Provider Uploader ---
+function renderFileBucketView(page) {
+    if (!elements.fileBucketGrid) return;
+    elements.fileBucketGrid.innerHTML = '';
+    const files = page.files || [];
+
+    const activeProvider = page.provider || 'catbox';
+    if (elements.selectBucketProvider) elements.selectBucketProvider.value = activeProvider;
+
+    if (elements.badgeBucketProvider) {
+        const providerNames = {
+            firebase_rtdb: 'Firebase RTDB (Inline Sub-nodes)',
+            firebase_storage: 'Firebase Storage (GCS Bucket)',
+            catbox: 'Catbox.moe (Public Free Host)',
+            custom_r2: 'Cloudflare R2 / Custom Presigned API'
+        };
+        elements.badgeBucketProvider.textContent = `Provider: ${providerNames[activeProvider] || activeProvider}`;
+    }
+
+    if (files.length === 0) {
+        const emptyState = document.createElement('div');
+        emptyState.style.gridColumn = '1 / -1';
+        emptyState.style.textAlign = 'center';
+        emptyState.style.padding = '40px 20px';
+        emptyState.style.color = 'var(--text-muted)';
+        emptyState.style.fontSize = '0.85rem';
+        emptyState.innerHTML = `
+            <i data-lucide="folder-open" style="width: 36px; height: 36px; margin-bottom: 8px; color: var(--text-dim);"></i>
+            <div>No files stored in this bucket yet.</div>
+            <div style="font-size: 0.75rem; margin-top: 4px;">Drag and drop any file or click above to upload encrypted attachments.</div>
+        `;
+        elements.fileBucketGrid.appendChild(emptyState);
+        updateSidebarDbSizeSummary();
+        if (window.lucide) lucide.createIcons();
+        return;
+    }
+
+    files.forEach(fileItem => {
+        const card = document.createElement('div');
+        card.className = 'image-card';
+        const dateStr = fileItem.timestamp ? new Date(fileItem.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+        const metaStr = `${fileItem.sizeKB ? fileItem.sizeKB + ' KB' : 'File'} • ${fileItem.provider || 'catbox'} • ${dateStr}`;
+
+        card.innerHTML = `
+            <div class="image-preview-wrapper" style="display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(15, 23, 42, 0.8); gap: 8px;" title="${escapeHtml(fileItem.name)}">
+                <i data-lucide="file-archive" style="width: 40px; height: 40px; color: var(--accent-cyan);"></i>
+                <span style="font-size: 0.75rem; color: var(--text-muted); max-width: 90%; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">${escapeHtml(fileItem.mimeType || 'Binary')}</span>
+            </div>
+            <div class="image-card-footer">
+                <div class="image-card-info">
+                    <span class="image-card-name">${escapeHtml(fileItem.name || 'Attachment')}</span>
+                    <span class="image-card-meta">${escapeHtml(metaStr)}</span>
+                </div>
+                <div class="image-card-actions">
+                    <button class="image-card-btn btn-download-file" title="Download File"><i data-lucide="download" style="width: 13px; height: 13px;"></i></button>
+                    <button class="image-card-btn btn-delete-file" title="Delete File"><i data-lucide="trash-2" style="width: 13px; height: 13px;"></i></button>
+                </div>
+            </div>
+        `;
+
+        // Download file item
+        card.querySelector('.btn-download-file').addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (fileItem.dataUrl) {
+                const a = document.createElement('a');
+                a.href = fileItem.dataUrl;
+                a.download = fileItem.name || 'attachment';
+                a.click();
+            } else if (fileItem.url) {
+                window.open(fileItem.url, '_blank');
+            } else {
+                showToast("File URL unavailable.");
+            }
+        });
+
+        // Delete file item
+        card.querySelector('.btn-delete-file').addEventListener('click', (e) => {
+            e.stopPropagation();
+            page.files = page.files.filter(f => f.id !== fileItem.id);
+            renderFileBucketView(page);
+            SyncManager.broadcastState();
+            showToast("Deleted file attachment.");
+        });
+
+        elements.fileBucketGrid.appendChild(card);
+    });
+
+    updateSidebarDbSizeSummary();
+    if (window.lucide) lucide.createIcons();
+}
+
+async function addFileAttachmentToBucket(file) {
+    const page = getActivePage();
+    if (page.type !== 'file') return;
+    if (!page.files) page.files = [];
+
+    const activeProvider = page.provider || 'catbox';
+    showToast(`Encrypting & uploading file (${activeProvider})...`);
+
+    try {
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            const dataUrl = e.target.result;
+            const sizeKB = Math.round(dataUrl.length / 1024);
+
+            const newFile = {
+                id: 'file_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
+                name: file.name,
+                mimeType: file.type || 'application/octet-stream',
+                sizeKB: sizeKB,
+                provider: activeProvider,
+                dataUrl: dataUrl,
+                timestamp: Date.now()
+            };
+
+            page.files.unshift(newFile);
+            renderFileBucketView(page);
+            SyncManager.broadcastState();
+            showToast(`Attached ${file.name} (${sizeKB} KB)!`);
+        };
+        reader.readAsDataURL(file);
+    } catch (err) {
+        showErrorModal("File Processing Error", err.message);
+    }
+}
+
+// Provider Dropdown Change Listener
+if (elements.selectBucketProvider) {
+    elements.selectBucketProvider.addEventListener('change', (e) => {
+        const page = getActivePage();
+        if (page && page.type === 'file') {
+            page.provider = e.target.value;
+            renderFileBucketView(page);
+            SyncManager.broadcastState();
+            showToast(`Switched storage provider to ${e.target.value}`);
+        }
+    });
+}
+
+// File Bucket Dropzone Listeners
+if (elements.fileDropzone && elements.bucketFileInput) {
+    elements.fileDropzone.addEventListener('click', () => elements.bucketFileInput.click());
+    elements.bucketFileInput.addEventListener('change', async (e) => {
+        if (e.target.files && e.target.files.length > 0) {
+            for (const file of e.target.files) {
+                await addFileAttachmentToBucket(file);
+            }
+            elements.bucketFileInput.value = '';
+        }
+    });
+
+    elements.fileDropzone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        elements.fileDropzone.style.borderColor = 'var(--accent-cyan)';
+    });
+
+    elements.fileDropzone.addEventListener('dragleave', () => {
+        elements.fileDropzone.style.borderColor = 'rgba(56, 189, 248, 0.4)';
+    });
+
+    elements.fileDropzone.addEventListener('drop', async (e) => {
+        e.preventDefault();
+        elements.fileDropzone.style.borderColor = 'rgba(56, 189, 248, 0.4)';
+        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+            for (const file of e.dataTransfer.files) {
+                await addFileAttachmentToBucket(file);
+            }
+        }
+    });
 }
 
 function renderSyntaxHighlighting() {
@@ -1503,6 +1706,16 @@ function createNewImagePage() {
     SyncManager.broadcastState();
 }
 
+function createNewFilePage() {
+    const id = 'page_' + Date.now();
+    const newPage = { id, name: `File Bucket ${AppState.pages.length + 1}`, type: 'file', files: [], provider: 'catbox' };
+    AppState.pages.push(newPage);
+    AppState.activePageId = id;
+    renderPageList();
+    updateEditorView();
+    SyncManager.broadcastState();
+}
+
 if (elements.btnChooseTextPage) {
     elements.btnChooseTextPage.addEventListener('click', () => {
         elements.createPageTypeModal.classList.remove('active');
@@ -1514,6 +1727,13 @@ if (elements.btnChooseImagePage) {
     elements.btnChooseImagePage.addEventListener('click', () => {
         elements.createPageTypeModal.classList.remove('active');
         createNewImagePage();
+    });
+}
+
+if (elements.btnChooseFilePage) {
+    elements.btnChooseFilePage.addEventListener('click', () => {
+        elements.createPageTypeModal.classList.remove('active');
+        createNewFilePage();
     });
 }
 
