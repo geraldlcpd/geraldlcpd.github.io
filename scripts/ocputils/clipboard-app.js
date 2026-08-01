@@ -9,9 +9,9 @@ const APP_CONFIG = {
     POLL_INTERVAL_MS: 10000, // Background HTTPS REST polling interval (10 seconds)
     DEFAULT_ROOM_CODE: 'apilog',
     DEFAULT_FIREBASE_URL: 'https://bdi-online-clipboard-default-rtdb.asia-southeast1.firebasedatabase.app',
-    DEFAULT_SUPABASE_URL: 'https://<your-supabase-project-id>.supabase.co',
-    DEFAULT_SUPABASE_ANON_KEY: '<your-supabase-anon-key>',
-    DEFAULT_SUPABASE_BUCKET: 'clipboard-files'
+    DEFAULT_SUPABASE_URL: 'https://slezydyzcokhfzeifkwa.storage.supabase.co/storage/v1/s3',
+    DEFAULT_SUPABASE_ANON_KEY: '1944573cea97e93e36ae1d99052da5f8011854b40bc032034f789852d8f22f71',
+    DEFAULT_SUPABASE_BUCKET: 'bdioc-bucket'
 };
 
 const VERIFY_MAGIC_TOKEN = "ROOM_VERIFY_VALID_2026";
@@ -34,8 +34,8 @@ if (window.mermaid) {
 if (window.marked) {
     marked.use({ gfm: true, breaks: true });
     const renderer = new marked.Renderer();
-    
-    renderer.code = function(code, language) {
+
+    renderer.code = function (code, language) {
         const lang = (language || '').trim().toLowerCase();
 
         if (lang === 'mermaid') {
@@ -47,7 +47,7 @@ if (window.marked) {
             try {
                 const highlighted = hljs.highlight(code, { language: lang }).value;
                 return `<pre><code class="hljs language-${lang}">${highlighted}</code></pre>`;
-            } catch(e){}
+            } catch (e) { }
         }
 
         return `<pre><code class="hljs">${escapeHtml(code)}</code></pre>`;
@@ -145,7 +145,7 @@ const elements = {
     customUrlContainer: document.getElementById('customUrlContainer'),
     customUrlLabel: document.getElementById('customUrlLabel'),
     inputCustomUrl: document.getElementById('inputCustomUrl'),
-    
+
     btnLockUnlock: document.getElementById('btnLockUnlock'),
     lockIcon: document.getElementById('lockIcon'),
     lockBtnText: document.getElementById('lockBtnText'),
@@ -160,7 +160,7 @@ const elements = {
     preContainer: document.getElementById('preContainer'),
     markdownRender: document.getElementById('markdownRender'),
     languageSelect: document.getElementById('languageSelect'),
-    
+
     btnFormatJson: document.getElementById('btnFormatJson'),
     btnCopyContent: document.getElementById('btnCopyContent'),
     btnDownloadContent: document.getElementById('btnDownloadContent'),
@@ -445,7 +445,7 @@ async function fetchExistingRooms() {
                 });
             }
         }
-    } catch(e) {}
+    } catch (e) { }
 }
 
 if (elements.selectExistingRoom) {
@@ -523,7 +523,7 @@ async function checkDomainPasskeyRegistration(roomCode) {
                 }
             }
         }
-    } catch(e){}
+    } catch (e) { }
 
     // Passkey ALREADY exists for this domain -> hide warning box and hide + Domain Passkey button
     elements.domainWarningContainer.style.display = 'none';
@@ -786,7 +786,7 @@ function compressImageTo720p(fileOrBlobInput, targetMaxDim = 720) {
                     if (testUrl.startsWith('data:image/avif')) {
                         format = 'image/avif';
                     }
-                } catch (e) {}
+                } catch (e) { }
 
                 const quality = format === 'image/avif' ? 0.65 : 0.70;
                 const compressedDataUrl = canvas.toDataURL(format, quality);
@@ -945,7 +945,7 @@ async function addCompressedImageToPage(fileOrBlob, customName = null) {
     try {
         const compressed = await compressImageTo720p(fileOrBlob, targetRes);
         const newImg = {
-            id: 'img_' + Date.now() + '_' + Math.floor(Math.random()*1000),
+            id: 'img_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
             name: customName || `Image #${page.images.length + 1}`,
             dataUrl: compressed.dataUrl,
             sizeKB: compressed.sizeKB,
@@ -1229,7 +1229,7 @@ function renderSyntaxHighlighting() {
             setTimeout(() => {
                 try {
                     mermaid.run({ querySelector: '.mermaid' });
-                } catch(e) {}
+                } catch (e) { }
             }, 50);
         }
     } else {
@@ -1318,7 +1318,7 @@ async function authenticateWithPassphrase(isActiveRoomUnlock = false) {
         try {
             const res = await fetch(metaEndpoint, { cache: 'no-store' });
             if (res.ok) roomMeta = await res.json();
-        } catch(e){}
+        } catch (e) { }
 
         // 2. Perform Passphrase Verification if verification token exists
         if (roomMeta && roomMeta.passphraseVerify) {
@@ -1342,7 +1342,7 @@ async function authenticateWithPassphrase(isActiveRoomUnlock = false) {
                         }
                     }
                 }
-            } catch(e){}
+            } catch (e) { }
 
             // Auto-upgrade Legacy Room by saving passphraseVerify to DB
             CryptoEngine.createVerificationToken(passphrase, roomCode).then(verifyToken => {
@@ -1358,7 +1358,7 @@ async function authenticateWithPassphrase(isActiveRoomUnlock = false) {
         const key = await CryptoEngine.deriveKeyFromPassword(passphrase, roomCode);
         completeUnlock(roomCode, key, protocol, customUrl, false);
         showToast("Authenticated via Passphrase!");
-    } catch(e) {
+    } catch (e) {
         showErrorModal("Authentication Error", e.message);
     } finally {
         setButtonLoadingState(btn, false);
@@ -1408,7 +1408,7 @@ async function addDomainPasskey() {
         await PasskeyManager.registerPasskeyForCurrentDomain(AppState.roomCode, AppState.masterKey);
         showToast(`Passkey registered for ${currentDomain}!`);
         checkDomainPasskeyRegistration(AppState.roomCode);
-    } catch(e) {
+    } catch (e) {
         showErrorModal("Passkey Registration Failed", e.message);
     }
 }
@@ -1587,7 +1587,7 @@ async function updateRoomInfoModal() {
                 });
             }
         }
-    } catch(e){}
+    } catch (e) { }
 
     const validCreds = passkeyEntries.filter(entry => entry.rpId === currentDomain);
     const hasPasskey = validCreds.length > 0;
@@ -1698,7 +1698,7 @@ if (elements.btnSaveResetPassphrase) {
 
         try {
             setButtonLoadingState(elements.btnSaveResetPassphrase, true, "Updating...");
-            
+
             // 1. Derive new master encryption key from new passphrase
             const newMasterKey = await CryptoEngine.deriveKeyFromPassword(newPassphrase, AppState.roomCode);
 
@@ -2045,8 +2045,8 @@ if (elements.btnToggleSidebar) {
 // Close sidebar on mobile when clicking outside
 document.addEventListener('click', (e) => {
     if (window.innerWidth <= 868) {
-        if (elements.sidebar && elements.sidebar.classList.contains('open') && 
-            !elements.sidebar.contains(e.target) && 
+        if (elements.sidebar && elements.sidebar.classList.contains('open') &&
+            !elements.sidebar.contains(e.target) &&
             elements.btnToggleSidebar && !elements.btnToggleSidebar.contains(e.target)) {
             elements.sidebar.classList.remove('open');
         }

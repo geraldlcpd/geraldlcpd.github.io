@@ -996,7 +996,6 @@ textarea.code-editor {
 }
 
 .editor-container.image-mode .image-gallery-container {
-    display: flex !important;
     grid-column: 1 / -1;
     width: 100%;
 }
