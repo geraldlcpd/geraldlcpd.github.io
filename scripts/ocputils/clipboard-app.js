@@ -427,25 +427,22 @@ if (elements.btnManualRefresh) {
 
 // Fetch Existing Rooms from Database
 async function fetchExistingRooms() {
-    let customVal = elements.inputCustomUrl ? elements.inputCustomUrl.value.trim() : '';
-    const base = (customVal || AppState.customUrl || APP_CONFIG.DEFAULT_FIREBASE_URL).trim().replace(/\/+$/, '').replace(/\/rooms\/.*$/, '');
+    const base = (elements.inputCustomUrl.value || AppState.customUrl).trim().replace(/\/+$/, '').replace(/\/rooms\/.*$/, '');
     if (!base) return;
 
     try {
         const res = await fetch(`${base}/rooms.json?shallow=true`, { cache: 'no-store' });
         if (res.ok) {
             const data = await res.json();
-            if (data && typeof data === 'object') {
-                if (elements.selectExistingRoom) {
-                    elements.selectExistingRoom.innerHTML = '<option value="">-- Select Existing Room --</option>';
-                    Object.keys(data).forEach(room => {
-                        const opt = document.createElement('option');
-                        opt.value = room;
-                        opt.textContent = `Room: ${room}`;
-                        if (elements.inputRoomCode && room === elements.inputRoomCode.value.trim()) opt.selected = true;
-                        elements.selectExistingRoom.appendChild(opt);
-                    });
-                }
+            if (data) {
+                elements.selectExistingRoom.innerHTML = '<option value="">-- Select Existing Room --</option>';
+                Object.keys(data).forEach(room => {
+                    const opt = document.createElement('option');
+                    opt.value = room;
+                    opt.textContent = `Room: ${room}`;
+                    if (room === elements.inputRoomCode.value) opt.selected = true;
+                    elements.selectExistingRoom.appendChild(opt);
+                });
             }
         }
     } catch (e) { }
