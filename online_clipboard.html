@@ -224,7 +224,7 @@
 
                 <!-- File Bucket Page View -->
                 <div class="image-gallery-container" id="fileBucketContainer" style="display: none;">
-                    <!-- Storage Provider Selection Bar -->
+                    <!-- Storage Provider Selection & Manual Enable Bar -->
                     <div style="display: flex; align-items: center; justify-content: space-between; background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 8px 12px; gap: 10px; flex-wrap: wrap;">
                         <div style="display: flex; align-items: center; gap: 8px; font-size: 0.78rem;">
                             <i data-lucide="cloud" style="width: 14px; height: 14px; color: var(--accent-cyan);"></i>
@@ -236,15 +236,16 @@
                                 <option value="custom_r2">Cloudflare R2 / Custom Presigned API</option>
                             </select>
                         </div>
-                        <span class="badge" style="background: rgba(56, 189, 248, 0.15); color: var(--accent-cyan); border: 1px solid rgba(56, 189, 248, 0.3); font-size: 0.72rem;" id="badgeBucketProvider">
-                            E2E AES-256 Encrypted Uploads
-                        </span>
+                        <button class="btn btn-secondary" id="btnToggleEnableUploads" style="padding: 5px 12px; font-size: 0.76rem; border-color: rgba(244, 63, 94, 0.4); color: var(--accent-rose);">
+                            <i data-lucide="shield-alert" style="width: 13px; height: 13px;" id="iconUploadStatus"></i>
+                            <span id="textToggleUploads">Enable File Uploads (Disabled by Default)</span>
+                        </button>
                     </div>
 
-                    <div class="image-dropzone" id="fileDropzone" style="border-color: rgba(56, 189, 248, 0.4);">
-                        <i data-lucide="upload-cloud" style="width: 32px; height: 32px; color: var(--accent-cyan);"></i>
-                        <div style="font-weight: 600; font-size: 0.9rem; color: var(--text-main);">Drop files here or click to attach</div>
-                        <div style="font-size: 0.75rem;" id="fileDropzoneDesc">Supports any file up to 50MB. Files are AES-256 encrypted before upload.</div>
+                    <div class="image-dropzone" id="fileDropzone" style="border-color: rgba(244, 63, 94, 0.3); background: rgba(15, 23, 42, 0.4); cursor: not-allowed;">
+                        <i data-lucide="lock" style="width: 32px; height: 32px; color: var(--accent-rose);" id="iconFileDropzone"></i>
+                        <div style="font-weight: 600; font-size: 0.9rem; color: var(--text-muted);" id="titleFileDropzone">Uploads Disabled for Corporate Compliance</div>
+                        <div style="font-size: 0.75rem; color: var(--text-dim);" id="fileDropzoneDesc">Click "Enable File Uploads" above to unlock dropzone & attach files.</div>
                     </div>
                     <input type="file" id="bucketFileInput" multiple style="display: none;">
 

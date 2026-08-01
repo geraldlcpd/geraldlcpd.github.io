@@ -77,7 +77,8 @@ const AppState = {
     resetBadgeTimer: null,
     tabInactiveTimer: null,
     isTabPollingPaused: false,
-    isInitialLoaded: false
+    isInitialLoaded: false,
+    isFileUploadEnabled: false // Disabled on load for corporate firewall safety
 };
 
 // --- DOM Elements ---
@@ -220,6 +221,11 @@ const elements = {
     fileBucketContainer: document.getElementById('fileBucketContainer'),
     selectBucketProvider: document.getElementById('selectBucketProvider'),
     badgeBucketProvider: document.getElementById('badgeBucketProvider'),
+    btnToggleEnableUploads: document.getElementById('btnToggleEnableUploads'),
+    textToggleUploads: document.getElementById('textToggleUploads'),
+    iconUploadStatus: document.getElementById('iconUploadStatus'),
+    titleFileDropzone: document.getElementById('titleFileDropzone'),
+    iconFileDropzone: document.getElementById('iconFileDropzone'),
     fileDropzone: document.getElementById('fileDropzone'),
     fileDropzoneDesc: document.getElementById('fileDropzoneDesc'),
     bucketFileInput: document.getElementById('bucketFileInput'),
@@ -1090,10 +1096,85 @@ if (elements.selectBucketProvider) {
     });
 }
 
+function updateFileUploadUIState() {
+    if (!elements.fileDropzone) return;
+
+    if (AppState.isFileUploadEnabled) {
+        // Uploads Unlocked by User
+        elements.fileDropzone.style.borderColor = 'rgba(56, 189, 248, 0.5)';
+        elements.fileDropzone.style.background = 'rgba(15, 23, 42, 0.8)';
+        elements.fileDropzone.style.cursor = 'pointer';
+
+        if (elements.titleFileDropzone) {
+            elements.titleFileDropzone.textContent = 'Drop files here or click to attach';
+            elements.titleFileDropzone.style.color = 'var(--text-main)';
+        }
+        if (elements.fileDropzoneDesc) {
+            elements.fileDropzoneDesc.textContent = 'Supports any file up to 50MB. Files are AES-256 encrypted before upload.';
+            elements.fileDropzoneDesc.style.color = 'var(--text-muted)';
+        }
+        if (elements.textToggleUploads) elements.textToggleUploads.textContent = 'Uploads Enabled (Click to Lock)';
+        if (elements.btnToggleEnableUploads) {
+            elements.btnToggleEnableUploads.style.borderColor = 'rgba(16, 185, 129, 0.4)';
+            elements.btnToggleEnableUploads.style.color = 'var(--accent-green)';
+        }
+        if (elements.iconUploadStatus) elements.iconUploadStatus.setAttribute('data-lucide', 'shield-check');
+        if (elements.iconFileDropzone) {
+            elements.iconFileDropzone.setAttribute('data-lucide', 'upload-cloud');
+            elements.iconFileDropzone.style.color = 'var(--accent-cyan)';
+        }
+    } else {
+        // Uploads Locked (Default on Load)
+        elements.fileDropzone.style.borderColor = 'rgba(244, 63, 94, 0.3)';
+        elements.fileDropzone.style.background = 'rgba(15, 23, 42, 0.4)';
+        elements.fileDropzone.style.cursor = 'not-allowed';
+
+        if (elements.titleFileDropzone) {
+            elements.titleFileDropzone.textContent = 'Uploads Disabled for Corporate Compliance';
+            elements.titleFileDropzone.style.color = 'var(--text-muted)';
+        }
+        if (elements.fileDropzoneDesc) {
+            elements.fileDropzoneDesc.textContent = 'Click "Enable File Uploads" above to unlock dropzone & attach files.';
+            elements.fileDropzoneDesc.style.color = 'var(--text-dim)';
+        }
+        if (elements.textToggleUploads) elements.textToggleUploads.textContent = 'Enable File Uploads (Disabled by Default)';
+        if (elements.btnToggleEnableUploads) {
+            elements.btnToggleEnableUploads.style.borderColor = 'rgba(244, 63, 94, 0.4)';
+            elements.btnToggleEnableUploads.style.color = 'var(--accent-rose)';
+        }
+        if (elements.iconUploadStatus) elements.iconUploadStatus.setAttribute('data-lucide', 'shield-alert');
+        if (elements.iconFileDropzone) {
+            elements.iconFileDropzone.setAttribute('data-lucide', 'lock');
+            elements.iconFileDropzone.style.color = 'var(--accent-rose)';
+        }
+    }
+    if (window.lucide) lucide.createIcons();
+}
+
+if (elements.btnToggleEnableUploads) {
+    elements.btnToggleEnableUploads.addEventListener('click', () => {
+        AppState.isFileUploadEnabled = !AppState.isFileUploadEnabled;
+        updateFileUploadUIState();
+        if (AppState.isFileUploadEnabled) {
+            showToast("File uploads enabled for this session.");
+        } else {
+            showToast("File uploads locked.");
+        }
+    });
+}
+
 // File Bucket Dropzone Listeners
 if (elements.fileDropzone && elements.bucketFileInput) {
-    elements.fileDropzone.addEventListener('click', () => elements.bucketFileInput.click());
+    elements.fileDropzone.addEventListener('click', () => {
+        if (!AppState.isFileUploadEnabled) {
+            showToast("Uploads disabled. Click 'Enable File Uploads' above first.");
+            return;
+        }
+        elements.bucketFileInput.click();
+    });
+
     elements.bucketFileInput.addEventListener('change', async (e) => {
+        if (!AppState.isFileUploadEnabled) return;
         if (e.target.files && e.target.files.length > 0) {
             for (const file of e.target.files) {
                 await addFileAttachmentToBucket(file);
@@ -1104,15 +1185,23 @@ if (elements.fileDropzone && elements.bucketFileInput) {
 
     elements.fileDropzone.addEventListener('dragover', (e) => {
         e.preventDefault();
-        elements.fileDropzone.style.borderColor = 'var(--accent-cyan)';
+        if (AppState.isFileUploadEnabled) {
+            elements.fileDropzone.style.borderColor = 'var(--accent-cyan)';
+        }
     });
 
     elements.fileDropzone.addEventListener('dragleave', () => {
-        elements.fileDropzone.style.borderColor = 'rgba(56, 189, 248, 0.4)';
+        if (AppState.isFileUploadEnabled) {
+            elements.fileDropzone.style.borderColor = 'rgba(56, 189, 248, 0.4)';
+        }
     });
 
     elements.fileDropzone.addEventListener('drop', async (e) => {
         e.preventDefault();
+        if (!AppState.isFileUploadEnabled) {
+            showToast("Uploads disabled. Click 'Enable File Uploads' above first.");
+            return;
+        }
         elements.fileDropzone.style.borderColor = 'rgba(56, 189, 248, 0.4)';
         if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
             for (const file of e.dataTransfer.files) {
