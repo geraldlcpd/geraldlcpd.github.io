@@ -1067,15 +1067,17 @@ function renderFileBucketView(page) {
             } catch (err) {
                 showErrorModal("Download & Decrypt Error", err.message);
             }
-               // Delete file item
+        });
+
+        // Delete file item
         card.querySelector('.btn-delete-file').addEventListener('click', async (e) => {
             e.stopPropagation();
 
-            // Perform remote delete if Supabase Storage S3
+            // Perform remote delete if Supabase Storage
             if (fileItem.provider === 'supabase_storage' && fileItem.remotePath) {
                 try {
-                    const s3BaseUrl = (APP_CONFIG.DEFAULT_SUPABASE_URL || '').replace(/\/+$/, '');
-                    const deleteEndpoint = `${s3BaseUrl}/${APP_CONFIG.DEFAULT_SUPABASE_BUCKET}/${encodeURIComponent(fileItem.remotePath)}`;
+                    const baseUrl = (APP_CONFIG.DEFAULT_SUPABASE_URL || '').replace(/\/+$/, '');
+                    const deleteEndpoint = `${baseUrl}/storage/v1/object/${APP_CONFIG.DEFAULT_SUPABASE_BUCKET}/${encodeURIComponent(fileItem.remotePath)}`;
                     await fetch(deleteEndpoint, {
                         method: 'DELETE',
                         headers: {
@@ -1083,7 +1085,7 @@ function renderFileBucketView(page) {
                             'Authorization': `Bearer ${APP_CONFIG.DEFAULT_SUPABASE_ANON_KEY}`
                         }
                     });
-                } catch(e){}
+                } catch (e) { }
             }
 
             page.files = page.files.filter(f => f.id !== fileItem.id);
@@ -1128,27 +1130,29 @@ async function addFileAttachmentToBucket(file) {
             };
 
             if (activeProvider === 'supabase_storage') {
-                // S3 Endpoint path style upload (PUT https://<ref>.storage.supabase.co/storage/v1/s3/<bucket>/<key>)
-                const s3Endpoint = (APP_CONFIG.DEFAULT_SUPABASE_URL || '').replace(/\/+$/, '');
-                const uploadUrl = `${s3Endpoint}/${APP_CONFIG.DEFAULT_SUPABASE_BUCKET}/${fileNameOnStore}`;
+                // Direct HTTP upload to Supabase Storage REST endpoint
+                const baseUrl = (APP_CONFIG.DEFAULT_SUPABASE_URL || '').replace(/\/+$/, '').replace(/\/storage\/v1\/s3$/, '');
+                const uploadEndpoint = `${baseUrl}/storage/v1/object/${APP_CONFIG.DEFAULT_SUPABASE_BUCKET}/${fileNameOnStore}`;
 
-                const uploadRes = await fetch(uploadUrl, {
-                    method: 'PUT',
+                const uploadRes = await fetch(uploadEndpoint, {
+                    method: 'POST',
                     headers: {
                         'apikey': APP_CONFIG.DEFAULT_SUPABASE_ANON_KEY,
                         'Authorization': `Bearer ${APP_CONFIG.DEFAULT_SUPABASE_ANON_KEY}`,
                         'Content-Type': 'text/plain',
-                        'x-amz-acl': 'public-read'
+                        'x-upsert': 'true'
                     },
                     body: encryptedCipher
                 });
 
                 if (!uploadRes.ok) {
                     const errText = await uploadRes.text();
-                    throw new Error(`Supabase S3 upload failed (${uploadRes.status}): ${errText}`);
+                    throw new Error(`Supabase Storage upload failed (${uploadRes.status}): ${errText}`);
                 }
 
+                // Construct Public / Signed GET Download URL
                 fileRecord.remotePath = fileNameOnStore;
+                fileRecord.url = `${baseUrl}/storage/v1/object/public/${APP_CONFIG.DEFAULT_SUPABASE_BUCKET}/${fileNameOnStore}`;
             } else if (activeProvider === 'catbox') {
                 // Direct FormData upload to Catbox API
                 const formData = new FormData();
