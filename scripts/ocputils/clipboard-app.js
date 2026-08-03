@@ -3,8 +3,8 @@
 // ==========================================
 
 const APP_CONFIG = {
-    VERSION: 'v1.9.1',
-    BUILD_TIME: '2026-08-03 10:46:00',
+    VERSION: 'v1.9.2',
+    BUILD_TIME: '2026-08-03 12:43:00',
     AUTO_LOCK_MINUTES: 30, // Inactivity minutes before auto-locking (Format MM:SS displayed in header)
     POLL_INTERVAL_MS: 10000, // Background HTTPS REST polling interval (10 seconds)
     DEFAULT_ROOM_CODE: 'apilog',
@@ -999,7 +999,7 @@ function renderFileBucketView(page) {
     elements.fileBucketGrid.innerHTML = '';
     const files = page.files || [];
 
-    const activeProvider = page.provider || 'catbox';
+    const activeProvider = page.provider || 'supabase_storage';
     if (elements.selectBucketProvider) elements.selectBucketProvider.value = activeProvider;
 
     if (elements.badgeBucketProvider) {
@@ -1035,7 +1035,7 @@ function renderFileBucketView(page) {
         const card = document.createElement('div');
         card.className = 'image-card';
         const dateStr = fileItem.timestamp ? new Date(fileItem.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
-        const metaStr = `${fileItem.sizeKB ? fileItem.sizeKB + ' KB' : 'File'} • ${fileItem.provider || 'catbox'} • ${dateStr}`;
+        const metaStr = `${fileItem.sizeKB ? fileItem.sizeKB + ' KB' : 'File'} • ${fileItem.provider || 'supabase_storage'} • ${dateStr}`;
 
         card.innerHTML = `
             <div class="image-preview-wrapper" style="display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(15, 23, 42, 0.8); gap: 8px;" title="${escapeHtml(fileItem.name)}">
@@ -1110,7 +1110,10 @@ function renderFileBucketView(page) {
             if (fileItem.provider === 'supabase_storage' && fileItem.remotePath) {
                 try {
                     const baseUrl = (APP_CONFIG.DEFAULT_SUPABASE_URL || '').replace(/\/+$/, '');
-                    const deleteEndpoint = `${baseUrl}/storage/v1/object/${APP_CONFIG.DEFAULT_SUPABASE_BUCKET}/${encodeURIComponent(fileItem.remotePath)}`;
+                    const isS3Endpoint = baseUrl.includes('/storage/v1/s3');
+                    const deleteEndpoint = isS3Endpoint
+                        ? `${baseUrl}/${APP_CONFIG.DEFAULT_SUPABASE_BUCKET}/${encodeURIComponent(fileItem.remotePath)}`
+                        : `${baseUrl}/storage/v1/object/${APP_CONFIG.DEFAULT_SUPABASE_BUCKET}/${encodeURIComponent(fileItem.remotePath)}`;
                     await fetch(deleteEndpoint, {
                         method: 'DELETE',
                         headers: {
@@ -1139,7 +1142,7 @@ async function addFileAttachmentToBucket(file) {
     if (page.type !== 'file') return;
     if (!page.files) page.files = [];
 
-    const activeProvider = page.provider || 'catbox';
+    const activeProvider = page.provider || 'supabase_storage';
     showToast(`Encrypting & uploading file (${activeProvider})...`);
 
     try {
@@ -1163,12 +1166,15 @@ async function addFileAttachmentToBucket(file) {
             };
 
             if (activeProvider === 'supabase_storage') {
-                // Direct HTTP upload to Supabase Storage REST endpoint
-                const baseUrl = (APP_CONFIG.DEFAULT_SUPABASE_URL || '').replace(/\/+$/, '').replace(/\/storage\/v1\/s3$/, '');
-                const uploadEndpoint = `${baseUrl}/storage/v1/object/${APP_CONFIG.DEFAULT_SUPABASE_BUCKET}/${fileNameOnStore}`;
+                // Direct HTTP upload to Supabase Storage endpoint
+                const baseUrl = (APP_CONFIG.DEFAULT_SUPABASE_URL || '').replace(/\/+$/, '');
+                const isS3Endpoint = baseUrl.includes('/storage/v1/s3');
+                const uploadEndpoint = isS3Endpoint
+                    ? `${baseUrl}/${APP_CONFIG.DEFAULT_SUPABASE_BUCKET}/${fileNameOnStore}`
+                    : `${baseUrl}/storage/v1/object/${APP_CONFIG.DEFAULT_SUPABASE_BUCKET}/${fileNameOnStore}`;
 
                 const uploadRes = await fetch(uploadEndpoint, {
-                    method: 'POST',
+                    method: isS3Endpoint ? 'PUT' : 'POST',
                     headers: {
                         'apikey': APP_CONFIG.DEFAULT_SUPABASE_ANON_KEY,
                         'Authorization': `Bearer ${APP_CONFIG.DEFAULT_SUPABASE_ANON_KEY}`,
@@ -1185,7 +1191,9 @@ async function addFileAttachmentToBucket(file) {
 
                 // Construct Public / Signed GET Download URL
                 fileRecord.remotePath = fileNameOnStore;
-                fileRecord.url = `${baseUrl}/storage/v1/object/public/${APP_CONFIG.DEFAULT_SUPABASE_BUCKET}/${fileNameOnStore}`;
+                fileRecord.url = isS3Endpoint
+                    ? `${baseUrl}/${APP_CONFIG.DEFAULT_SUPABASE_BUCKET}/${fileNameOnStore}`
+                    : `${baseUrl}/storage/v1/object/public/${APP_CONFIG.DEFAULT_SUPABASE_BUCKET}/${fileNameOnStore}`;
             } else if (activeProvider === 'catbox') {
                 // Direct FormData upload to Catbox API
                 const formData = new FormData();
