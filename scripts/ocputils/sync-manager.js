@@ -72,15 +72,6 @@ class SyncManager {
                 if (res.ok) {
                     const pagesData = await res.json();
                     if (pagesData && typeof pagesData === 'object' && Object.keys(pagesData).length > 0) {
-                        // Fetch images map if exists
-                        let imagesMap = {};
-                        try {
-                            const imgRes = await fetch(imagesEndpoint, { cache: 'no-store' });
-                            if (imgRes.ok) {
-                                imagesMap = (await imgRes.json()) || {};
-                            }
-                        } catch (e) {}
-
                         let latestTime = 0;
                         let assembledPages = [];
 
@@ -91,39 +82,25 @@ class SyncManager {
                                 if (decryptedStr) {
                                     const pageObj = JSON.parse(decryptedStr);
 
-                                    // If page is an image gallery, resolve sub-node images
+                                    // If page is an image gallery, resolve cached images from IndexedDB or preserve currently loaded images
                                     if (pageObj.type === 'image') {
-                                        let resolvedImages = [];
+                                        const existingPage = AppState.pages ? AppState.pages.find(p => p.id === pageObj.id) : null;
+                                        const existingImageMap = new Map();
+                                        if (existingPage && Array.isArray(existingPage.images)) {
+                                            existingPage.images.forEach(img => existingImageMap.set(img.id, img));
+                                        }
 
-                                        // Fallback / Backward Compatibility: check for inline images in legacy format
+                                        let resolvedImages = [];
                                         if (pageObj.images && Array.isArray(pageObj.images) && pageObj.images.length > 0 && pageObj.images[0].dataUrl) {
                                             resolvedImages = pageObj.images;
                                         } else if (pageObj.imageManifest && Array.isArray(pageObj.imageManifest)) {
-                                            // Resolve each image from sub-nodes or IndexedDB cache
                                             for (const imgId of pageObj.imageManifest) {
-                                                // 1. Check local IndexedDB cache first
-                                                let cachedImg = null;
-                                                if (window.ImageCacheManager) {
-                                                    cachedImg = await ImageCacheManager.getImage(imgId);
-                                                }
-
-                                                if (cachedImg) {
-                                                    resolvedImages.push(cachedImg);
-                                                } else {
-                                                    // 2. Fetch/Decrypt from remote sub-node if not in cache
-                                                    const imgNode = imagesMap[imgId];
-                                                    if (imgNode && imgNode.payload) {
-                                                        const imgStr = await CryptoEngine.decryptPayload(imgNode.payload, key);
-                                                        if (imgStr) {
-                                                            try {
-                                                                const parsedImg = JSON.parse(imgStr);
-                                                                resolvedImages.push(parsedImg);
-                                                                // Save to IndexedDB cache
-                                                                if (window.ImageCacheManager) {
-                                                                    ImageCacheManager.setImage(imgId, parsedImg);
-                                                                }
-                                                            } catch (e) {}
-                                                        }
+                                                if (existingImageMap.has(imgId)) {
+                                                    resolvedImages.push(existingImageMap.get(imgId));
+                                                } else if (window.ImageCacheManager) {
+                                                    const cachedImg = await ImageCacheManager.getImage(imgId);
+                                                    if (cachedImg) {
+                                                        resolvedImages.push(cachedImg);
                                                     }
                                                 }
                                             }
@@ -152,6 +129,12 @@ class SyncManager {
                                 renderPageList();
                                 updateEditorView();
                                 setSyncStatus('updated', 'Remote update synced!');
+
+                                // Trigger on-demand image fetch if active page is an image gallery
+                                const activePage = AppState.pages.find(p => p.id === AppState.activePageId) || AppState.pages[0];
+                                if (activePage && activePage.type === 'image') {
+                                    SyncManager.ensurePageImagesLoaded(activePage, key);
+                                }
                             }
                         }
                         return;
@@ -380,4 +363,63 @@ class SyncManager {
             }
         }, 400);
     }
+
+    static async ensurePageImagesLoaded(page, key) {
+        if (!page || page.type !== 'image' || !page.imageManifest || !Array.isArray(page.imageManifest)) return;
+        const decryptionKey = key || AppState.masterKey;
+        if (!AppState.isUnlocked || !decryptionKey) return;
+
+        const base = (AppState.customUrl || APP_CONFIG.DEFAULT_FIREBASE_URL).trim().replace(/\/+$/, '').replace(/\/rooms\/.*$/, '');
+        const roomCode = AppState.roomCode;
+        const imagesBaseUrl = `${base}/rooms/${encodeURIComponent(roomCode)}/images`;
+
+        if (!page.images) page.images = [];
+        const loadedIds = new Set(page.images.map(img => img.id));
+        let updated = false;
+
+        for (const imgId of page.imageManifest) {
+            if (loadedIds.has(imgId)) continue;
+
+            // 1. Check local IndexedDB cache first
+            let cachedImg = null;
+            if (window.ImageCacheManager) {
+                cachedImg = await ImageCacheManager.getImage(imgId);
+            }
+
+            if (cachedImg) {
+                page.images.push(cachedImg);
+                loadedIds.add(imgId);
+                updated = true;
+            } else {
+                // 2. Fetch missing individual image on-demand from remote sub-node
+                try {
+                    const imgRes = await fetch(`${imagesBaseUrl}/${encodeURIComponent(imgId)}.json`, { cache: 'no-store' });
+                    if (imgRes.ok) {
+                        const imgNode = await imgRes.json();
+                        if (imgNode && imgNode.payload) {
+                            const imgStr = await CryptoEngine.decryptPayload(imgNode.payload, decryptionKey);
+                            if (imgStr) {
+                                try {
+                                    const parsedImg = JSON.parse(imgStr);
+                                    page.images.push(parsedImg);
+                                    loadedIds.add(imgId);
+                                    updated = true;
+                                    if (window.ImageCacheManager) {
+                                        ImageCacheManager.setImage(imgId, parsedImg);
+                                    }
+                                } catch (e) {}
+                            }
+                        }
+                    }
+                } catch (e) {
+                    console.warn(`Failed to fetch image ${imgId}`, e);
+                }
+            }
+        }
+
+        if (updated && page.id === AppState.activePageId && typeof renderImageGalleryView === 'function') {
+            renderImageGalleryView(page);
+        }
+    }
 }
+

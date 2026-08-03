@@ -701,6 +701,9 @@ function updateEditorView() {
         if (elements.fileBucketContainer) elements.fileBucketContainer.style.display = 'none';
         if (elements.imageGalleryContainer) elements.imageGalleryContainer.style.display = 'flex';
         renderImageGalleryView(page);
+        if (window.SyncManager) {
+            SyncManager.ensurePageImagesLoaded(page, AppState.masterKey);
+        }
     } else if (page.type === 'file') {
         // Full Width File Bucket Mode
         if (elements.editorContainer) elements.editorContainer.classList.add('image-mode');
