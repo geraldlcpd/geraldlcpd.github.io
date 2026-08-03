@@ -369,17 +369,25 @@ class SyncManager {
         const decryptionKey = key || AppState.masterKey;
         if (!AppState.isUnlocked || !decryptionKey) return;
 
+        if (!page.images) page.images = [];
+        const loadedIds = new Set(page.images.map(img => img.id));
+        const missingIds = page.imageManifest.filter(id => !loadedIds.has(id));
+        if (missingIds.length === 0) {
+            page._isLoadingImages = false;
+            return;
+        }
+
         const base = (AppState.customUrl || APP_CONFIG.DEFAULT_FIREBASE_URL).trim().replace(/\/+$/, '').replace(/\/rooms\/.*$/, '');
         const roomCode = AppState.roomCode;
         const imagesBaseUrl = `${base}/rooms/${encodeURIComponent(roomCode)}/images`;
 
-        if (!page.images) page.images = [];
-        const loadedIds = new Set(page.images.map(img => img.id));
+        page._isLoadingImages = true;
+        if (page.id === AppState.activePageId && typeof renderImageGalleryView === 'function') {
+            renderImageGalleryView(page);
+        }
+
         let updated = false;
-
-        for (const imgId of page.imageManifest) {
-            if (loadedIds.has(imgId)) continue;
-
+        for (const imgId of missingIds) {
             // 1. Check local IndexedDB cache first
             let cachedImg = null;
             if (window.ImageCacheManager) {
@@ -415,9 +423,14 @@ class SyncManager {
                     console.warn(`Failed to fetch image ${imgId}`, e);
                 }
             }
+
+            if (updated && page.id === AppState.activePageId && typeof renderImageGalleryView === 'function') {
+                renderImageGalleryView(page);
+            }
         }
 
-        if (updated && page.id === AppState.activePageId && typeof renderImageGalleryView === 'function') {
+        page._isLoadingImages = false;
+        if (page.id === AppState.activePageId && typeof renderImageGalleryView === 'function') {
             renderImageGalleryView(page);
         }
     }

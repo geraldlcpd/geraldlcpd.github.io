@@ -3,8 +3,8 @@
 // ==========================================
 
 const APP_CONFIG = {
-    VERSION: 'v1.9',
-    BUILD_TIME: '2026-08-03 10:43:00',
+    VERSION: 'v1.9.1',
+    BUILD_TIME: '2026-08-03 10:46:00',
     AUTO_LOCK_MINUTES: 30, // Inactivity minutes before auto-locking (Format MM:SS displayed in header)
     POLL_INTERVAL_MS: 10000, // Background HTTPS REST polling interval (10 seconds)
     DEFAULT_ROOM_CODE: 'apilog',
@@ -839,11 +839,21 @@ function renderImageGalleryView(page) {
         emptyState.style.padding = '40px 20px';
         emptyState.style.color = 'var(--text-muted)';
         emptyState.style.fontSize = '0.85rem';
-        emptyState.innerHTML = `
-            <i data-lucide="image-off" style="width: 36px; height: 36px; margin-bottom: 8px; color: var(--text-dim);"></i>
-            <div>No images stored in this gallery yet.</div>
-            <div style="font-size: 0.75rem; margin-top: 4px;">Paste an image with <strong>Ctrl+V</strong> or click above to upload.</div>
-        `;
+
+        if (page._isLoadingImages) {
+            emptyState.innerHTML = `
+                <i data-lucide="loader-2" style="width: 36px; height: 36px; margin-bottom: 8px; color: var(--accent-primary); animation: spin 1s linear infinite;"></i>
+                <div style="font-weight: 500;">Loading gallery images...</div>
+                <div style="font-size: 0.75rem; margin-top: 4px; color: var(--text-dim);">Fetching encrypted image payloads from database</div>
+            `;
+        } else {
+            emptyState.innerHTML = `
+                <i data-lucide="image-off" style="width: 36px; height: 36px; margin-bottom: 8px; color: var(--text-dim);"></i>
+                <div>No images stored in this gallery yet.</div>
+                <div style="font-size: 0.75rem; margin-top: 4px;">Paste an image with <strong>Ctrl+V</strong> or click above to upload.</div>
+            `;
+        }
+
         elements.imageGalleryGrid.appendChild(emptyState);
         updateSidebarDbSizeSummary();
         if (window.lucide) lucide.createIcons();
@@ -931,6 +941,26 @@ function renderImageGalleryView(page) {
 
         elements.imageGalleryGrid.appendChild(card);
     });
+
+    if (page._isLoadingImages && page.imageManifest && Array.isArray(page.imageManifest)) {
+        const pendingCount = Math.max(0, page.imageManifest.length - images.length);
+        for (let i = 0; i < pendingCount; i++) {
+            const skeleton = document.createElement('div');
+            skeleton.className = 'image-card';
+            skeleton.style.opacity = '0.6';
+            skeleton.innerHTML = `
+                <div class="image-preview-wrapper" style="display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.03);">
+                    <i data-lucide="loader-2" style="width: 24px; height: 24px; color: var(--accent-primary); animation: spin 1s linear infinite;"></i>
+                </div>
+                <div class="image-card-footer">
+                    <div class="image-card-info">
+                        <span class="image-card-name" style="color: var(--text-dim);">Loading image...</span>
+                    </div>
+                </div>
+            `;
+            elements.imageGalleryGrid.appendChild(skeleton);
+        }
+    }
 
     updateSidebarDbSizeSummary();
     if (window.lucide) lucide.createIcons();
