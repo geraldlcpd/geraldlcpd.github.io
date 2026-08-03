@@ -3,8 +3,8 @@
 // ==========================================
 
 const APP_CONFIG = {
-    VERSION: 'v1.9.3',
-    BUILD_TIME: '2026-08-03 12:45:00',
+    VERSION: 'v1.9.4',
+    BUILD_TIME: '2026-08-03 12:47:00',
     AUTO_LOCK_MINUTES: 30, // Inactivity minutes before auto-locking (Format MM:SS displayed in header)
     POLL_INTERVAL_MS: 10000, // Background HTTPS REST polling interval (10 seconds)
     DEFAULT_ROOM_CODE: 'apilog',
@@ -54,6 +54,20 @@ if (window.marked) {
     };
 
     marked.setOptions({ renderer: renderer });
+function getSupabaseHeaders(contentType = null) {
+    const key = (APP_CONFIG.DEFAULT_SUPABASE_ANON_KEY || '').trim();
+    const headers = {};
+    if (key) {
+        headers['apikey'] = key;
+        // Supabase Auth gateway strictly expects JWT tokens (starting with eyJ) in Bearer authorization header
+        if (key.startsWith('eyJ')) {
+            headers['Authorization'] = `Bearer ${key}`;
+        }
+    }
+    if (contentType) {
+        headers['Content-Type'] = contentType;
+    }
+    return headers;
 }
 
 // --- State Management ---
@@ -1070,10 +1084,7 @@ function renderFileBucketView(page) {
                 } else if (fileItem.url) {
                     showToast("Downloading & decrypting file...");
                     const res = await fetch(fileItem.url, {
-                        headers: fileItem.provider === 'supabase_storage' ? {
-                            'apikey': APP_CONFIG.DEFAULT_SUPABASE_ANON_KEY,
-                            'Authorization': `Bearer ${APP_CONFIG.DEFAULT_SUPABASE_ANON_KEY}`
-                        } : {}
+                        headers: fileItem.provider === 'supabase_storage' ? getSupabaseHeaders() : {}
                     });
 
                     if (!res.ok) throw new Error(`Download failed HTTP ${res.status}`);
@@ -1114,10 +1125,7 @@ function renderFileBucketView(page) {
                     const deleteEndpoint = `${baseUrl}/storage/v1/object/${APP_CONFIG.DEFAULT_SUPABASE_BUCKET}/${encodeURIComponent(fileItem.remotePath)}`;
                     await fetch(deleteEndpoint, {
                         method: 'DELETE',
-                        headers: {
-                            'apikey': APP_CONFIG.DEFAULT_SUPABASE_ANON_KEY,
-                            'Authorization': `Bearer ${APP_CONFIG.DEFAULT_SUPABASE_ANON_KEY}`
-                        }
+                        headers: getSupabaseHeaders()
                     });
                 } catch (e) { }
             }
@@ -1169,14 +1177,12 @@ async function addFileAttachmentToBucket(file) {
                 baseUrl = baseUrl.replace(/\.storage\.supabase\.co.*$/, '.supabase.co').replace(/\/storage\/v1\/s3$/, '');
                 const uploadEndpoint = `${baseUrl}/storage/v1/object/${APP_CONFIG.DEFAULT_SUPABASE_BUCKET}/${fileNameOnStore}`;
 
+                const uploadHeaders = getSupabaseHeaders('text/plain');
+                uploadHeaders['x-upsert'] = 'true';
+
                 const uploadRes = await fetch(uploadEndpoint, {
                     method: 'POST',
-                    headers: {
-                        'apikey': APP_CONFIG.DEFAULT_SUPABASE_ANON_KEY,
-                        'Authorization': `Bearer ${APP_CONFIG.DEFAULT_SUPABASE_ANON_KEY}`,
-                        'Content-Type': 'text/plain',
-                        'x-upsert': 'true'
-                    },
+                    headers: uploadHeaders,
                     body: encryptedCipher
                 });
 
