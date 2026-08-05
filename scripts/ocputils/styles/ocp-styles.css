@@ -287,6 +287,48 @@ header {
     gap: 3px;
 }
 
+.sidebar-footer {
+    padding: 8px 10px;
+    border-top: 1px solid var(--border-color);
+    background: rgba(15, 23, 42, 0.4);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 0.72rem;
+}
+
+.bandwidth-title {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    color: var(--text-muted);
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.bandwidth-metrics {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    color: var(--text-dim);
+    font-family: var(--font-mono);
+}
+
+.bandwidth-metrics span {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.7rem;
+}
+
+.bandwidth-metrics strong {
+    color: var(--text-main);
+    font-weight: 600;
+}
+
 .page-item {
     display: flex;
     align-items: center;

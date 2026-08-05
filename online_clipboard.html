@@ -1,15 +1,18 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Secure Online Clipboard</title>
-    
+
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    
+    <link
+        href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+
     <!-- Local Vendor CSS -->
     <link rel="stylesheet" href="./scripts/ocputils/styles/tokyo-night-dark.min.css">
     <link rel="stylesheet" href="./scripts/ocputils/styles/ocp-styles.css">
@@ -43,6 +46,7 @@
     <script src="./scripts/ocputils/passkey-manager.js"></script>
     <script src="./scripts/ocputils/sync-manager.js"></script>
 </head>
+
 <body>
 
     <!-- Remote Edit Detected Top Banner -->
@@ -51,7 +55,8 @@
             <i data-lucide="bell" style="width: 16px; height: 16px;"></i>
             <span>New changes detected from remote device!</span>
         </div>
-        <button class="btn btn-secondary" id="btnBannerRefresh" style="background: rgba(255,255,255,0.2); color: white; border: none; padding: 5px 10px; font-size: 0.78rem;">
+        <button class="btn btn-secondary" id="btnBannerRefresh"
+            style="background: rgba(255,255,255,0.2); color: white; border: none; padding: 5px 10px; font-size: 0.78rem;">
             <i data-lucide="refresh-cw" style="width: 13px; height: 13px;"></i>
             Sync / Refresh Now
         </button>
@@ -71,13 +76,15 @@
 
         <div class="header-actions">
             <!-- Add Domain Passkey Quick Button -->
-            <button class="btn btn-secondary" id="btnAddDomainPasskey" title="Enroll Passkey for this host domain" style="display: none; border-color: rgba(99, 102, 241, 0.3); background: rgba(99, 102, 241, 0.1); color: #a5b4fc;">
+            <button class="btn btn-secondary" id="btnAddDomainPasskey" title="Enroll Passkey for this host domain"
+                style="display: none; border-color: rgba(99, 102, 241, 0.3); background: rgba(99, 102, 241, 0.1); color: #a5b4fc;">
                 <i data-lucide="fingerprint"></i>
                 <span class="btn-text-hide">+ Domain Passkey</span>
             </button>
 
             <!-- Auto-Lock Countdown Timer Badge -->
-            <div class="badge-status badge-timer" id="autoLockBadge" title="Auto-locks after inactivity" style="display: none;">
+            <div class="badge-status badge-timer" id="autoLockBadge" title="Auto-locks after inactivity"
+                style="display: none;">
                 <i data-lucide="timer" style="width: 13px; height: 13px;"></i>
                 <span id="autoLockTimerText">10:00</span>
             </div>
@@ -107,13 +114,13 @@
 
     <!-- Main Container -->
     <div class="app-container">
-        
+
         <!-- Sidebar Navigation (Pages) -->
         <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
                 <div>
                     <div class="sidebar-title">Clipboard Pages</div>
-                    <div class="sidebar-db-size" id="sidebarDbSizeBadge">Est. DB: 0 KB</div>
+                    <div class="sidebar-db-size" id="sidebarDbSizeBadge">Est. Bandwidth: 0 KB</div>
                 </div>
                 <button class="btn btn-secondary btn-icon" id="btnAddPage" title="New Page">
                     <i data-lucide="plus"></i>
@@ -121,6 +128,20 @@
             </div>
             <div class="page-list" id="pageList">
                 <!-- Dynamic Page Items rendered here -->
+            </div>
+            <div class="sidebar-footer" id="sidebarBandwidthStats">
+                <div class="bandwidth-title">
+                    <i data-lucide="activity" style="width: 12px; height: 12px; color: var(--accent-cyan);"></i>
+                    <span>Session Bandwidth</span>
+                </div>
+                <div class="bandwidth-metrics">
+                    <span title="Total Uploaded (Current Session)"><i data-lucide="upload-cloud"
+                            style="width: 11px; height: 11px; color: var(--accent-rose);"></i> Up: <strong
+                            id="statSessionUp">0 B</strong></span>
+                    <span title="Total Downloaded (Current Session)"><i data-lucide="download-cloud"
+                            style="width: 11px; height: 11px; color: var(--accent-green);"></i> Down: <strong
+                            id="statSessionDown">0 B</strong></span>
+                </div>
             </div>
         </aside>
 
@@ -180,7 +201,9 @@
             <div class="editor-container view-edit" id="editorContainer">
                 <div class="editor-pane" id="editorPane">
                     <span class="pane-label">Editor Input</span>
-                    <textarea class="code-editor" id="codeEditor" placeholder="Paste or type content here... Data syncs automatically across devices." spellcheck="false"></textarea>
+                    <textarea class="code-editor" id="codeEditor"
+                        placeholder="Paste or type content here... Data syncs automatically across devices."
+                        spellcheck="false"></textarea>
                 </div>
 
                 <div class="render-pane" id="renderPane">
@@ -192,18 +215,21 @@
                 <!-- Image Gallery Page View -->
                 <div class="image-gallery-container" id="imageGalleryContainer" style="display: none;">
                     <!-- Gallery Resolution Settings & Batch Resize Bar -->
-                    <div style="display: flex; align-items: center; justify-content: space-between; background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 8px 12px; gap: 10px; flex-wrap: wrap;">
+                    <div
+                        style="display: flex; align-items: center; justify-content: space-between; background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 8px 12px; gap: 10px; flex-wrap: wrap;">
                         <div style="display: flex; align-items: center; gap: 8px; font-size: 0.78rem;">
                             <i data-lucide="settings" style="width: 14px; height: 14px; color: var(--accent-cyan);"></i>
                             <span style="color: var(--text-muted); font-weight: 500;">Auto-Compression Target:</span>
-                            <select class="select-input" id="selectImageTargetRes" style="padding: 4px 8px; font-size: 0.78rem; width: auto; background: var(--bg-surface-elevated);">
+                            <select class="select-input" id="selectImageTargetRes"
+                                style="padding: 4px 8px; font-size: 0.78rem; width: auto; background: var(--bg-surface-elevated);">
                                 <option value="360">360p (Low / Ultra Fast - 360px)</option>
                                 <option value="720" selected>720p (Medium / Standard - 720px)</option>
                                 <option value="1080">1080p (High Quality - 1080px)</option>
                                 <option value="0">Original / Uncompressed</option>
                             </select>
                         </div>
-                        <button class="btn btn-secondary" id="btnBatchResizeImages" style="padding: 5px 10px; font-size: 0.76rem; border-color: rgba(245, 158, 11, 0.4); color: var(--accent-amber);">
+                        <button class="btn btn-secondary" id="btnBatchResizeImages"
+                            style="padding: 5px 10px; font-size: 0.76rem; border-color: rgba(245, 158, 11, 0.4); color: var(--accent-amber);">
                             <i data-lucide="shrink" style="width: 13px; height: 13px;"></i>
                             Resize Existing Images
                         </button>
@@ -211,9 +237,12 @@
 
                     <div class="image-dropzone" id="imageDropzone">
                         <i data-lucide="image-plus" style="width: 32px; height: 32px; color: var(--primary);"></i>
-                        <div style="font-weight: 600; font-size: 0.9rem; color: var(--text-main);">Drop images here or click to upload</div>
-                        <div style="font-size: 0.75rem;" id="imageDropzoneDesc">Supports PNG, JPG, WebP. Images are automatically compressed to 720p & encrypted.</div>
-                        <div style="font-size: 0.72rem; color: var(--primary); margin-top: 2px;">Tip: You can also press <strong>Ctrl+V</strong> anywhere to paste images directly!</div>
+                        <div style="font-weight: 600; font-size: 0.9rem; color: var(--text-main);">Drop images here or
+                            click to upload</div>
+                        <div style="font-size: 0.75rem;" id="imageDropzoneDesc">Supports PNG, JPG, WebP. Images are
+                            automatically compressed to 720p & encrypted.</div>
+                        <div style="font-size: 0.72rem; color: var(--primary); margin-top: 2px;">Tip: You can also press
+                            <strong>Ctrl+V</strong> anywhere to paste images directly!</div>
                     </div>
                     <input type="file" id="imageFileInput" accept="image/*" multiple style="display: none;">
 
@@ -225,11 +254,13 @@
                 <!-- File Bucket Page View -->
                 <div class="image-gallery-container" id="fileBucketContainer" style="display: none;">
                     <!-- Storage Provider Selection & Manual Enable Bar -->
-                    <div style="display: flex; align-items: center; justify-content: space-between; background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 8px 12px; gap: 10px; flex-wrap: wrap;">
+                    <div
+                        style="display: flex; align-items: center; justify-content: space-between; background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 8px 12px; gap: 10px; flex-wrap: wrap;">
                         <div style="display: flex; align-items: center; gap: 8px; font-size: 0.78rem;">
                             <i data-lucide="cloud" style="width: 14px; height: 14px; color: var(--accent-cyan);"></i>
                             <span style="color: var(--text-muted); font-weight: 500;">Active Hosting Provider:</span>
-                            <select class="select-input" id="selectBucketProvider" style="padding: 4px 8px; font-size: 0.78rem; width: auto; background: var(--bg-surface-elevated);">
+                            <select class="select-input" id="selectBucketProvider"
+                                style="padding: 4px 8px; font-size: 0.78rem; width: auto; background: var(--bg-surface-elevated);">
                                 <option value="firebase_rtdb">Firebase RTDB (Inline Sub-nodes)</option>
                                 <option value="supabase_storage" selected>Supabase Storage (Free Plan Bucket)</option>
                                 <option value="firebase_storage">Firebase Storage (GCS Bucket)</option>
@@ -237,16 +268,21 @@
                                 <option value="custom_r2">Cloudflare R2 / Custom Presigned API</option>
                             </select>
                         </div>
-                        <button class="btn btn-secondary" id="btnToggleEnableUploads" style="padding: 5px 12px; font-size: 0.76rem; border-color: rgba(244, 63, 94, 0.4); color: var(--accent-rose);">
+                        <button class="btn btn-secondary" id="btnToggleEnableUploads"
+                            style="padding: 5px 12px; font-size: 0.76rem; border-color: rgba(244, 63, 94, 0.4); color: var(--accent-rose);">
                             <i data-lucide="shield-alert" style="width: 13px; height: 13px;" id="iconUploadStatus"></i>
                             <span id="textToggleUploads">Enable File Uploads (Disabled by Default)</span>
                         </button>
                     </div>
 
-                    <div class="image-dropzone" id="fileDropzone" style="border-color: rgba(244, 63, 94, 0.3); background: rgba(15, 23, 42, 0.4); cursor: not-allowed;">
-                        <i data-lucide="lock" style="width: 32px; height: 32px; color: var(--accent-rose);" id="iconFileDropzone"></i>
-                        <div style="font-weight: 600; font-size: 0.9rem; color: var(--text-muted);" id="titleFileDropzone">Uploads Disabled for Corporate Compliance</div>
-                        <div style="font-size: 0.75rem; color: var(--text-dim);" id="fileDropzoneDesc">Click "Enable File Uploads" above to unlock dropzone & attach files.</div>
+                    <div class="image-dropzone" id="fileDropzone"
+                        style="border-color: rgba(244, 63, 94, 0.3); background: rgba(15, 23, 42, 0.4); cursor: not-allowed;">
+                        <i data-lucide="lock" style="width: 32px; height: 32px; color: var(--accent-rose);"
+                            id="iconFileDropzone"></i>
+                        <div style="font-weight: 600; font-size: 0.9rem; color: var(--text-muted);"
+                            id="titleFileDropzone">Uploads Disabled for Corporate Compliance</div>
+                        <div style="font-size: 0.75rem; color: var(--text-dim);" id="fileDropzoneDesc">Click "Enable
+                            File Uploads" above to unlock dropzone & attach files.</div>
                     </div>
                     <input type="file" id="bucketFileInput" multiple style="display: none;">
 
@@ -259,13 +295,18 @@
             <!-- Dynamic Information / Stats Bar -->
             <div class="editor-stats-bar" id="editorStatsBar">
                 <div class="stat-group">
-                    <span class="stat-item"><i data-lucide="file-text" style="width: 13px; height: 13px;"></i> <strong id="statCharCount">0</strong> Chars</span>
-                    <span class="stat-item"><i data-lucide="type" style="width: 13px; height: 13px;"></i> <strong id="statWordCount">0</strong> Words</span>
-                    <span class="stat-item"><i data-lucide="align-justify" style="width: 13px; height: 13px;"></i> <strong id="statLineCount">0</strong> Lines</span>
+                    <span class="stat-item"><i data-lucide="file-text" style="width: 13px; height: 13px;"></i> <strong
+                            id="statCharCount">0</strong> Chars</span>
+                    <span class="stat-item"><i data-lucide="type" style="width: 13px; height: 13px;"></i> <strong
+                            id="statWordCount">0</strong> Words</span>
+                    <span class="stat-item"><i data-lucide="align-justify" style="width: 13px; height: 13px;"></i>
+                        <strong id="statLineCount">0</strong> Lines</span>
                 </div>
                 <div class="stat-group">
-                    <span class="stat-item"><i data-lucide="code" style="width: 13px; height: 13px;"></i> Format: <strong id="statLanguage">Plain Text</strong></span>
-                    <span class="stat-item" id="statSecurityContainer"><i data-lucide="shield-check" style="width: 13px; height: 13px;"></i> <span id="statSecurity">Encrypted</span></span>
+                    <span class="stat-item"><i data-lucide="code" style="width: 13px; height: 13px;"></i> Format:
+                        <strong id="statLanguage">Plain Text</strong></span>
+                    <span class="stat-item" id="statSecurityContainer"><i data-lucide="shield-check"
+                            style="width: 13px; height: 13px;"></i> <span id="statSecurity">Encrypted</span></span>
                 </div>
             </div>
         </main>
@@ -299,13 +340,16 @@
 
                 <div class="input-field">
                     <label class="input-label">Room Code</label>
-                    <input type="text" class="text-input" id="inputRoomCode" placeholder="e.g. my-private-clipboard-123" value="apilog">
+                    <input type="text" class="text-input" id="inputRoomCode" placeholder="e.g. my-private-clipboard-123"
+                        value="apilog">
                 </div>
 
                 <!-- Domain Passkey Warning Banner Container -->
                 <div id="domainWarningContainer" class="domain-warning-box" style="display: none;">
-                    <i data-lucide="alert-triangle" style="width: 16px; height: 16px; flex-shrink: 0; color: var(--accent-amber);"></i>
-                    <span id="domainWarningText">No Passkey registered for this domain. Please unlock with Passphrase first.</span>
+                    <i data-lucide="alert-triangle"
+                        style="width: 16px; height: 16px; flex-shrink: 0; color: var(--accent-amber);"></i>
+                    <span id="domainWarningText">No Passkey registered for this domain. Please unlock with Passphrase
+                        first.</span>
                 </div>
 
                 <button class="btn btn-primary" id="btnPasskeyAuthenticate" style="width: 100%; padding: 10px;">
@@ -334,7 +378,8 @@
 
                 <div class="input-field">
                     <label class="input-label">Master Passphrase (Encryption Key)</label>
-                    <input type="password" class="text-input" id="inputNewPassphrase" placeholder="Create room passphrase...">
+                    <input type="password" class="text-input" id="inputNewPassphrase"
+                        placeholder="Create room passphrase...">
                 </div>
 
                 <button class="btn btn-primary" id="btnCreateRoom" style="width: 100%; padding: 10px;">
@@ -366,13 +411,16 @@
 
                     <div class="input-field" id="customUrlContainer" style="display: flex;">
                         <label class="input-label" id="customUrlLabel">Firebase Database URL</label>
-                        <input type="text" class="text-input" id="inputCustomUrl" value="https://bdi-online-clipboard-default-rtdb.asia-southeast1.firebasedatabase.app" placeholder="https://my-app-default-rtdb.asia-southeast1.firebasedatabase.app">
+                        <input type="text" class="text-input" id="inputCustomUrl"
+                            value="https://bdi-online-clipboard-default-rtdb.asia-southeast1.firebasedatabase.app"
+                            placeholder="https://my-app-default-rtdb.asia-southeast1.firebasedatabase.app">
                     </div>
                 </div>
             </details>
 
             <!-- Version & Build Timestamp Tag -->
-            <div style="text-align: center; font-size: 0.7rem; color: var(--text-dim); margin-top: 4px;" id="unlockModalVersionTag">
+            <div style="text-align: center; font-size: 0.7rem; color: var(--text-dim); margin-top: 4px;"
+                id="unlockModalVersionTag">
                 v1.4 • Build: 2026-07-30 14:35:15
             </div>
         </div>
@@ -395,49 +443,61 @@
 
             <div class="info-grid">
                 <div class="info-row">
-                    <span class="info-label"><i data-lucide="folder" style="width: 14px; height: 14px;"></i> Room Code</span>
+                    <span class="info-label"><i data-lucide="folder" style="width: 14px; height: 14px;"></i> Room
+                        Code</span>
                     <span class="info-value" id="infoRoomCode" style="color: var(--primary-hover);">apilog</span>
                 </div>
                 <div class="info-row">
-                    <span class="info-label"><i data-lucide="shield" style="width: 14px; height: 14px;"></i> Security Status</span>
-                    <span class="info-value" id="infoSecurityStatus"><span style="color: var(--accent-green);">● Unlocked</span></span>
+                    <span class="info-label"><i data-lucide="shield" style="width: 14px; height: 14px;"></i> Security
+                        Status</span>
+                    <span class="info-value" id="infoSecurityStatus"><span style="color: var(--accent-green);">●
+                            Unlocked</span></span>
                 </div>
                 <div class="info-row">
-                    <span class="info-label"><i data-lucide="globe" style="width: 14px; height: 14px;"></i> Host Domain</span>
+                    <span class="info-label"><i data-lucide="globe" style="width: 14px; height: 14px;"></i> Host
+                        Domain</span>
                     <span class="info-value" id="infoHostDomain">localhost</span>
                 </div>
                 <div class="info-row">
-                    <span class="info-label"><i data-lucide="fingerprint" style="width: 14px; height: 14px;"></i> Domain Passkey</span>
+                    <span class="info-label"><i data-lucide="fingerprint" style="width: 14px; height: 14px;"></i> Domain
+                        Passkey</span>
                     <span class="info-value" id="infoPasskeyStatus">Checking...</span>
                 </div>
                 <div class="info-row">
-                    <span class="info-label"><i data-lucide="server" style="width: 14px; height: 14px;"></i> Relay Transport</span>
+                    <span class="info-label"><i data-lucide="server" style="width: 14px; height: 14px;"></i> Relay
+                        Transport</span>
                     <span class="info-value" id="infoRelayProtocol">Google Firebase REST</span>
                 </div>
                 <div class="info-row">
-                    <span class="info-label"><i data-lucide="file-text" style="width: 14px; height: 14px;"></i> Total Pages</span>
+                    <span class="info-label"><i data-lucide="file-text" style="width: 14px; height: 14px;"></i> Total
+                        Pages</span>
                     <span class="info-value" id="infoPageCount">2 Pages</span>
                 </div>
             </div>
 
             <!-- Passkey Debug Info Sub-Panel -->
-            <div id="debugPasskeyPanel" style="display: none; background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 10px 12px; margin-top: -6px;">
-                <div style="font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--accent-cyan); margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
+            <div id="debugPasskeyPanel"
+                style="display: none; background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 10px 12px; margin-top: -6px;">
+                <div
+                    style="font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--accent-cyan); margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
                     <i data-lucide="terminal" style="width: 13px; height: 13px;"></i>
                     <span>Registered Passkey Debug Info</span>
                 </div>
-                <div id="debugPasskeyContainer" style="display: flex; flex-direction: column; gap: 6px; font-family: var(--font-mono); font-size: 0.72rem;">
+                <div id="debugPasskeyContainer"
+                    style="display: flex; flex-direction: column; gap: 6px; font-family: var(--font-mono); font-size: 0.72rem;">
                     <!-- Dynamically Populated Passkey Entries -->
                 </div>
             </div>
 
             <div class="panel-content" style="gap: 8px;">
-                <button class="btn btn-secondary" id="btnInfoAddPasskey" style="width: 100%; border-color: rgba(99, 102, 241, 0.4); color: #a5b4fc; display: none;">
+                <button class="btn btn-secondary" id="btnInfoAddPasskey"
+                    style="width: 100%; border-color: rgba(99, 102, 241, 0.4); color: #a5b4fc; display: none;">
                     <i data-lucide="fingerprint"></i>
                     Register Passkey for this Domain
                 </button>
 
-                <button class="btn btn-secondary" id="btnInfoResetPassphrase" style="width: 100%; border-color: rgba(245, 158, 11, 0.4); color: var(--accent-amber);">
+                <button class="btn btn-secondary" id="btnInfoResetPassphrase"
+                    style="width: 100%; border-color: rgba(245, 158, 11, 0.4); color: var(--accent-amber);">
                     <i data-lucide="key-round"></i>
                     Reset / Update Master Passphrase
                 </button>
@@ -447,7 +507,8 @@
                     Switch Room / Reconfigure Settings
                 </button>
 
-                <button class="btn btn-primary" id="btnDismissRoomInfo" style="width: 100%; padding: 10px; margin-top: 4px;">
+                <button class="btn btn-primary" id="btnDismissRoomInfo"
+                    style="width: 100%; padding: 10px; margin-top: 4px;">
                     Done
                 </button>
             </div>
@@ -462,18 +523,22 @@
     <div class="modal-overlay" id="activeRoomUnlockModal">
         <div class="modal-card modal-card-sm">
             <div class="modal-header">
-                <div class="modal-icon" style="background: rgba(244, 63, 94, 0.15); color: var(--accent-rose); border-color: rgba(244, 63, 94, 0.3);">
+                <div class="modal-icon"
+                    style="background: rgba(244, 63, 94, 0.15); color: var(--accent-rose); border-color: rgba(244, 63, 94, 0.3);">
                     <i data-lucide="lock" style="width: 24px; height: 24px;"></i>
                 </div>
                 <h2 class="modal-title">Room Locked</h2>
-                <p class="modal-desc">Enter credentials to unlock active room: <strong id="lockedRoomCodeName" style="color: var(--text-main);">apilog</strong></p>
+                <p class="modal-desc">Enter credentials to unlock active room: <strong id="lockedRoomCodeName"
+                        style="color: var(--text-main);">apilog</strong></p>
             </div>
 
             <div class="panel-content">
                 <!-- Active Room Domain Warning Banner Container -->
                 <div id="activeDomainWarningContainer" class="domain-warning-box" style="display: none;">
-                    <i data-lucide="alert-triangle" style="width: 16px; height: 16px; flex-shrink: 0; color: var(--accent-amber);"></i>
-                    <span id="activeDomainWarningText">No Passkey registered for this domain. Please unlock with Passphrase below.</span>
+                    <i data-lucide="alert-triangle"
+                        style="width: 16px; height: 16px; flex-shrink: 0; color: var(--accent-amber);"></i>
+                    <span id="activeDomainWarningText">No Passkey registered for this domain. Please unlock with
+                        Passphrase below.</span>
                 </div>
 
                 <button class="btn btn-primary" id="btnActivePasskeyUnlock" style="width: 100%; padding: 10px;">
@@ -485,7 +550,8 @@
 
                 <div class="input-field">
                     <label class="input-label">Master Passphrase</label>
-                    <input type="password" class="text-input" id="inputActivePassphrase" placeholder="Enter passphrase...">
+                    <input type="password" class="text-input" id="inputActivePassphrase"
+                        placeholder="Enter passphrase...">
                 </div>
 
                 <button class="btn btn-secondary" id="btnActivePassphraseUnlock" style="width: 100%; padding: 9px;">
@@ -493,13 +559,15 @@
                 </button>
 
                 <div style="text-align: center; margin-top: 4px;">
-                    <button class="btn btn-secondary" id="btnSwitchRoomLink" style="background: none; border: none; color: var(--primary); text-decoration: underline; font-size: 0.78rem; padding: 4px;">
+                    <button class="btn btn-secondary" id="btnSwitchRoomLink"
+                        style="background: none; border: none; color: var(--primary); text-decoration: underline; font-size: 0.78rem; padding: 4px;">
                         Switch or Change Room
                     </button>
                 </div>
 
                 <!-- Version & Build Timestamp Tag -->
-                <div style="text-align: center; font-size: 0.7rem; color: var(--text-dim); margin-top: 2px;" id="activeModalVersionTag">
+                <div style="text-align: center; font-size: 0.7rem; color: var(--text-dim); margin-top: 2px;"
+                    id="activeModalVersionTag">
                     v1.4 • Build: 2026-07-30 14:35:15
                 </div>
             </div>
@@ -510,7 +578,8 @@
     <div class="modal-overlay" id="errorModal" style="z-index: 300;">
         <div class="modal-card modal-card-sm">
             <div class="modal-header">
-                <div class="modal-icon" style="background: rgba(244, 63, 94, 0.15); color: var(--accent-rose); border-color: rgba(244, 63, 94, 0.3);">
+                <div class="modal-icon"
+                    style="background: rgba(244, 63, 94, 0.15); color: var(--accent-rose); border-color: rgba(244, 63, 94, 0.3);">
                     <i data-lucide="shield-alert" style="width: 24px; height: 24px;"></i>
                 </div>
                 <h2 class="modal-title" id="errorModalTitle">Authentication Error</h2>
@@ -533,27 +602,42 @@
                 <p class="modal-desc">Select the type of clipboard page you wish to create.</p>
             </div>
             <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 6px;">
-                <button class="btn btn-secondary" id="btnChooseTextPage" style="justify-content: flex-start; padding: 12px; gap: 12px; height: auto; text-align: left;">
-                    <i data-lucide="file-code" style="width: 20px; height: 20px; color: var(--primary); flex-shrink: 0;"></i>
+                <button class="btn btn-secondary" id="btnChooseTextPage"
+                    style="justify-content: flex-start; padding: 12px; gap: 12px; height: auto; text-align: left;">
+                    <i data-lucide="file-code"
+                        style="width: 20px; height: 20px; color: var(--primary); flex-shrink: 0;"></i>
                     <div style="flex: 1; min-width: 0;">
-                        <div style="font-weight: 600; color: var(--text-main); margin-bottom: 2px;">Text / Code Page</div>
-                        <div style="font-size: 0.72rem; color: var(--text-muted); white-space: normal; line-height: 1.35;">Plain text, Code syntax highlighting, Markdown & Mermaid charts.</div>
+                        <div style="font-weight: 600; color: var(--text-main); margin-bottom: 2px;">Text / Code Page
+                        </div>
+                        <div
+                            style="font-size: 0.72rem; color: var(--text-muted); white-space: normal; line-height: 1.35;">
+                            Plain text, Code syntax highlighting, Markdown & Mermaid charts.</div>
                     </div>
                 </button>
 
-                <button class="btn btn-secondary" id="btnChooseImagePage" style="justify-content: flex-start; padding: 12px; gap: 12px; height: auto; text-align: left; border-color: rgba(16, 185, 129, 0.4);">
-                    <i data-lucide="image" style="width: 20px; height: 20px; color: var(--accent-green); flex-shrink: 0;"></i>
+                <button class="btn btn-secondary" id="btnChooseImagePage"
+                    style="justify-content: flex-start; padding: 12px; gap: 12px; height: auto; text-align: left; border-color: rgba(16, 185, 129, 0.4);">
+                    <i data-lucide="image"
+                        style="width: 20px; height: 20px; color: var(--accent-green); flex-shrink: 0;"></i>
                     <div style="flex: 1; min-width: 0;">
-                        <div style="font-weight: 600; color: var(--text-main); margin-bottom: 2px;">Image Gallery Page</div>
-                        <div style="font-size: 0.72rem; color: var(--text-muted); white-space: normal; line-height: 1.35;">Store pasted screenshots & uploaded images auto-compressed to 720p.</div>
+                        <div style="font-weight: 600; color: var(--text-main); margin-bottom: 2px;">Image Gallery Page
+                        </div>
+                        <div
+                            style="font-size: 0.72rem; color: var(--text-muted); white-space: normal; line-height: 1.35;">
+                            Store pasted screenshots & uploaded images auto-compressed to 720p.</div>
                     </div>
                 </button>
 
-                <button class="btn btn-secondary" id="btnChooseFilePage" style="justify-content: flex-start; padding: 12px; gap: 12px; height: auto; text-align: left; border-color: rgba(56, 189, 248, 0.4);">
-                    <i data-lucide="folder-archive" style="width: 20px; height: 20px; color: var(--accent-cyan); flex-shrink: 0;"></i>
+                <button class="btn btn-secondary" id="btnChooseFilePage"
+                    style="justify-content: flex-start; padding: 12px; gap: 12px; height: auto; text-align: left; border-color: rgba(56, 189, 248, 0.4);">
+                    <i data-lucide="folder-archive"
+                        style="width: 20px; height: 20px; color: var(--accent-cyan); flex-shrink: 0;"></i>
                     <div style="flex: 1; min-width: 0;">
-                        <div style="font-weight: 600; color: var(--text-main); margin-bottom: 2px;">File Bucket Page</div>
-                        <div style="font-size: 0.72rem; color: var(--text-muted); white-space: normal; line-height: 1.35;">Store encrypted file attachments with multi-provider host selection.</div>
+                        <div style="font-weight: 600; color: var(--text-main); margin-bottom: 2px;">File Bucket Page
+                        </div>
+                        <div
+                            style="font-size: 0.72rem; color: var(--text-muted); white-space: normal; line-height: 1.35;">
+                            Store encrypted file attachments with multi-provider host selection.</div>
                     </div>
                 </button>
             </div>
@@ -572,7 +656,7 @@
             <div class="lightbox-image-container">
                 <img src="" alt="Enlarged Preview" class="lightbox-content" id="lightboxImage">
             </div>
-            
+
             <!-- Side Metadata Panel -->
             <div class="lightbox-sidebar">
                 <div class="lightbox-sidebar-title">
@@ -586,11 +670,13 @@
                     </div>
                     <div class="lightbox-info-row">
                         <span class="lightbox-info-label">Resolution (W x H)</span>
-                        <span class="lightbox-info-val" id="lightboxMetaRes" style="color: var(--accent-green);">Loading...</span>
+                        <span class="lightbox-info-val" id="lightboxMetaRes"
+                            style="color: var(--accent-green);">Loading...</span>
                     </div>
                     <div class="lightbox-info-row">
                         <span class="lightbox-info-label">Payload Size</span>
-                        <span class="lightbox-info-val" id="lightboxMetaSize" style="color: var(--accent-cyan);">Loading...</span>
+                        <span class="lightbox-info-val" id="lightboxMetaSize"
+                            style="color: var(--accent-cyan);">Loading...</span>
                     </div>
                     <div class="lightbox-info-row">
                         <span class="lightbox-info-label">Encrypted Format</span>
@@ -605,13 +691,16 @@
     <div class="modal-overlay" id="resizeImagesModal">
         <div class="modal-card modal-card-sm">
             <div class="modal-header">
-                <div class="modal-icon" style="background: rgba(245, 158, 11, 0.15); color: var(--accent-amber); border-color: rgba(245, 158, 11, 0.3);">
+                <div class="modal-icon"
+                    style="background: rgba(245, 158, 11, 0.15); color: var(--accent-amber); border-color: rgba(245, 158, 11, 0.3);">
                     <i data-lucide="shrink" style="width: 22px; height: 22px;"></i>
                 </div>
                 <h2 class="modal-title">Batch Resize Gallery Images</h2>
-                <p class="modal-desc" id="resizeImagesModalDesc">Re-compress all images in this gallery to target resolution.</p>
+                <p class="modal-desc" id="resizeImagesModalDesc">Re-compress all images in this gallery to target
+                    resolution.</p>
             </div>
-            <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 12px; font-size: 0.78rem; color: var(--text-muted); line-height: 1.4;">
+            <div
+                style="background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 12px; font-size: 0.78rem; color: var(--text-muted); line-height: 1.4;">
                 <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
                     <span>Total Gallery Images:</span>
                     <strong style="color: var(--text-main);" id="resizeModalImageCount">0 Images</strong>
@@ -623,7 +712,9 @@
             </div>
             <div class="modal-footer-actions" style="margin-top: 10px;">
                 <button class="btn btn-secondary" id="btnCancelResizeImages">Cancel</button>
-                <button class="btn btn-primary" id="btnConfirmResizeImages" style="background: var(--accent-amber); border-color: var(--accent-amber);">Confirm & Resize All</button>
+                <button class="btn btn-primary" id="btnConfirmResizeImages"
+                    style="background: var(--accent-amber); border-color: var(--accent-amber);">Confirm & Resize
+                    All</button>
             </div>
         </div>
     </div>
@@ -653,19 +744,24 @@
     <div class="modal-overlay" id="resetPassphraseModal">
         <div class="modal-card modal-card-sm">
             <div class="modal-header">
-                <div class="modal-icon" style="background: rgba(245, 158, 11, 0.15); color: var(--accent-amber); border-color: rgba(245, 158, 11, 0.3);">
+                <div class="modal-icon"
+                    style="background: rgba(245, 158, 11, 0.15); color: var(--accent-amber); border-color: rgba(245, 158, 11, 0.3);">
                     <i data-lucide="key-round" style="width: 22px; height: 22px;"></i>
                 </div>
                 <h2 class="modal-title">Reset Room Passphrase</h2>
-                <p class="modal-desc">Set a new Master Passphrase for active room: <strong id="resetRoomCodeName" style="color: var(--text-main);">apilog</strong></p>
+                <p class="modal-desc">Set a new Master Passphrase for active room: <strong id="resetRoomCodeName"
+                        style="color: var(--text-main);">apilog</strong></p>
             </div>
             <div class="input-field">
                 <label class="input-label">New Passphrase</label>
-                <input type="password" class="text-input" id="inputNewResetPassphrase" placeholder="Enter new passphrase...">
+                <input type="password" class="text-input" id="inputNewResetPassphrase"
+                    placeholder="Enter new passphrase...">
             </div>
             <div class="modal-footer-actions">
                 <button class="btn btn-secondary" id="btnCancelResetPassphrase">Cancel</button>
-                <button class="btn btn-primary" id="btnSaveResetPassphrase" style="background: var(--accent-amber); border-color: var(--accent-amber);">Update Passphrase</button>
+                <button class="btn btn-primary" id="btnSaveResetPassphrase"
+                    style="background: var(--accent-amber); border-color: var(--accent-amber);">Update
+                    Passphrase</button>
             </div>
         </div>
     </div>
@@ -674,7 +770,8 @@
     <div class="modal-overlay" id="deleteModal">
         <div class="modal-card modal-card-sm">
             <div class="modal-header">
-                <div class="modal-icon" style="background: rgba(244, 63, 94, 0.15); color: var(--accent-rose); border-color: rgba(244, 63, 94, 0.3);">
+                <div class="modal-icon"
+                    style="background: rgba(244, 63, 94, 0.15); color: var(--accent-rose); border-color: rgba(244, 63, 94, 0.3);">
                     <i data-lucide="trash-2" style="width: 22px; height: 22px;"></i>
                 </div>
                 <h2 class="modal-title">Delete Page</h2>
@@ -696,4 +793,5 @@
     <!-- App Application Script -->
     <script src="./scripts/ocputils/clipboard-app.js"></script>
 </body>
+
 </html>

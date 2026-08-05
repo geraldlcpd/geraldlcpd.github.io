@@ -3,8 +3,8 @@
 // ==========================================
 
 const APP_CONFIG = {
-    VERSION: 'v2.0.0',
-    BUILD_TIME: '2026-08-05 12:40:00',
+    VERSION: 'v2.0.1',
+    BUILD_TIME: '2026-08-05 12:45:00',
     AUTO_LOCK_MINUTES: 30, // Inactivity minutes before auto-locking (Format MM:SS displayed in header)
     POLL_INTERVAL_MS: 10000, // Background HTTPS REST polling interval (10 seconds)
     POLL_INTERVAL_BASE_MS: 10000, // Base adaptive polling interval (10s)
@@ -94,6 +94,8 @@ const AppState = {
     pollTimer: null,
     currentPollIntervalMs: 10000,
     unchangedPollCount: 0,
+    sessionBandwidth: { bytesUploaded: 0, bytesDownloaded: 0 },
+    bandwidthTimer: null,
     inactivityTimer: null,
     debounceTimer: null,
     resetBadgeTimer: null,
@@ -112,6 +114,8 @@ const elements = {
 
     autoLockBadge: document.getElementById('autoLockBadge'),
     autoLockTimerText: document.getElementById('autoLockTimerText'),
+    statSessionUp: document.getElementById('statSessionUp'),
+    statSessionDown: document.getElementById('statSessionDown'),
 
     unlockModal: document.getElementById('unlockModal'),
     tabSelectExisting: document.getElementById('tabSelectExisting'),
@@ -785,6 +789,20 @@ function updateSidebarDbSizeSummary() {
     }
 
     elements.sidebarDbSizeBadge.textContent = `Est. DB: ${displayStr}`;
+}
+
+function formatBytes(bytes) {
+    if (!bytes || bytes <= 0) return '0 B';
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+}
+
+function updateBandwidthStatsUI() {
+    if (!elements.statSessionUp || !elements.statSessionDown) return;
+    const bw = AppState.sessionBandwidth || { bytesUploaded: 0, bytesDownloaded: 0 };
+    elements.statSessionUp.textContent = formatBytes(bw.bytesUploaded);
+    elements.statSessionDown.textContent = formatBytes(bw.bytesDownloaded);
 }
 
 // --- Image Compression Engine (Dynamic Aspect Ratio Scaling) ---
@@ -1600,6 +1618,10 @@ function completeUnlock(roomCode, key, protocol, customUrl, isNewRoom = false) {
 
     renderPageList();
     updateEditorView();
+    if (AppState.bandwidthTimer) clearInterval(AppState.bandwidthTimer);
+    updateBandwidthStatsUI();
+    AppState.bandwidthTimer = setInterval(updateBandwidthStatsUI, 10000);
+
     SyncManager.connect(roomCode, key, protocol, customUrl, isNewRoom);
     checkDomainPasskeyRegistration(roomCode);
 }

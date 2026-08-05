@@ -2,6 +2,17 @@
  * SyncManager - Multi-Provider Transport & Polling Module
  */
 class SyncManager {
+    static trackNetworkUsage(bytesUp = 0, bytesDown = 0) {
+        if (!AppState.sessionBandwidth) {
+            AppState.sessionBandwidth = { bytesUploaded: 0, bytesDownloaded: 0 };
+        }
+        AppState.sessionBandwidth.bytesUploaded += (bytesUp || 0);
+        AppState.sessionBandwidth.bytesDownloaded += (bytesDown || 0);
+        if (typeof updateBandwidthStatsUI === 'function') {
+            updateBandwidthStatsUI();
+        }
+    }
+
     static connect(roomCode, key, protocol, customUrl, isNewRoom = false) {
         if (AppState.mqttClient) AppState.mqttClient.end();
         if (AppState.pollTimer) {
@@ -105,7 +116,9 @@ class SyncManager {
                     try {
                         const metaRes = await fetch(metaEndpoint, { cache: 'no-store' });
                         if (metaRes.ok) {
-                            const remoteTime = await metaRes.json();
+                            const metaText = await metaRes.text();
+                            SyncManager.trackNetworkUsage(0, new TextEncoder().encode(metaText).length);
+                            const remoteTime = metaText ? JSON.parse(metaText) : null;
                             if (typeof remoteTime === 'number' && remoteTime > 0) {
                                 if (remoteTime <= AppState.lastUpdated) {
                                     // Global timestamp indicates NO room modifications! Stop immediately.
@@ -121,7 +134,9 @@ class SyncManager {
                 // Fetch Full Room Page List from /pages.json
                 const res = await fetch(pagesEndpoint, { cache: 'no-store' });
                 if (res.ok) {
-                    const pagesData = await res.json();
+                    const rawText = await res.text();
+                    SyncManager.trackNetworkUsage(0, new TextEncoder().encode(rawText).length);
+                    const pagesData = rawText ? JSON.parse(rawText) : null;
                     if (pagesData && typeof pagesData === 'object' && Object.keys(pagesData).length > 0) {
                         let latestTime = 0;
                         let assembledPages = [];
@@ -366,11 +381,16 @@ class SyncManager {
                     [`meta/lastChanged`]: updateTimestamp
                 };
 
-                await fetch(roomUrl, {
+                const patchJson = JSON.stringify(patchPayload);
+                const upBytes = new TextEncoder().encode(patchJson).length;
+                const saveRes = await fetch(roomUrl, {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(patchPayload)
+                    body: patchJson
                 });
+                const saveRespText = await saveRes.text();
+                const downBytes = new TextEncoder().encode(saveRespText).length;
+                SyncManager.trackNetworkUsage(upBytes, downBytes);
 
                 AppState.lastUpdated = updateTimestamp;
             } else {
