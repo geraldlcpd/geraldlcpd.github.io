@@ -3,8 +3,8 @@
 // ==========================================
 
 const APP_CONFIG = {
-    VERSION: 'v1.9.5',
-    BUILD_TIME: '2026-08-03 12:48:00',
+    VERSION: 'v1.9.2',
+    BUILD_TIME: '2026-08-05 11:02:00',
     AUTO_LOCK_MINUTES: 30, // Inactivity minutes before auto-locking (Format MM:SS displayed in header)
     POLL_INTERVAL_MS: 10000, // Background HTTPS REST polling interval (10 seconds)
     DEFAULT_ROOM_CODE: 'apilog',
@@ -61,10 +61,7 @@ function getSupabaseHeaders(contentType = null) {
     const headers = {};
     if (key) {
         headers['apikey'] = key;
-        // Supabase Auth gateway strictly expects JWT tokens (starting with eyJ) in Bearer authorization header
-        if (key.startsWith('eyJ')) {
-            headers['Authorization'] = `Bearer ${key}`;
-        }
+        headers['Authorization'] = `Bearer ${key}`;
     }
     if (contentType) {
         headers['Content-Type'] = contentType;
@@ -1534,9 +1531,25 @@ async function createNewRoom() {
             body: JSON.stringify(verifyToken)
         }).catch(e => console.error("Verify token save error", e));
 
-        const key = await PasskeyManager.registerOrAuthenticate(roomCode, passphraseKey, true);
+        let key = passphraseKey;
+        let passkeyRegistered = false;
+
+        // Attempt optional Passkey registration if supported
+        if (window.PublicKeyCredential) {
+            try {
+                key = await PasskeyManager.registerOrAuthenticate(roomCode, passphraseKey, true);
+                passkeyRegistered = true;
+            } catch (pErr) {
+                console.warn("Passkey registration skipped or failed during room creation:", pErr);
+            }
+        }
+
         completeUnlock(roomCode, key, protocol, customUrl, true);
-        showToast(`Created & Unlocked Room "${roomCode}"!`);
+        if (passkeyRegistered) {
+            showToast(`Created & Unlocked Room "${roomCode}" with Passkey!`);
+        } else {
+            showToast(`Created & Unlocked Room "${roomCode}" with Passphrase!`);
+        }
     } catch (err) {
         showErrorModal("Room Creation Failed", err.message);
     }
