@@ -3,8 +3,8 @@
 // ==========================================
 
 const APP_CONFIG = {
-    VERSION: 'v1.9.2',
-    BUILD_TIME: '2026-08-05 11:02:00',
+    VERSION: 'v1.9.3',
+    BUILD_TIME: '2026-08-05 11:06:00',
     AUTO_LOCK_MINUTES: 30, // Inactivity minutes before auto-locking (Format MM:SS displayed in header)
     POLL_INTERVAL_MS: 10000, // Background HTTPS REST polling interval (10 seconds)
     DEFAULT_ROOM_CODE: 'apilog',
@@ -1871,16 +1871,20 @@ if (elements.btnSaveResetPassphrase) {
             // 4. Re-encrypt passkey for current domain if registered
             const currentDomain = window.location.hostname || "localhost";
             const metaEndpoint = `${base}/rooms/${encodeURIComponent(AppState.roomCode)}/meta.json`;
-            const res = await fetch(metaEndpoint, { cache: 'no-store' });
-            if (res.ok) {
-                const roomMeta = await res.json();
-                if (roomMeta && roomMeta.passkeys) {
-                    const validCreds = Object.keys(roomMeta.passkeys).filter(id => roomMeta.passkeys[id].rpId === currentDomain);
-                    if (validCreds.length > 0) {
-                        // Re-register domain passkey wrapping the new master key
-                        await PasskeyManager.registerPasskeyForCurrentDomain(AppState.roomCode, newMasterKey);
+            try {
+                const res = await fetch(metaEndpoint, { cache: 'no-store' });
+                if (res.ok) {
+                    const roomMeta = await res.json();
+                    if (roomMeta && roomMeta.passkeys) {
+                        const validCreds = Object.keys(roomMeta.passkeys).filter(id => roomMeta.passkeys[id].rpId === currentDomain);
+                        if (validCreds.length > 0) {
+                            // Re-register domain passkey wrapping the new master key
+                            await PasskeyManager.registerPasskeyForCurrentDomain(AppState.roomCode, newMasterKey);
+                        }
                     }
                 }
+            } catch (pErr) {
+                console.warn("Passkey re-registration skipped or failed during passphrase reset:", pErr);
             }
 
             // 5. Broadcast existing pages re-encrypted with new master key
