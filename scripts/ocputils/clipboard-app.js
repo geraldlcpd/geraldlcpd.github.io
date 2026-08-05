@@ -3,10 +3,14 @@
 // ==========================================
 
 const APP_CONFIG = {
-    VERSION: 'v1.9.8',
-    BUILD_TIME: '2026-08-05 11:25:00',
+    VERSION: 'v2.0.0',
+    BUILD_TIME: '2026-08-05 12:40:00',
     AUTO_LOCK_MINUTES: 30, // Inactivity minutes before auto-locking (Format MM:SS displayed in header)
     POLL_INTERVAL_MS: 10000, // Background HTTPS REST polling interval (10 seconds)
+    POLL_INTERVAL_BASE_MS: 10000, // Base adaptive polling interval (10s)
+    POLL_INTERVAL_MAX_MS: 60000, // Maximum adaptive backoff polling interval (60s)
+    POLL_BACKOFF_FACTOR: 1.5, // Backoff multiplier per unchanged poll
+    SAVE_DEBOUNCE_MS: 5000, // Debounce delay after editing before updating RTDB (5 seconds)
     DEFAULT_ROOM_CODE: 'apilog',
     DEFAULT_FIREBASE_URL: 'https://bdi-online-clipboard-default-rtdb.asia-southeast1.firebasedatabase.app',
     DEFAULT_SUPABASE_URL: 'https://slezydyzcokhfzeifkwa.storage.supabase.co/storage/v1/s3',
@@ -88,6 +92,8 @@ const AppState = {
     ],
     mqttClient: null,
     pollTimer: null,
+    currentPollIntervalMs: 10000,
+    unchangedPollCount: 0,
     inactivityTimer: null,
     debounceTimer: null,
     resetBadgeTimer: null,
@@ -394,12 +400,24 @@ function setSyncStatus(state, message) {
             <span>${message || 'Synced!'}</span>
         `;
         AppState.resetBadgeTimer = setTimeout(() => {
-            setSyncStatus('connected', `Synced (${AppState.syncProtocol.split('_')[0].toUpperCase()})`);
+            setSyncStatus('connected');
         }, 2000);
     } else if (state === 'connected') {
+        let displayMsg = message;
+        if (!displayMsg) {
+            const protoName = AppState.syncProtocol ? AppState.syncProtocol.split('_')[0].toUpperCase() : 'REST';
+            if (AppState.syncProtocol === 'websocket') {
+                displayMsg = `Synced (${protoName})`;
+            } else {
+                const intervalSec = Math.round((AppState.currentPollIntervalMs || 10000) / 1000);
+                const isIdle = (AppState.unchangedPollCount || 0) > 0;
+                const stateTag = isIdle ? `Idle ${intervalSec}s` : `Active ${intervalSec}s`;
+                displayMsg = `Synced (${protoName} - ${stateTag})`;
+            }
+        }
         elements.badgeStatus.innerHTML = `
             <span class="status-dot connected"></span>
-            <span>${message || 'Synced'}</span>
+            <span>${displayMsg}</span>
         `;
     } else {
         elements.badgeStatus.innerHTML = `
@@ -433,7 +451,7 @@ if (elements.btnManualRefresh) {
             applyPendingSync();
         } else {
             setSyncStatus('syncing', 'Checking remote...');
-            SyncManager.pollHttpsRest(SyncManager.getEndpointUrl(AppState.roomCode, AppState.syncProtocol), AppState.masterKey, AppState.syncProtocol, true);
+            SyncManager.resetPollingInterval(true);
         }
     });
 }
@@ -1916,6 +1934,11 @@ if (elements.codeEditor) {
         updateEditorStats();
         updateSidebarDbSizeSummary();
         SyncManager.broadcastState();
+    });
+    elements.codeEditor.addEventListener('blur', () => {
+        if (SyncManager && SyncManager.flushPendingSave) {
+            SyncManager.flushPendingSave();
+        }
     });
 }
 

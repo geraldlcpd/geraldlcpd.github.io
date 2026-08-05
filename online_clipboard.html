@@ -278,13 +278,13 @@
                 <div class="modal-icon">
                     <i data-lucide="key-round" style="width: 24px; height: 24px;"></i>
                 </div>
-                <h2 class="modal-title">Unlock Clipboard</h2>
-                <p class="modal-desc">Select an existing room or create a new private room to sync your encrypted clipboard.</p>
+                <h2 class="modal-title">Welcome to Online Clipboard</h2>
+                <p class="modal-desc">Please select your action below:</p>
             </div>
 
             <!-- 2-Panel Switch Control -->
             <div class="modal-switch-tabs">
-                <button class="switch-tab-btn active" id="tabSelectExisting">Select Existing Room</button>
+                <button class="switch-tab-btn active" id="tabSelectExisting">View Existing Room</button>
                 <button class="switch-tab-btn" id="tabCreateNew">Create New Room</button>
             </div>
 
@@ -346,22 +346,30 @@
                 </div>
             </div>
 
-            <!-- Relay Settings -->
-            <div class="divider">Database Relay Settings</div>
+            <!-- Relay Settings (Collapsed by Default) -->
+            <details class="relay-settings-details" id="relaySettingsDetails">
+                <summary class="relay-settings-summary">
+                    <i data-lucide="sliders" style="width: 13px; height: 13px;"></i>
+                    <span>Database Relay Settings</span>
+                    <i data-lucide="chevron-down" class="chevron-icon" style="width: 13px; height: 13px;"></i>
+                </summary>
 
-            <div class="input-field">
-                <label class="input-label">Relay Provider</label>
-                <select class="select-input" id="syncProtocolSelect" style="width: 100%;">
-                    <option value="firebase_rest" selected>Google Firebase Database (Port 443)</option>
-                    <option value="websocket">WebSockets (WSS Port 8084)</option>
-                    <option value="custom_rest">Custom HTTPS Endpoint URL</option>
-                </select>
-            </div>
+                <div class="relay-settings-content">
+                    <div class="input-field">
+                        <label class="input-label">Relay Provider</label>
+                        <select class="select-input" id="syncProtocolSelect" style="width: 100%;">
+                            <option value="firebase_rest" selected>Google Firebase Database (Port 443)</option>
+                            <option value="websocket">WebSockets (WSS Port 8084)</option>
+                            <option value="custom_rest">Custom HTTPS Endpoint URL</option>
+                        </select>
+                    </div>
 
-            <div class="input-field" id="customUrlContainer" style="display: flex;">
-                <label class="input-label" id="customUrlLabel">Firebase Database URL</label>
-                <input type="text" class="text-input" id="inputCustomUrl" value="https://bdi-online-clipboard-default-rtdb.asia-southeast1.firebasedatabase.app" placeholder="https://my-app-default-rtdb.asia-southeast1.firebasedatabase.app">
-            </div>
+                    <div class="input-field" id="customUrlContainer" style="display: flex;">
+                        <label class="input-label" id="customUrlLabel">Firebase Database URL</label>
+                        <input type="text" class="text-input" id="inputCustomUrl" value="https://bdi-online-clipboard-default-rtdb.asia-southeast1.firebasedatabase.app" placeholder="https://my-app-default-rtdb.asia-southeast1.firebasedatabase.app">
+                    </div>
+                </div>
+            </details>
 
             <!-- Version & Build Timestamp Tag -->
             <div style="text-align: center; font-size: 0.7rem; color: var(--text-dim); margin-top: 4px;" id="unlockModalVersionTag">

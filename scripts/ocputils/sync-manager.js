@@ -4,7 +4,11 @@
 class SyncManager {
     static connect(roomCode, key, protocol, customUrl, isNewRoom = false) {
         if (AppState.mqttClient) AppState.mqttClient.end();
-        if (AppState.pollTimer) clearInterval(AppState.pollTimer);
+        if (AppState.pollTimer) {
+            clearTimeout(AppState.pollTimer);
+            clearInterval(AppState.pollTimer);
+            AppState.pollTimer = null;
+        }
 
         AppState.syncProtocol = protocol;
         AppState.customUrl = customUrl || AppState.customUrl;
@@ -36,7 +40,9 @@ class SyncManager {
 
     // --- HTTPS REST Transport (Port 443) ---
     static initHttpsRest(roomCode, key, protocol, isNewRoom = false) {
-        setSyncStatus('connected', `Synced (${protocol.split('_')[0].toUpperCase()})`);
+        AppState.unchangedPollCount = 0;
+        AppState.currentPollIntervalMs = APP_CONFIG.POLL_INTERVAL_BASE_MS || 10000;
+        setSyncStatus('connected');
 
         const endpoint = SyncManager.getEndpointUrl(roomCode, protocol);
         AppState.isInitialLoaded = false;
@@ -49,9 +55,32 @@ class SyncManager {
             SyncManager.pollHttpsRest(endpoint, key, protocol, true);
         }
 
-        AppState.pollTimer = setInterval(() => {
-            SyncManager.pollHttpsRest(endpoint, key, protocol);
-        }, APP_CONFIG.POLL_INTERVAL_MS);
+        SyncManager.scheduleNextPoll(endpoint, key, protocol);
+    }
+
+    static scheduleNextPoll(endpoint, key, protocol) {
+        if (AppState.pollTimer) {
+            clearTimeout(AppState.pollTimer);
+            clearInterval(AppState.pollTimer);
+        }
+        const interval = AppState.currentPollIntervalMs || APP_CONFIG.POLL_INTERVAL_BASE_MS || 10000;
+        AppState.pollTimer = setTimeout(async () => {
+            await SyncManager.pollHttpsRest(endpoint, key, protocol);
+            SyncManager.scheduleNextPoll(endpoint, key, protocol);
+        }, interval);
+    }
+
+    static resetPollingInterval(triggerImmediate = false) {
+        AppState.unchangedPollCount = 0;
+        AppState.currentPollIntervalMs = APP_CONFIG.POLL_INTERVAL_BASE_MS || 10000;
+        if (AppState.isUnlocked && AppState.syncProtocol !== 'websocket') {
+            setSyncStatus('connected');
+            const endpoint = SyncManager.getEndpointUrl(AppState.roomCode, AppState.syncProtocol);
+            if (triggerImmediate) {
+                SyncManager.pollHttpsRest(endpoint, AppState.masterKey, AppState.syncProtocol, true);
+            }
+            SyncManager.scheduleNextPoll(endpoint, AppState.masterKey, AppState.syncProtocol);
+        }
     }
 
     static async pollHttpsRest(endpoint, key, protocol, forceSync = false) {
@@ -60,14 +89,36 @@ class SyncManager {
             return;
         }
 
+        let hasNewData = false;
+
         try {
             if (protocol === 'firebase_rest') {
                 const base = (AppState.customUrl || APP_CONFIG.DEFAULT_FIREBASE_URL).trim().replace(/\/+$/, '').replace(/\/rooms\/.*$/, '');
                 const roomCode = AppState.roomCode;
-                const pagesEndpoint = `${base}/rooms/${encodeURIComponent(roomCode)}/pages.json`;
-                const imagesEndpoint = `${base}/rooms/${encodeURIComponent(roomCode)}/images.json`;
-                const legacyEndpoint = `${base}/rooms/${encodeURIComponent(roomCode)}.json`;
+                const roomBaseUrl = `${base}/rooms/${encodeURIComponent(roomCode)}`;
+                const metaEndpoint = `${roomBaseUrl}/meta/lastChanged.json`;
+                const pagesEndpoint = `${roomBaseUrl}/pages.json`;
+                const legacyEndpoint = `${roomBaseUrl}.json`;
 
+                // Tier 1 Check: Global Room Metadata Timestamp Header (~15 Bytes)
+                if (!forceSync && AppState.isInitialLoaded && AppState.lastUpdated > 0) {
+                    try {
+                        const metaRes = await fetch(metaEndpoint, { cache: 'no-store' });
+                        if (metaRes.ok) {
+                            const remoteTime = await metaRes.json();
+                            if (typeof remoteTime === 'number' && remoteTime > 0) {
+                                if (remoteTime <= AppState.lastUpdated) {
+                                    // Global timestamp indicates NO room modifications! Stop immediately.
+                                    return;
+                                }
+                            }
+                        }
+                    } catch (e) {
+                        // Ignore & fallback to fetching pages.json
+                    }
+                }
+
+                // Fetch Full Room Page List from /pages.json
                 const res = await fetch(pagesEndpoint, { cache: 'no-store' });
                 if (res.ok) {
                     const pagesData = await res.json();
@@ -82,7 +133,6 @@ class SyncManager {
                                 if (decryptedStr) {
                                     const pageObj = JSON.parse(decryptedStr);
 
-                                    // If page is an image gallery, resolve cached images from IndexedDB or preserve currently loaded images
                                     if (pageObj.type === 'image') {
                                         const existingPage = AppState.pages ? AppState.pages.find(p => p.id === pageObj.id) : null;
                                         const existingImageMap = new Map();
@@ -117,11 +167,12 @@ class SyncManager {
                         }
 
                         if (assembledPages.length > 0 && (forceSync || !AppState.isInitialLoaded || latestTime > AppState.lastUpdated)) {
+                            hasNewData = true;
                             if (!forceSync && AppState.isInitialLoaded && document.activeElement === elements.codeEditor) {
                                 AppState.pendingRemoteEnvelope = { lastUpdated: latestTime, pages: assembledPages };
                                 elements.syncBanner.classList.add('show');
                             } else {
-                                AppState.lastUpdated = latestTime;
+                                AppState.lastUpdated = Math.max(AppState.lastUpdated, latestTime);
                                 AppState.pages = assembledPages;
                                 AppState.pendingRemoteEnvelope = null;
                                 AppState.isInitialLoaded = true;
@@ -130,7 +181,6 @@ class SyncManager {
                                 updateEditorView();
                                 setSyncStatus('updated', 'Remote update synced!');
 
-                                // Trigger on-demand image fetch if active page is an image gallery
                                 const activePage = AppState.pages.find(p => p.id === AppState.activePageId) || AppState.pages[0];
                                 if (activePage && activePage.type === 'image') {
                                     SyncManager.ensurePageImagesLoaded(activePage, key);
@@ -150,6 +200,7 @@ class SyncManager {
                         if (decryptedStr) {
                             const remoteEnvelope = JSON.parse(decryptedStr);
                             if (remoteEnvelope && (forceSync || !AppState.isInitialLoaded || remoteEnvelope.lastUpdated > AppState.lastUpdated)) {
+                                hasNewData = true;
                                 AppState.lastUpdated = remoteEnvelope.lastUpdated;
                                 AppState.pages = remoteEnvelope.pages;
                                 AppState.isInitialLoaded = true;
@@ -179,6 +230,7 @@ class SyncManager {
                         if (decryptedStr) {
                             const remoteEnvelope = JSON.parse(decryptedStr);
                             if (remoteEnvelope && (forceSync || !AppState.isInitialLoaded || remoteEnvelope.lastUpdated > AppState.lastUpdated)) {
+                                hasNewData = true;
                                 AppState.lastUpdated = remoteEnvelope.lastUpdated;
                                 AppState.pages = remoteEnvelope.pages;
                                 AppState.isInitialLoaded = true;
@@ -192,6 +244,26 @@ class SyncManager {
             }
         } catch (err) {
             console.warn("HTTPS REST poll error", err);
+        }
+
+        // Adjust adaptive polling frequency & backoff based on activity
+        if (hasNewData) {
+            AppState.unchangedPollCount = 0;
+            AppState.currentPollIntervalMs = APP_CONFIG.POLL_INTERVAL_BASE_MS || 10000;
+        } else {
+            AppState.unchangedPollCount = (AppState.unchangedPollCount || 0) + 1;
+            const base = APP_CONFIG.POLL_INTERVAL_BASE_MS || 10000;
+            const max = APP_CONFIG.POLL_INTERVAL_MAX_MS || 60000;
+            const factor = APP_CONFIG.POLL_BACKOFF_FACTOR || 1.5;
+            AppState.currentPollIntervalMs = Math.min(
+                Math.round(base * Math.pow(factor, AppState.unchangedPollCount)),
+                max
+            );
+        }
+
+        // Refresh badge indicator (e.g. Synced (REST - Active 10s) vs Synced (REST - Idle 30s))
+        if (elements.badgeStatus && !elements.badgeStatus.classList.contains('syncing') && !elements.badgeStatus.classList.contains('updated')) {
+            setSyncStatus('connected');
         }
     }
 
@@ -280,13 +352,24 @@ class SyncManager {
                 }
 
                 const pageCipher = await CryptoEngine.encryptPayload(JSON.stringify(pageToSave), AppState.masterKey);
-                await fetch(pageUrl, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
+                
+                // Single atomic PATCH request updating page payload, pageMeta header, and global room lastChanged header
+                const roomUrl = `${base}/rooms/${encodeURIComponent(AppState.roomCode)}.json`;
+                const patchPayload = {
+                    [`pages/${page.id}`]: {
                         lastUpdated: updateTimestamp,
                         payload: pageCipher
-                    })
+                    },
+                    [`pagesMeta/${page.id}`]: {
+                        lastChanged: updateTimestamp
+                    },
+                    [`meta/lastChanged`]: updateTimestamp
+                };
+
+                await fetch(roomUrl, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(patchPayload)
                 });
 
                 AppState.lastUpdated = updateTimestamp;
@@ -312,12 +395,23 @@ class SyncManager {
                 const pageUrl = `${base}/rooms/${encodeURIComponent(AppState.roomCode)}/pages/${encodeURIComponent(pageId)}.json`;
                 await fetch(pageUrl, { method: 'DELETE' });
 
+                const pagesMetaUrl = `${base}/rooms/${encodeURIComponent(AppState.roomCode)}/pagesMeta/${encodeURIComponent(pageId)}.json`;
+                await fetch(pagesMetaUrl, { method: 'DELETE' });
+
                 if (Array.isArray(imageIds) && imageIds.length > 0) {
                     const imagesBaseUrl = `${base}/rooms/${encodeURIComponent(AppState.roomCode)}/images`;
                     for (const imgId of imageIds) {
                         await fetch(`${imagesBaseUrl}/${encodeURIComponent(imgId)}.json`, { method: 'DELETE' });
                     }
                 }
+
+                // Touch global room metadata header
+                const metaUrl = `${base}/rooms/${encodeURIComponent(AppState.roomCode)}/meta/lastChanged.json`;
+                await fetch(metaUrl, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(updateTimestamp)
+                });
 
                 AppState.lastUpdated = updateTimestamp;
             } else {
@@ -331,11 +425,26 @@ class SyncManager {
         }
     }
 
+    static flushPendingSave() {
+        if (AppState.debounceTimer) {
+            clearTimeout(AppState.debounceTimer);
+            AppState.debounceTimer = null;
+            const activePage = AppState.pages.find(p => p.id === AppState.activePageId) || AppState.pages[0];
+            if (AppState.syncProtocol === 'firebase_rest' && activePage) {
+                SyncManager.savePage(activePage);
+            }
+        }
+    }
+
     static broadcastState() {
         if (!AppState.isUnlocked || !AppState.masterKey) return;
         
+        SyncManager.resetPollingInterval();
+
+        const debounceDelay = APP_CONFIG.SAVE_DEBOUNCE_MS || 5000;
         clearTimeout(AppState.debounceTimer);
         AppState.debounceTimer = setTimeout(async () => {
+            AppState.debounceTimer = null;
             const activePage = AppState.pages.find(p => p.id === AppState.activePageId) || AppState.pages[0];
             if (AppState.syncProtocol === 'firebase_rest' && activePage) {
                 await SyncManager.savePage(activePage);
@@ -361,7 +470,7 @@ class SyncManager {
                 });
                 setSyncStatus('updated', 'Synced across devices!');
             }
-        }, 400);
+        }, debounceDelay);
     }
 
     static async ensurePageImagesLoaded(page, key) {
