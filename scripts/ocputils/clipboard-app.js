@@ -3,8 +3,8 @@
 // ==========================================
 
 const APP_CONFIG = {
-    VERSION: 'v1.9.7',
-    BUILD_TIME: '2026-08-05 11:21:00',
+    VERSION: 'v1.9.8',
+    BUILD_TIME: '2026-08-05 11:25:00',
     AUTO_LOCK_MINUTES: 30, // Inactivity minutes before auto-locking (Format MM:SS displayed in header)
     POLL_INTERVAL_MS: 10000, // Background HTTPS REST polling interval (10 seconds)
     DEFAULT_ROOM_CODE: 'apilog',
