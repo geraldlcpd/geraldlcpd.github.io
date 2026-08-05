@@ -936,26 +936,34 @@ textarea.code-editor {
     }
 
     .editor-container {
-        grid-template-columns: 1fr;
-        height: 100%;
-    }
-
-    .editor-container.view-code .editor-pane {
-        display: none;
-    }
-
-    .editor-container.view-code .render-pane {
         display: flex;
+        flex-direction: column;
         height: 100%;
+        min-height: 0;
     }
 
+    /* In Mobile Edit Mode: ONLY show Editor Pane, strictly hide Syntax Preview */
     .editor-container.view-edit .editor-pane {
-        display: flex;
-        height: 100%;
+        display: flex !important;
+        flex: 1 !important;
+        height: 100% !important;
+        min-height: 0 !important;
     }
 
     .editor-container.view-edit .render-pane {
-        display: none;
+        display: none !important;
+    }
+
+    /* In Mobile Syntax View Mode: ONLY show Syntax Preview, strictly hide Editor Pane */
+    .editor-container.view-code .editor-pane {
+        display: none !important;
+    }
+
+    .editor-container.view-code .render-pane {
+        display: flex !important;
+        flex: 1 !important;
+        height: 100% !important;
+        min-height: 0 !important;
     }
 }
 
