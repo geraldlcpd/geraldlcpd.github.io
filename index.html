@@ -956,6 +956,14 @@
         tags: ["Developer Tools", "Cryptography", "Debugging"]
       },
       {
+        filename: "pgp_inspector.html",
+        title: "PGP Key Inspector",
+        desc: "Inspect, parse, and analyze PGP public and private keys offline. View key fingerprints, IDs, user IDs, creation/expiry dates, algorithms, and subkeys.",
+        category: "security",
+        icon: "fa-key",
+        tags: ["Security", "PGP", "Cryptography", "OpenPGP", "Key Inspector"]
+      },
+      {
         filename: "muilockerauto.html",
         title: "Google Forms Pre-fill Automator",
         desc: "Automate and pre-populate complex Google Forms fields using customizable link formats and field pre-fill protocols.",
@@ -1032,6 +1040,7 @@
         const htmlFiles = contents.filter(item =>
           item.name.endsWith('.html') &&
           item.name !== 'index.html' &&
+          item.name !== '404.html' &&
           item.type === 'file'
         );
 

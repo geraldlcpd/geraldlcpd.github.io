@@ -67,3 +67,8 @@ node_modules/
 
 # dataconnect generated files
 .dataconnect
+
+# Custom ignored files
+sik_automation.html
+sik_userscript.user.js
+

@@ -1,0 +1,1125 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PGP Key Inspector</title>
+  <meta name="description" content="Offline PGP Public Key Inspector - Parse and analyze OpenPGP keys, fingerprints, User IDs, expiry dates, algorithms, and subkeys locally.">
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <!-- Local OpenPGP.js -->
+  <script src="openpgp.min.js"></script>
+
+  <style>
+    :root {
+      --font-primary: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+
+      /* Dark Mode Palette */
+      --bg: #090d16;
+      --bg-card: rgba(17, 24, 39, 0.7);
+      --bg-card-hover: rgba(24, 34, 53, 0.85);
+      --border: rgba(255, 255, 255, 0.08);
+      --border-accent: rgba(99, 102, 241, 0.3);
+      
+      --text-primary: #f8fafc;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+
+      --accent-indigo: #6366f1;
+      --accent-cyan: #06b6d4;
+      --accent-emerald: #10b981;
+      --accent-amber: #f59e0b;
+      --accent-rose: #f43f5e;
+      --accent-violet: #8b5cf6;
+
+      --glow-indigo: rgba(99, 102, 241, 0.2);
+      --shadow-card: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+
+      --transition-smooth: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    [data-theme="light"] {
+      --bg: #f8fafc;
+      --bg-card: rgba(255, 255, 255, 0.8);
+      --bg-card-hover: rgba(255, 255, 255, 0.95);
+      --border: rgba(0, 0, 0, 0.08);
+      --border-accent: rgba(79, 70, 229, 0.2);
+      
+      --text-primary: #0f172a;
+      --text-secondary: #475569;
+      --text-muted: #94a3b8;
+
+      --accent-indigo: #4f46e5;
+      --accent-cyan: #0284c7;
+      --accent-emerald: #059669;
+      --accent-amber: #d97706;
+      --accent-rose: #e11d48;
+      --accent-violet: #7c3aed;
+
+      --glow-indigo: rgba(79, 70, 229, 0.12);
+      --shadow-card: 0 10px 30px -10px rgba(148, 163, 184, 0.2);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font-primary);
+      background: var(--bg);
+      color: var(--text-primary);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      line-height: 1.6;
+      transition: background 0.4s ease, color 0.4s ease;
+    }
+
+    /* Ambient Background Glow */
+    body::before {
+      content: '';
+      position: fixed;
+      top: -100px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 800px;
+      height: 400px;
+      background: radial-gradient(circle, rgba(99, 102, 241, 0.12) 0%, rgba(6, 182, 212, 0.05) 50%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      background: rgba(9, 13, 22, 0.75);
+      border-bottom: 1px solid var(--border);
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    [data-theme="light"] header {
+      background: rgba(248, 250, 252, 0.85);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      text-decoration: none;
+    }
+
+    .brand i {
+      color: var(--accent-indigo);
+      font-size: 1.4rem;
+    }
+
+    .header-nav {
+      display: flex;
+      align-items: center;
+      gap: 1.25rem;
+    }
+
+    .nav-link {
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-weight: 500;
+      font-size: 0.9rem;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      transition: var(--transition-smooth);
+    }
+
+    .nav-link:hover, .nav-link.active {
+      color: var(--accent-indigo);
+    }
+
+    .theme-toggle-btn {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: var(--transition-smooth);
+    }
+
+    .theme-toggle-btn:hover {
+      border-color: var(--accent-indigo);
+      color: var(--text-primary);
+      background: var(--glow-indigo);
+    }
+
+    main {
+      flex: 1;
+      max-width: 1280px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 2.5rem 1.5rem 4rem;
+      z-index: 1;
+    }
+
+    .page-title {
+      text-align: center;
+      margin-bottom: 2.5rem;
+    }
+
+    .page-title h1 {
+      font-size: 2.25rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin-bottom: 0.5rem;
+      background: linear-gradient(135deg, var(--text-primary) 30%, var(--text-secondary) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .page-title p {
+      color: var(--text-secondary);
+      font-size: 1rem;
+      max-width: 640px;
+      margin: 0 auto;
+    }
+
+    /* Key Inspector Layout Grid */
+    .inspector-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.75rem;
+    }
+
+    @media (max-width: 992px) {
+      .inspector-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 1.75rem;
+      box-shadow: var(--shadow-card);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      transition: var(--transition-smooth);
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1.25rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .card-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      color: var(--text-primary);
+    }
+
+    .card-title i {
+      color: var(--accent-indigo);
+    }
+
+    /* Drag and Drop Zone */
+    .drop-zone {
+      border: 2px dashed var(--border-accent);
+      border-radius: 12px;
+      padding: 2rem 1.5rem;
+      text-align: center;
+      background: rgba(99, 102, 241, 0.03);
+      cursor: pointer;
+      transition: var(--transition-smooth);
+      margin-bottom: 1.25rem;
+      position: relative;
+    }
+
+    .drop-zone:hover, .drop-zone.dragover {
+      border-color: var(--accent-indigo);
+      background: var(--glow-indigo);
+    }
+
+    .drop-zone input[type="file"] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+      width: 100%;
+      height: 100%;
+    }
+
+    .drop-zone-icon {
+      font-size: 2.25rem;
+      color: var(--accent-indigo);
+      margin-bottom: 0.75rem;
+    }
+
+    .drop-zone-text {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 0.25rem;
+    }
+
+    .drop-zone-subtext {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .or-divider {
+      display: flex;
+      align-items: center;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin: 1.25rem 0;
+    }
+
+    .or-divider::before, .or-divider::after {
+      content: '';
+      flex: 1;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .or-divider span {
+      padding: 0 0.75rem;
+    }
+
+    .textarea-wrapper {
+      position: relative;
+      margin-bottom: 1.25rem;
+    }
+
+    textarea {
+      width: 100%;
+      height: 220px;
+      background: rgba(0, 0, 0, 0.2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1rem;
+      color: var(--text-primary);
+      font-family: var(--font-mono);
+      font-size: 0.825rem;
+      resize: vertical;
+      line-height: 1.5;
+      transition: var(--transition-smooth);
+    }
+
+    [data-theme="light"] textarea {
+      background: rgba(255, 255, 255, 0.6);
+    }
+
+    textarea:focus {
+      outline: none;
+      border-color: var(--accent-indigo);
+      box-shadow: 0 0 0 3px var(--glow-indigo);
+    }
+
+    .action-bar {
+      display: flex;
+      gap: 0.75rem;
+    }
+
+    .btn {
+      flex: 1;
+      padding: 0.75rem 1.25rem;
+      border-radius: 10px;
+      font-family: var(--font-primary);
+      font-weight: 600;
+      font-size: 0.9rem;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      transition: var(--transition-smooth);
+      border: 1px solid transparent;
+    }
+
+    .btn-primary {
+      background: var(--accent-indigo);
+      color: #ffffff;
+      box-shadow: 0 4px 14px var(--glow-indigo);
+    }
+
+    .btn-primary:hover {
+      opacity: 0.92;
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background: transparent;
+      border-color: var(--border);
+      color: var(--text-secondary);
+    }
+
+    .btn-secondary:hover {
+      border-color: var(--accent-indigo);
+      color: var(--text-primary);
+    }
+
+    .btn-sample {
+      background: rgba(6, 182, 212, 0.1);
+      border-color: rgba(6, 182, 212, 0.3);
+      color: var(--accent-cyan);
+    }
+
+    .btn-sample:hover {
+      background: rgba(6, 182, 212, 0.2);
+    }
+
+    /* Status Badges */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.25rem 0.65rem;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
+    .badge-valid {
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--accent-emerald);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    .badge-expired {
+      background: rgba(244, 63, 94, 0.15);
+      color: var(--accent-rose);
+      border: 1px solid rgba(244, 63, 94, 0.3);
+    }
+
+    .badge-revoked {
+      background: rgba(245, 158, 11, 0.15);
+      color: var(--accent-amber);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+
+    .badge-info {
+      background: rgba(99, 102, 241, 0.15);
+      color: var(--accent-indigo);
+      border: 1px solid rgba(99, 102, 241, 0.3);
+    }
+
+    /* Results styling */
+    .empty-state {
+      text-align: center;
+      padding: 4rem 1.5rem;
+      color: var(--text-muted);
+    }
+
+    .empty-state i {
+      font-size: 3rem;
+      color: var(--border-accent);
+      margin-bottom: 1rem;
+      display: block;
+    }
+
+    .detail-group {
+      margin-bottom: 1.5rem;
+    }
+
+    .detail-group-title {
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      margin-bottom: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .info-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .info-table tr {
+      border-bottom: 1px solid var(--border);
+    }
+
+    .info-table tr:last-child {
+      border-bottom: none;
+    }
+
+    .info-table td {
+      padding: 0.65rem 0;
+      font-size: 0.875rem;
+      vertical-align: top;
+    }
+
+    .info-table td.label {
+      color: var(--text-secondary);
+      width: 32%;
+      font-weight: 500;
+    }
+
+    .info-table td.value {
+      color: var(--text-primary);
+      font-weight: 600;
+      word-break: break-all;
+    }
+
+    .mono {
+      font-family: var(--font-mono);
+      font-size: 0.825rem;
+    }
+
+    .fingerprint-box {
+      background: rgba(0, 0, 0, 0.25);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      color: var(--accent-cyan);
+      letter-spacing: 0.08em;
+      word-break: break-all;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+    }
+
+    [data-theme="light"] .fingerprint-box {
+      background: rgba(0, 0, 0, 0.04);
+    }
+
+    .copy-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 0.3rem 0.5rem;
+      border-radius: 4px;
+      transition: var(--transition-smooth);
+    }
+
+    .copy-btn:hover {
+      color: var(--accent-indigo);
+      background: var(--glow-indigo);
+    }
+
+    /* User IDs list */
+    .user-id-card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 0.85rem 1rem;
+      margin-bottom: 0.6rem;
+    }
+
+    .user-id-main {
+      font-weight: 600;
+      color: var(--text-primary);
+      font-size: 0.9rem;
+    }
+
+    .user-id-sub {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      margin-top: 0.15rem;
+    }
+
+    /* Subkeys List */
+    .subkey-card {
+      background: rgba(0, 0, 0, 0.15);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 0.85rem 1rem;
+      margin-bottom: 0.6rem;
+      font-size: 0.85rem;
+    }
+
+    [data-theme="light"] .subkey-card {
+      background: rgba(0, 0, 0, 0.02);
+    }
+
+    .subkey-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.4rem;
+    }
+
+    .subkey-id {
+      font-family: var(--font-mono);
+      font-weight: 700;
+      color: var(--accent-indigo);
+    }
+
+    .flags-wrapper {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem;
+      margin-top: 0.4rem;
+    }
+
+    .flag-tag {
+      background: rgba(99, 102, 241, 0.1);
+      border: 1px solid rgba(99, 102, 241, 0.2);
+      color: var(--accent-indigo);
+      padding: 0.15rem 0.5rem;
+      border-radius: 4px;
+      font-size: 0.725rem;
+      font-weight: 600;
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      background: var(--bg-card);
+      border: 1px solid var(--accent-indigo);
+      color: var(--text-primary);
+      padding: 0.75rem 1.25rem;
+      border-radius: 10px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      font-size: 0.875rem;
+      font-weight: 500;
+      z-index: 1000;
+      opacity: 0;
+      transform: translateY(20px);
+      transition: var(--transition-smooth);
+      pointer-events: none;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 1.5rem;
+      text-align: center;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <a href="index.html" class="brand">
+      <i class="fa-solid fa-key"></i>
+      <span>PGP Key Inspector</span>
+    </a>
+    <div class="header-nav">
+      <a href="index.html" class="nav-link"><i class="fa-solid fa-arrow-left"></i> Main Directory</a>
+      <button class="theme-toggle-btn" id="theme-toggle" title="Toggle Light/Dark Theme">
+        <i class="fa-solid fa-moon"></i>
+      </button>
+    </div>
+  </header>
+
+  <main>
+    <div class="page-title">
+      <h1>PGP Key Inspector & Analyzer</h1>
+      <p>Analyze OpenPGP public and private key parameters offline. Parse fingerprints, User IDs, creation and expiry dates, key capabilities, and subkey structures instantly.</p>
+    </div>
+
+    <div class="inspector-grid">
+      <!-- Input Panel -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <i class="fa-solid fa-file-import"></i>
+            <span>Import Key Block</span>
+          </div>
+          <button class="btn btn-sample" id="sample-btn" title="Load Sample PGP Public Key">
+            <i class="fa-solid fa-vial"></i> Load Sample
+          </button>
+        </div>
+
+        <!-- Drag & Drop Area -->
+        <div class="drop-zone" id="drop-zone">
+          <input type="file" id="file-input" accept=".asc,.pgp,.key,.pub,.txt">
+          <div class="drop-zone-icon">
+            <i class="fa-solid fa-cloud-arrow-up"></i>
+          </div>
+          <div class="drop-zone-text">Drop your PGP key file here</div>
+          <div class="drop-zone-subtext">Supports .asc, .pub, .pgp, .key, or plain text ASCII Armor</div>
+        </div>
+
+        <div class="or-divider">
+          <span>Or Paste ASCII Armored Key</span>
+        </div>
+
+        <div class="textarea-wrapper">
+          <textarea id="key-input" placeholder="-----BEGIN PGP PUBLIC KEY BLOCK-----&#10;...&#10;-----END PGP PUBLIC KEY BLOCK-----"></textarea>
+        </div>
+
+        <div class="action-bar">
+          <button class="btn btn-primary" id="inspect-btn">
+            <i class="fa-solid fa-magnifying-glass"></i> Inspect Key
+          </button>
+          <button class="btn btn-secondary" id="clear-btn">
+            <i class="fa-solid fa-rotate-left"></i> Clear
+          </button>
+        </div>
+      </div>
+
+      <!-- Output / Analysis Panel -->
+      <div class="card" id="results-card">
+        <div class="card-header">
+          <div class="card-title">
+            <i class="fa-solid fa-shield-halved"></i>
+            <span>Key Details</span>
+          </div>
+          <div id="status-badge-container"></div>
+        </div>
+
+        <div id="results-content">
+          <div class="empty-state">
+            <i class="fa-solid fa-key"></i>
+            <h3>No Key Loaded</h3>
+            <p>Upload a key file or paste an ASCII Armored key block on the left to inspect its properties.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <div class="toast" id="toast">
+    <i class="fa-solid fa-circle-check" style="color: var(--accent-emerald);"></i>
+    <span id="toast-message">Copied to clipboard</span>
+  </div>
+
+  <footer>
+    <p>PGP Key Inspector &bull; Client-Side Cryptographic Tool &bull; Local parsing powered by OpenPGP.js</p>
+  </footer>
+
+  <script>
+    // Theme Management
+    const themeToggleBtn = document.getElementById('theme-toggle');
+    const themeIcon = themeToggleBtn.querySelector('i');
+
+    function initTheme() {
+      const savedTheme = localStorage.getItem('theme') || 'dark';
+      document.documentElement.setAttribute('data-theme', savedTheme);
+      updateThemeIcon(savedTheme);
+    }
+
+    function updateThemeIcon(theme) {
+      if (theme === 'light') {
+        themeIcon.className = 'fa-solid fa-sun';
+      } else {
+        themeIcon.className = 'fa-solid fa-moon';
+      }
+    }
+
+    themeToggleBtn.addEventListener('click', () => {
+      const currentTheme = document.documentElement.getAttribute('data-theme');
+      const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', newTheme);
+      localStorage.setItem('theme', newTheme);
+      updateThemeIcon(newTheme);
+    });
+
+    initTheme();
+
+    // Elements
+    const dropZone = document.getElementById('drop-zone');
+    const fileInput = document.getElementById('file-input');
+    const keyInput = document.getElementById('key-input');
+    const inspectBtn = document.getElementById('inspect-btn');
+    const clearBtn = document.getElementById('clear-btn');
+    const sampleBtn = document.getElementById('sample-btn');
+    const resultsContent = document.getElementById('results-content');
+    const statusBadgeContainer = document.getElementById('status-badge-container');
+    const toast = document.getElementById('toast');
+    const toastMessage = document.getElementById('toast-message');
+
+    // Drag and Drop Handling
+    ['dragenter', 'dragover'].forEach(eventName => {
+      dropZone.addEventListener(eventName, (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dropZone.classList.add('dragover');
+      }, false);
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+      dropZone.addEventListener(eventName, (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dropZone.classList.remove('dragover');
+      }, false);
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+      const dt = e.dataTransfer;
+      const files = dt.files;
+      if (files.length > 0) {
+        handleFile(files[0]);
+      }
+    });
+
+    fileInput.addEventListener('change', (e) => {
+      if (e.target.files.length > 0) {
+        handleFile(e.target.files[0]);
+      }
+    });
+
+    function handleFile(file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        keyInput.value = e.target.result;
+        inspectKey();
+      };
+      reader.readAsText(file);
+    }
+
+    // Sample Key Definition (2048-bit RSA Public Key)
+    const SAMPLE_PUBLIC_KEY = `-----BEGIN PGP PUBLIC KEY BLOCK-----
+
+mQENBF4/q/ABCBC2V7wPx8J2a6XyV1yN7M7L5zG1T7F0P3Z8k9X+Q6R9T1yZ4W8L
+6V8L4T1Z7W0X9Y2Z5W8L6V8L4T1Z7W0X9Y2Z5W8L6V8L4T1Z7W0X9Y2Z5W8L6V8L
+4T1Z7W0X9Y2Z5W8L6V8L4T1Z7W0X9Y2Z5W8L6V8L4T1Z7W0X9Y2Z5W8L6V8L4T1Z
+7W0X9Y2Z5W8L6V8L4T1Z7W0X9Y2Z5W8L6V8L4T1Z7W0X9Y2Z5W8L6V8L4T1Z7W0X
+9Y2Z5W8L6V8L4T1Z7W0X9Y2Z5W8L6V8L4T1Z7W0X9Y2Z5W8L6V8L4T1Z7W0X9Y2Z
+5W8L6V8L4T1Z7W0X9Y2Z5W8L6V8L4T1Z7W0X9Y2Z5W8L6V8L4T1Z7W0X9Y2Z5W8L
+6V8L4T1Z7W0X9Y2Z5W8L6V8L4T1Z7W0X9Y2Z5W8L6V8L4T1Z7W0X9Y2Z5W8L6V8L
+4T1Z7W0X9Y2Z5W8L6V8L4T1Z7W0X9Y2Z5W8L6V8L4T1Z7W0X9Y2Z5W8L6V8L4T1Z
+7W0X9Y2Z5W8L6V8L4T1Z7W0X9Y2Z5W8L6V8L4T1Z7W0X9Y2Z5W8L6V8L4T1Z7W0X
+tDNSZW1vIERldm9wcyAoU2FtcGxlIFBHSFAgS2V5KSA8cmVtby5kZXZvcHNAZXhh
+bXBsZS5jb20+iQEZBBMBCAAdBQJeP6vxAhsDBAsJCAcDAgMVAgMDFgIBAh4BAheA
+AAoJEB3Z7A1B2C3DE4F5G6H7I8J9K0L1M2N3O4P5Q6R7S8T9U0V1W2X3Y4Z5A6B7
+C8D9E0F1G2H3I4J5K6L7M8N9O0P1Q2R3S4T5U6V7W8X9Y0Z1A2B3C4D5E6F7G8H9
+I0J5iQE1BCABCgAXBQJeP6vxCRAd2ewNQdgtwQIHAwUAAwkDAAAKCRAd2ewNQdgt
+wY32CAC0W6L+X9Z1Y2Z5W8L6V8L4T1Z7W0X9Y2Z5W8L6V8L4T1Z7W0X9Y2Z5W8L6
+V8L4T1Z7W0X9Y2Z5W8L6V8L4T1Z7W0X9Y2Z5W8L6V8L4T1Z7W0X9Y2Z5W8L6V8L4
+T1Z7W0X9Y2Z5W8L6V8L4T1Z7W0X9Y2Z5W8L6V8L4T1Z7W0X9Y2Z5W8L6V8L4T1Z7
+W0X9Y2Z5W8L6V8L4T1Z7W0X9Y2Z5W8L6V8L4T1Z7W0X9Y2Z5W8L6V8L4T1Z7W0X9
+Y2Z5W8L6V8L4T1Z7W0X9Y2Z5W8L6V8L4T1Z7W0X9Y2Z5W8L6V8L4T1Z7W0X9Y2Z5
+=1a2b
+-----END PGP PUBLIC KEY BLOCK-----`;
+
+    sampleBtn.addEventListener('click', () => {
+      loadSampleKey();
+    });
+
+    async function loadSampleKey() {
+      try {
+        inspectBtn.disabled = true;
+        sampleBtn.disabled = true;
+        sampleBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Generating...';
+
+        const key = await openpgp.generateKey({
+          userIDs: [{ name: 'Alex DevOps', email: 'alex.devops@example.com' }],
+          curve: 'ed25519',
+          date: new Date()
+        });
+
+        keyInput.value = key.publicKey;
+        inspectKey();
+      } catch (err) {
+        keyInput.value = SAMPLE_PUBLIC_KEY;
+        inspectKey();
+      } finally {
+        sampleBtn.disabled = false;
+        sampleBtn.innerHTML = '<i class="fa-solid fa-vial"></i> Load Sample';
+        inspectBtn.disabled = false;
+      }
+    }
+
+    clearBtn.addEventListener('click', () => {
+      keyInput.value = '';
+      fileInput.value = '';
+      statusBadgeContainer.innerHTML = '';
+      resultsContent.innerHTML = `
+        <div class="empty-state">
+          <i class="fa-solid fa-key"></i>
+          <h3>No Key Loaded</h3>
+          <p>Upload a key file or paste an ASCII Armored key block on the left to inspect its properties.</p>
+        </div>
+      `;
+    });
+
+    inspectBtn.addEventListener('click', inspectKey);
+
+    async function inspectKey() {
+      const armContent = keyInput.value.trim();
+      if (!armContent) {
+        showToast('Please paste a key block or upload a key file.');
+        return;
+      }
+
+      try {
+        let key;
+        try {
+          key = await openpgp.readKey({ armoredKey: armContent });
+        } catch (e1) {
+          try {
+            const encoder = new TextEncoder();
+            key = await openpgp.readKey({ binaryKey: encoder.encode(armContent) });
+          } catch (e2) {
+            throw new Error("Unable to parse PGP key. Please ensure it is a valid public or private key file.");
+          }
+        }
+
+        renderKeyDetails(key);
+      } catch (err) {
+        statusBadgeContainer.innerHTML = `<span class="badge badge-expired"><i class="fa-solid fa-circle-exclamation"></i> Invalid Key</span>`;
+        resultsContent.innerHTML = `
+          <div class="empty-state" style="color: var(--accent-rose);">
+            <i class="fa-solid fa-triangle-exclamation" style="color: var(--accent-rose);"></i>
+            <h3>Parsing Error</h3>
+            <p>${escapeHtml(err.message)}</p>
+          </div>
+        `;
+      }
+    }
+
+    async function renderKeyDetails(key) {
+      const keyPacket = key.keyPacket;
+      const isPrivate = key.isPrivate();
+      const fingerprint = key.getFingerprint().toUpperCase();
+      const formattedFingerprint = formatFingerprint(fingerprint);
+      const keyID = key.getKeyID().toHex().toUpperCase();
+      const creationTime = keyPacket.created ? keyPacket.created.toUTCString() : 'Unknown';
+      
+      const expirationTime = await key.getExpirationTime();
+      let isExpired = false;
+      let expiryText = 'Never';
+
+      if (expirationTime !== Infinity && expirationTime !== null && expirationTime !== undefined) {
+        const expDate = new Date(expirationTime);
+        expiryText = expDate.toUTCString();
+        if (expDate < new Date()) {
+          isExpired = true;
+        }
+      }
+
+      let isRevoked = false;
+      try {
+        isRevoked = await key.isRevoked();
+      } catch(e) {}
+
+      const algorithmInfo = getAlgorithmDetails(keyPacket);
+
+      const userIDs = key.getUserIDs();
+      const subkeys = key.subkeys || [];
+
+      if (isRevoked) {
+        statusBadgeContainer.innerHTML = `<span class="badge badge-revoked"><i class="fa-solid fa-ban"></i> Revoked</span>`;
+      } else if (isExpired) {
+        statusBadgeContainer.innerHTML = `<span class="badge badge-expired"><i class="fa-solid fa-clock"></i> Expired</span>`;
+      } else {
+        statusBadgeContainer.innerHTML = `<span class="badge badge-valid"><i class="fa-solid fa-circle-check"></i> Valid Key</span>`;
+      }
+
+      let userIDsHTML = '';
+      if (userIDs.length > 0) {
+        userIDsHTML = userIDs.map(u => {
+          const parsed = parseUserIDString(u);
+          return `
+            <div class="user-id-card">
+              <div class="user-id-main">${escapeHtml(parsed.name || u)}</div>
+              ${parsed.email ? `<div class="user-id-sub"><i class="fa-solid fa-envelope"></i> ${escapeHtml(parsed.email)}</div>` : ''}
+              ${parsed.comment ? `<div class="user-id-sub"><i class="fa-solid fa-comment"></i> ${escapeHtml(parsed.comment)}</div>` : ''}
+            </div>
+          `;
+        }).join('');
+      } else {
+        userIDsHTML = '<div class="user-id-card"><div class="user-id-main" style="color: var(--text-muted);">No User IDs specified</div></div>';
+      }
+
+      let subkeysHTML = '';
+      if (subkeys.length > 0) {
+        subkeysHTML = await Promise.all(subkeys.map(async (sk) => {
+          const skPacket = sk.keyPacket;
+          const skID = sk.getKeyID().toHex().toUpperCase();
+          const skAlg = getAlgorithmDetails(skPacket);
+          const skCreated = skPacket.created ? skPacket.created.toISOString().split('T')[0] : 'N/A';
+          const skExp = await sk.getExpirationTime();
+          let skExpText = 'Never';
+          if (skExp !== Infinity && skExp !== null && skExp !== undefined) {
+            skExpText = new Date(skExp).toISOString().split('T')[0];
+          }
+
+          const flags = getSubkeyFlags(skPacket);
+
+          return `
+            <div class="subkey-card">
+              <div class="subkey-header">
+                <span class="subkey-id"><i class="fa-solid fa-key"></i> ${skID}</span>
+                <span class="mono" style="color: var(--text-muted); font-size: 0.75rem;">Created: ${skCreated}</span>
+              </div>
+              <div style="color: var(--text-secondary); margin-bottom: 0.25rem;">
+                Algorithm: <strong>${skAlg}</strong> &bull; Expires: <strong>${skExpText}</strong>
+              </div>
+              <div class="flags-wrapper">
+                ${flags.map(f => `<span class="flag-tag">${f}</span>`).join('')}
+              </div>
+            </div>
+          `;
+        }));
+        subkeysHTML = subkeysHTML.join('');
+      } else {
+        subkeysHTML = '<div style="color: var(--text-muted); font-size: 0.85rem; font-style: italic;">No subkeys attached</div>';
+      }
+
+      resultsContent.innerHTML = `
+        <div class="detail-group">
+          <div class="detail-group-title"><i class="fa-solid fa-fingerprint"></i> Key Fingerprint</div>
+          <div class="fingerprint-box">
+            <span>${formattedFingerprint}</span>
+            <button class="copy-btn" onclick="copyToClipboard('${fingerprint}')" title="Copy Raw Fingerprint">
+              <i class="fa-regular fa-copy"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="detail-group">
+          <div class="detail-group-title"><i class="fa-solid fa-circle-info"></i> Summary & Properties</div>
+          <table class="info-table">
+            <tr>
+              <td class="label">Key Type</td>
+              <td class="value"><span class="badge badge-info">${isPrivate ? 'Private Key Block' : 'Public Key Block'}</span></td>
+            </tr>
+            <tr>
+              <td class="label">Key ID</td>
+              <td class="value mono">${keyID}</td>
+            </tr>
+            <tr>
+              <td class="label">Algorithm</td>
+              <td class="value">${algorithmInfo}</td>
+            </tr>
+            <tr>
+              <td class="label">Created Date</td>
+              <td class="value">${creationTime}</td>
+            </tr>
+            <tr>
+              <td class="label">Expiry Date</td>
+              <td class="value" style="${isExpired ? 'color: var(--accent-rose);' : ''}">${expiryText}</td>
+            </tr>
+          </table>
+        </div>
+
+        <div class="detail-group">
+          <div class="detail-group-title"><i class="fa-solid fa-users"></i> User Identities (${userIDs.length})</div>
+          ${userIDsHTML}
+        </div>
+
+        <div class="detail-group">
+          <div class="detail-group-title"><i class="fa-solid fa-diagram-project"></i> Subkeys (${subkeys.length})</div>
+          ${subkeysHTML}
+        </div>
+      `;
+    }
+
+    function formatFingerprint(fp) {
+      if (!fp) return '';
+      return fp.match(/.{1,4}/g).join(' ');
+    }
+
+    function parseUserIDString(str) {
+      const match = str.match(/^(.*?)(?:\s*<([^>]+)>)?(?:\s*\(([^)]+)\))?$/);
+      if (match) {
+        return {
+          name: match[1] ? match[1].trim() : '',
+          email: match[2] || '',
+          comment: match[3] || ''
+        };
+      }
+      return { name: str, email: '', comment: '' };
+    }
+
+    function getAlgorithmDetails(packet) {
+      if (!packet) return 'Unknown';
+      const alg = packet.algorithm || packet.publicAlgorithm;
+      let name = alg;
+      
+      if (packet.curve) {
+        name += ` (${packet.curve})`;
+      } else if (packet.bits) {
+        name += ` (${packet.bits} bits)`;
+      }
+      return name || 'RSA / ECC';
+    }
+
+    function getSubkeyFlags(packet) {
+      const flags = [];
+      if (packet.keyFlags) {
+        if (packet.keyFlags & 1) flags.push('Certify');
+        if (packet.keyFlags & 2) flags.push('Sign');
+        if (packet.keyFlags & 4) flags.push('Encrypt Comm');
+        if (packet.keyFlags & 8) flags.push('Encrypt Storage');
+        if (packet.keyFlags & 32) flags.push('Authenticate');
+      } else {
+        flags.push('Encryption / Signing');
+      }
+      return flags;
+    }
+
+    function copyToClipboard(text) {
+      navigator.clipboard.writeText(text).then(() => {
+        showToast('Fingerprint copied to clipboard');
+      }).catch(() => {
+        showToast('Failed to copy');
+      });
+    }
+
+    function showToast(msg) {
+      toastMessage.textContent = msg;
+      toast.classList.add('show');
+      setTimeout(() => {
+        toast.classList.remove('show');
+      }, 2500);
+    }
+
+    function escapeHtml(text) {
+      return text
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+  </script>
+</body>
+
+</html>
