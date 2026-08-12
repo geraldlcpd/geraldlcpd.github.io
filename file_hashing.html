@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="100% Offline File Hash Generator & Windows Certutil Command Builder. Calculates SHA-256, SHA-512, MD5, SHA-1, SHA-384 hashes in browser with zero network traffic.">
+  <title>Offline File Hash Generator & Certutil Helper</title>
+  <style>
+    :root {
+      --bg-dark: #0f172a;
+      --bg-card: #1e293b;
+      --bg-card-hover: #334155;
+      --accent-blue: #38bdf8;
+      --accent-indigo: #6366f1;
+      --accent-cyan: #06b6d4;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --border-color: #334155;
+      --success-green: #22c55e;
+      --error-red: #ef4444;
+      --terminal-bg: #090d16;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem 1rem;
+      background-image: 
+        radial-gradient(at 0% 0%, rgba(56, 189, 248, 0.08) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(99, 102, 241, 0.08) 0px, transparent 50%);
+    }
+
+    .container {
+      width: 100%;
+      max-width: 900px;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    .badge-offline {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(34, 197, 94, 0.12);
+      color: var(--success-green);
+      border: 1px solid rgba(34, 197, 94, 0.3);
+      padding: 0.35rem 0.85rem;
+      border-radius: 9999px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+    }
+
+    .badge-offline span.dot {
+      width: 8px;
+      height: 8px;
+      background-color: var(--success-green);
+      border-radius: 50%;
+      box-shadow: 0 0 8px var(--success-green);
+    }
+
+    h1 {
+      font-size: 2.2rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, #f8fafc 0%, var(--accent-blue) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 0.5rem;
+    }
+
+    p.subtitle {
+      color: var(--text-muted);
+      font-size: 1rem;
+    }
+
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 1rem;
+      padding: 1.75rem;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+      backdrop-filter: blur(10px);
+    }
+
+    /* Drag & Drop Zone */
+    .drop-zone {
+      border: 2px dashed var(--border-color);
+      border-radius: 0.85rem;
+      padding: 2.5rem 1.5rem;
+      text-align: center;
+      background: rgba(15, 23, 42, 0.4);
+      transition: all 0.25s ease;
+      cursor: pointer;
+    }
+
+    .drop-zone:hover, .drop-zone.drag-over {
+      border-color: var(--accent-blue);
+      background: rgba(56, 189, 248, 0.05);
+      transform: translateY(-2px);
+    }
+
+    .drop-icon {
+      font-size: 2.8rem;
+      margin-bottom: 0.75rem;
+      color: var(--accent-blue);
+    }
+
+    .drop-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+
+    .drop-hint {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      margin-bottom: 1rem;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      padding: 0.65rem 1.25rem;
+      border-radius: 0.5rem;
+      font-weight: 600;
+      font-size: 0.9rem;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-decoration: none;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent-blue) 0%, var(--accent-indigo) 100%);
+      color: #fff;
+      box-shadow: 0 4px 14px rgba(56, 189, 248, 0.3);
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      opacity: 0.92;
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(56, 189, 248, 0.4);
+    }
+
+    .btn-secondary {
+      background: var(--bg-card-hover);
+      color: var(--text-main);
+      border: 1px solid var(--border-color);
+    }
+
+    .btn-secondary:hover {
+      background: #475569;
+    }
+
+    .btn-danger {
+      background: var(--error-red);
+      color: #fff;
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none !important;
+    }
+
+    /* File Info & Options Bar */
+    .file-details {
+      display: none;
+      margin-top: 1.25rem;
+      padding: 1rem;
+      background: rgba(15, 23, 42, 0.6);
+      border-radius: 0.6rem;
+      border: 1px solid var(--border-color);
+    }
+
+    .file-meta-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+      font-size: 0.9rem;
+    }
+
+    .meta-item label {
+      display: block;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.2rem;
+    }
+
+    .meta-item span {
+      font-weight: 600;
+      word-break: break-all;
+    }
+
+    .control-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      align-items: center;
+      justify-content: space-between;
+      border-top: 1px solid var(--border-color);
+      padding-top: 1rem;
+    }
+
+    .select-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    select {
+      background: var(--bg-card-hover);
+      color: var(--text-main);
+      border: 1px solid var(--border-color);
+      padding: 0.55rem 1rem;
+      border-radius: 0.5rem;
+      font-size: 0.9rem;
+      outline: none;
+      cursor: pointer;
+    }
+
+    /* Progress Bar */
+    .progress-container {
+      display: none;
+      margin-top: 1.25rem;
+    }
+
+    .progress-bar-bg {
+      height: 10px;
+      background: var(--bg-card-hover);
+      border-radius: 9999px;
+      overflow: hidden;
+      margin-bottom: 0.5rem;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--accent-blue), var(--accent-indigo));
+      transition: width 0.15s ease;
+    }
+
+    .progress-info {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    /* Results Card */
+    .result-section {
+      display: none;
+    }
+
+    .section-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .hash-box {
+      background: var(--terminal-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 0.6rem;
+      padding: 1.25rem;
+      font-family: 'Consolas', 'Courier New', monospace;
+      font-size: 1.05rem;
+      word-break: break-all;
+      color: var(--accent-blue);
+      margin-bottom: 1rem;
+      line-height: 1.5;
+    }
+
+    .actions-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      align-items: center;
+    }
+
+    /* Certutil Snippets Card */
+    .terminal-box {
+      background: var(--terminal-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 0.6rem;
+      padding: 1rem;
+      margin-bottom: 1rem;
+      font-family: 'Consolas', 'Courier New', monospace;
+      font-size: 0.88rem;
+      color: #e2e8f0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+
+    .terminal-code {
+      word-break: break-all;
+      color: #a5f3fc;
+    }
+
+    .cmd-tag {
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 0.2rem 0.5rem;
+      border-radius: 0.25rem;
+      background: rgba(99, 102, 241, 0.2);
+      color: var(--accent-indigo);
+      margin-bottom: 0.5rem;
+      display: inline-block;
+    }
+
+    /* Hash Comparator */
+    .compare-box {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .input-field {
+      width: 100%;
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 0.75rem 1rem;
+      border-radius: 0.5rem;
+      font-family: 'Consolas', monospace;
+      font-size: 0.95rem;
+      outline: none;
+    }
+
+    .input-field:focus {
+      border-color: var(--accent-blue);
+    }
+
+    .compare-tag {
+      display: none;
+      padding: 0.4rem 0.8rem;
+      border-radius: 0.4rem;
+      font-weight: 700;
+      font-size: 0.85rem;
+    }
+
+    .compare-tag.match {
+      background: rgba(34, 197, 94, 0.2);
+      color: var(--success-green);
+      border: 1px solid rgba(34, 197, 94, 0.4);
+    }
+
+    .compare-tag.mismatch {
+      background: rgba(239, 68, 68, 0.2);
+      color: var(--error-red);
+      border: 1px solid rgba(239, 68, 68, 0.4);
+    }
+
+    .btn.copied {
+      background: var(--success-green) !important;
+      color: #fff !important;
+    }
+
+    footer {
+      text-align: center;
+      margin-top: 2rem;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="badge-offline">
+        <span class="dot"></span>
+        100% Offline • Zero Outgoing Traffic
+      </div>
+      <h1>File Hash Generator</h1>
+      <p class="subtitle">Generate cryptographic hashes & Windows certutil commands entirely inside your browser.</p>
+    </header>
+
+    <!-- File Upload Section -->
+    <div class="card">
+      <div class="drop-zone" id="dropZone">
+        <div class="drop-icon">📁</div>
+        <div class="drop-title">Drag & Drop Any File Here</div>
+        <div class="drop-hint">Files are processed locally in your browser memory and never uploaded.</div>
+        <button class="btn btn-secondary" id="browseBtn">Browse File</button>
+        <input type="file" id="fileInput" style="display: none;">
+      </div>
+
+      <!-- File Details -->
+      <div class="file-details" id="fileDetails">
+        <div class="file-meta-grid">
+          <div class="meta-item">
+            <label>File Name</label>
+            <span id="fileName">-</span>
+          </div>
+          <div class="meta-item">
+            <label>File Size</label>
+            <span id="fileSize">-</span>
+          </div>
+          <div class="meta-item">
+            <label>MIME Type</label>
+            <span id="fileType">-</span>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <div class="select-wrapper">
+            <label for="algoSelect" style="font-size: 0.9rem; color: var(--text-muted);">Algorithm:</label>
+            <select id="algoSelect">
+              <option value="SHA-256" selected>SHA-256 (Recommended)</option>
+              <option value="SHA-512">SHA-512</option>
+              <option value="MD5">MD5</option>
+              <option value="SHA-1">SHA-1</option>
+              <option value="SHA-384">SHA-384</option>
+            </select>
+          </div>
+
+          <div>
+            <button class="btn btn-primary" id="startBtn" disabled>Generate Hash</button>
+            <button class="btn btn-danger" id="cancelBtn" style="display: none;">Cancel</button>
+          </div>
+        </div>
+
+        <!-- Progress Indicator -->
+        <div class="progress-container" id="progressContainer">
+          <div class="progress-bar-bg">
+            <div class="progress-bar-fill" id="progressBar"></div>
+          </div>
+          <div class="progress-info">
+            <span id="speedText">0 MB/s</span>
+            <span id="progressText">0%</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Calculated Result Section -->
+    <div class="card result-section" id="resultsSection">
+      <div class="section-title">
+        <span>Calculated Hash</span>
+        <span style="font-size: 0.85rem; font-weight: 400; color: var(--text-muted);" id="timeTaken"></span>
+      </div>
+      <div class="hash-box" id="hashOutput"></div>
+      <div class="actions-row">
+        <button class="btn btn-primary" id="copyHashBtn">Copy Hash</button>
+        <button class="btn btn-secondary" id="caseToggleBtn">UPPERCASE</button>
+      </div>
+
+      <!-- Hash Comparator -->
+      <div style="margin-top: 1.75rem; border-top: 1px solid var(--border-color); padding-top: 1.25rem;">
+        <div class="section-title" style="font-size: 1rem;">
+          Compare Expected Checksum
+          <span class="compare-tag" id="compareStatus"></span>
+        </div>
+        <div class="compare-box">
+          <input type="text" class="input-field" id="expectedHashInput" placeholder="Paste expected hash to verify match...">
+        </div>
+      </div>
+    </div>
+
+    <!-- Windows Certutil Commands Card -->
+    <div class="card">
+      <div class="section-title">
+        <span>Windows Command Line Options</span>
+      </div>
+      <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1rem;">
+        Prefer verifying natively in Windows without browser? Run these built-in commands in Command Prompt or PowerShell:
+      </p>
+
+      <div class="cmd-tag">Command Prompt (certutil)</div>
+      <div class="terminal-box">
+        <span class="terminal-code" id="certutilCmd">certutil -hashfile "filename" SHA256</span>
+        <button class="btn btn-secondary" id="copyCertutilBtn" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;">Copy</button>
+      </div>
+
+      <div class="cmd-tag" style="margin-top: 0.5rem;">PowerShell (Get-FileHash)</div>
+      <div class="terminal-box">
+        <span class="terminal-code" id="psCmd">Get-FileHash -Path "filename" -Algorithm SHA256</span>
+        <button class="btn btn-secondary" id="copyPsBtn" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;">Copy</button>
+      </div>
+    </div>
+
+    <footer>
+      Offline File Hasher Utility &bull; Zero Network Requests &bull; Client-Side WebCrypto
+    </footer>
+  </div>
+
+  <!-- Local Offline JS Scripts -->
+  <script src="scripts/filehashing/md5.js"></script>
+  <script src="scripts/filehashing/file-hasher.js"></script>
+</body>
+</html>
