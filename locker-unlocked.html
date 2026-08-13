@@ -106,14 +106,21 @@
                     <p class="mt-1.5 text-[11px] text-slate-500">Use the form's <code class="bg-slate-950 px-1 py-0.5 rounded text-indigo-300">viewform</code> URL (not edit or pre-filled link).</p>
                 </div>
 
-                <div class="flex items-center gap-3 mb-4">
-                    <span class="flex items-center justify-center w-7 h-7 rounded-lg bg-indigo-500/20 text-indigo-400 text-xs font-bold">2</span>
-                    <h3 class="text-lg font-bold text-white tracking-tight">Pre-fill Parameters</h3>
+                <div class="flex items-center justify-between gap-3 mb-4">
+                    <div class="flex items-center gap-3">
+                        <span class="flex items-center justify-center w-7 h-7 rounded-lg bg-indigo-500/20 text-indigo-400 text-xs font-bold">2</span>
+                        <h3 class="text-lg font-bold text-white tracking-tight">Pre-fill Parameters</h3>
+                    </div>
+                    <!-- Saturday Selection Switch -->
+                    <div class="inline-flex p-1 bg-slate-950 rounded-xl border border-slate-800 text-xs">
+                        <button type="button" id="btnThisSaturday" onclick="setSaturdayMode('this')" class="px-3 py-1 rounded-lg font-medium transition-all bg-indigo-600 text-white shadow-sm">This Saturday</button>
+                        <button type="button" id="btnNextSaturday" onclick="setSaturdayMode('next')" class="px-3 py-1 rounded-lg font-medium transition-all text-slate-400 hover:text-slate-200">Next Saturday</button>
+                    </div>
                 </div>
 
                 <!-- Dynamic Fields Container -->
                 <div id="entries-container" class="space-y-4">
-                    <!-- Fixed Next Saturday Date Entries -->
+                    <!-- Fixed Date Entries -->
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div class="flex flex-col p-3 bg-indigo-950/20 rounded-xl border border-indigo-500/20 hover:border-indigo-500/35 transition-all">
                             <div class="flex justify-between items-center mb-1.5">
@@ -283,17 +290,41 @@
         const DATE_ENTRY_ID_2 = "1713726861";
 
         let qr = null;
+        let saturdayMode = 'this'; // 'this' or 'next'
 
         /**
-         * Calculates the date components for the next Saturday.
+         * Switches Saturday mode ('this' or 'next') and updates button styles.
          */
-        function getNextSaturday() {
+        function setSaturdayMode(mode) {
+            saturdayMode = mode;
+            const btnThis = document.getElementById('btnThisSaturday');
+            const btnNext = document.getElementById('btnNextSaturday');
+
+            if (mode === 'this') {
+                btnThis.className = "px-3 py-1 rounded-lg font-medium transition-all bg-indigo-600 text-white shadow-sm";
+                btnNext.className = "px-3 py-1 rounded-lg font-medium transition-all text-slate-400 hover:text-slate-200";
+            } else {
+                btnNext.className = "px-3 py-1 rounded-lg font-medium transition-all bg-indigo-600 text-white shadow-sm";
+                btnThis.className = "px-3 py-1 rounded-lg font-medium transition-all text-slate-400 hover:text-slate-200";
+            }
+            generateUrl();
+        }
+
+        /**
+         * Calculates the date components for Saturday based on selected mode.
+         * 'this': If today is Saturday, uses today. Otherwise, uses upcoming Saturday.
+         * 'next': Calculates the Saturday after 'This Saturday'.
+         */
+        function getTargetSaturday() {
             const date = new Date();
             const dayOfWeek = date.getDay(); // 0 = Sunday, 6 = Saturday
-            let daysUntilNextSaturday = 6 - dayOfWeek;
-            if (daysUntilNextSaturday <= 0) daysUntilNextSaturday += 7;
+            
+            let daysToAdd = (6 - dayOfWeek + 7) % 7;
+            if (saturdayMode === 'next') {
+                daysToAdd += 7;
+            }
 
-            date.setDate(date.getDate() + daysUntilNextSaturday);
+            date.setDate(date.getDate() + daysToAdd);
             const year = date.getFullYear();
             const month = date.getMonth() + 1;
             const day = date.getDate();
@@ -308,7 +339,7 @@
         function generateUrl() {
             const baseUrl = document.getElementById('baseUrl').value.trim();
             const customEntries = document.querySelectorAll('#custom-entries .entry-row');
-            const sat = getNextSaturday();
+            const sat = getTargetSaturday();
 
             // Update UI fixed date fields
             document.getElementById('nextSaturday1').value = sat.formatted;
