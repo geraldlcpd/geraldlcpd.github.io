@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Offline SQLite Database Browser &amp; Viewer</title>
+  <meta name="description"
+    content="A client-side, 100% offline WebAssembly SQLite file inspector and query tool. Browse tables, inspect schemas, execute custom SQL, and export data without server uploads.">
+  <meta name="keywords"
+    content="SQLite, WebAssembly, Database Viewer, Offline DB, Client-side SQL, sql.js, DevTools">
+  <meta name="author" content="GeraldLCPD">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Outfit:wght@300;400;500;600;700;800&family=Roboto+Mono:wght@400;500;600&display=swap"
+    rel="stylesheet">
+
+  <!-- Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <!-- Utility CSS -->
+  <link rel="stylesheet" href="./scripts/sqlliteviewer/styles.css">
+
+  <!-- SQLite WebAssembly Engine & Base64 Data for local file:// protocol -->
+  <script src="./scripts/sql-wasm/sql-wasm-data.js"></script>
+  <script src="./scripts/sql-wasm/sql-wasm.js"></script>
+</head>
+
+<body>
+
+  <!-- App Header Navbar -->
+  <header class="app-navbar">
+    <div style="display: flex; align-items: center; gap: 1.2rem;">
+      <a href="index.html" class="back-link" title="Return to DevOps Directory">
+        <i class="fa-solid fa-arrow-left"></i>
+        <span>Directory</span>
+      </a>
+      <div class="nav-brand">
+        <i class="fa-solid fa-database"></i>
+        <span>SQLite Viewer</span>
+      </div>
+    </div>
+
+    <!-- Active DB Info pill (workspace mode) -->
+    <div id="db-meta-pill" class="db-info-pill" style="display: none;">
+      <span id="db-title">database.sqlite</span>
+      <span id="db-meta" class="text-muted">0 tables</span>
+    </div>
+
+    <div class="navbar-actions">
+      <!-- Theme & Settings Controls -->
+      <button id="btn-theme-toggle" class="btn btn-secondary btn-sm" title="Toggle Light / Dark Mode">
+        <i class="fa-solid fa-moon" id="theme-icon"></i>
+      </button>
+      <button id="btn-settings" class="btn btn-secondary btn-sm" title="Font & Appearance Customization">
+        <i class="fa-solid fa-gear"></i>
+      </button>
+
+      <button id="btn-export-db" class="btn btn-secondary btn-sm" style="display: none;" title="Download modified SQLite file">
+        <i class="fa-solid fa-download"></i> Save DB
+      </button>
+      <button id="btn-close-db" class="btn btn-danger btn-sm" style="display: none;" title="Close active database">
+        <i class="fa-solid fa-xmark"></i> Close DB
+      </button>
+    </div>
+  </header>
+
+  <!-- State 1: File Upload Screen -->
+  <main id="upload-section" class="upload-container">
+    <div class="upload-card" id="drop-zone">
+      <div class="upload-icon">
+        <i class="fa-solid fa-file-database"></i>
+      </div>
+      <h1 class="upload-title">Drop your SQLite file here</h1>
+      <p class="upload-subtitle">
+        Supports <code>.sqlite</code>, <code>.db</code>, <code>.sqlite3</code> files.
+        Processed 100% locally inside your browser via WebAssembly — no data ever leaves your device.
+      </p>
+
+      <input type="file" id="file-input" accept=".sqlite,.db,.sqlite3,.db3" style="display: none;" />
+
+      <button id="btn-select-file" class="btn btn-primary">
+        <i class="fa-solid fa-folder-open"></i> Browse Local File
+      </button>
+
+      <div class="or-divider">OR</div>
+
+      <button id="btn-open-sample" class="btn btn-secondary">
+        <i class="fa-solid fa-wand-magic-sparkles"></i> Load Sample E-Commerce DB
+      </button>
+    </div>
+  </main>
+
+  <!-- State 2: Main Workspace Grid -->
+  <main id="workspace-section" class="workspace-layout" style="display: none;">
+    <!-- Left Sidebar: Tables List -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-title">
+          <span>Tables &amp; Views</span>
+          <span id="table-count-badge" class="badge">0</span>
+        </div>
+        <input type="text" id="table-search" class="input-search" placeholder="Filter tables..." />
+      </div>
+      <ul id="tables-list" class="tables-list">
+        <!-- Injected via JS -->
+      </ul>
+    </aside>
+
+    <!-- Right Workspace Pane -->
+    <section class="content-area">
+      <!-- Main Navigation Tabs -->
+      <nav class="tabs-bar">
+        <div class="tabs-group">
+          <button id="tab-data" class="tab-btn active">
+            <i class="fa-solid fa-table"></i> Data Grid
+          </button>
+          <button id="tab-structure" class="tab-btn">
+            <i class="fa-solid fa-sitemap"></i> Structure / DDL
+          </button>
+          <button id="tab-query" class="tab-btn">
+            <i class="fa-solid fa-code"></i> SQL Query
+          </button>
+        </div>
+      </nav>
+
+      <!-- View 1: Data Grid -->
+      <div id="view-data" class="view-panel">
+        <div class="action-toolbar">
+          <div class="table-title-group">
+            <i class="fa-solid fa-table"></i>
+            <span id="active-table-name">--</span>
+            <span id="active-table-badge" class="badge">TABLE</span>
+          </div>
+
+          <div class="toolbar-actions">
+            <input type="text" id="data-search-input" class="input-search" placeholder="Search table data..." style="width: 220px;" />
+            <button id="btn-refresh-table" class="btn btn-secondary btn-sm" title="Refresh Table Data">
+              <i class="fa-solid fa-rotate-right"></i>
+            </button>
+            <button id="btn-export-csv" class="btn btn-secondary btn-sm" title="Export as CSV">
+              <i class="fa-solid fa-file-csv"></i> CSV
+            </button>
+            <button id="btn-export-json" class="btn btn-secondary btn-sm" title="Export as JSON">
+              <i class="fa-solid fa-file-code"></i> JSON
+            </button>
+          </div>
+        </div>
+
+        <div id="table-data-container" class="table-scroll-container">
+          <!-- Rendered grid table -->
+        </div>
+
+        <div class="pagination-bar">
+          <span id="pagination-info">Showing 0 - 0 of 0 rows</span>
+          <div class="pagination-controls">
+            <label for="page-size-select">Per page:</label>
+            <select id="page-size-select" class="select-sm">
+              <option value="25">25</option>
+              <option value="50" selected>50</option>
+              <option value="100">100</option>
+              <option value="250">250</option>
+            </select>
+
+            <button id="btn-prev-page" class="btn btn-secondary btn-sm"><i class="fa-solid fa-chevron-left"></i></button>
+            <button id="btn-next-page" class="btn btn-secondary btn-sm"><i class="fa-solid fa-chevron-right"></i></button>
+          </div>
+        </div>
+      </div>
+
+      <!-- View 2: Table Structure & DDL -->
+      <div id="view-structure" class="view-panel" style="display: none; padding: 1.5rem; overflow-y: auto;">
+        <div id="structure-container">
+          <!-- Structure DDL injected here -->
+        </div>
+      </div>
+
+      <!-- View 3: Custom SQL Query Runner -->
+      <div id="view-query" class="view-panel" style="display: none;">
+        <div class="query-workspace">
+          <div class="editor-pane">
+            <textarea id="query-editor" class="query-editor" placeholder="Write custom SQL query (e.g. SELECT * FROM users LIMIT 10);"></textarea>
+
+            <div class="query-bar">
+              <button id="btn-run-query" class="btn btn-primary">
+                <i class="fa-solid fa-play"></i> Execute SQL (Ctrl+Enter)
+              </button>
+              <button id="btn-clear-query" class="btn btn-secondary btn-sm">
+                Clear
+              </button>
+            </div>
+
+            <div id="query-result-container" class="table-scroll-container" style="padding: 0;">
+              <div class="empty-state">
+                <i class="fa-solid fa-terminal"></i>
+                <p>Run SQL queries to display results here.</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Query History Sidebar -->
+          <div class="query-history-pane">
+            <div class="sidebar-title">
+              <span>Query History</span>
+            </div>
+            <ul id="query-history-list" class="history-list">
+              <!-- Injected via JS -->
+            </ul>
+          </div>
+        </div>
+      </div>
+
+    </section>
+  </main>
+
+  <!-- Loading Overlay -->
+  <div id="loading-overlay" class="loading-overlay" style="display: none;">
+    <div class="spinner"></div>
+    <div id="loading-text" class="text-muted">Loading SQLite Engine...</div>
+  </div>
+
+  <!-- Settings Modal -->
+  <div id="settings-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-sliders"></i> Appearance Settings</h3>
+        <button id="btn-close-settings" class="modal-close-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="setting-item">
+          <label for="select-theme">Color Theme</label>
+          <select id="select-theme" class="select-input">
+            <option value="dark">Dark Mode (Default)</option>
+            <option value="light">Light Mode</option>
+          </select>
+        </div>
+
+        <div class="setting-item">
+          <label for="select-font-sans">UI Font Family</label>
+          <select id="select-font-sans" class="select-input">
+            <option value="'Outfit', sans-serif">Outfit (Default Sans)</option>
+            <option value="'Plus Jakarta Sans', sans-serif">Plus Jakarta Sans</option>
+            <option value="'Segoe UI', Roboto, sans-serif">System UI (Segoe UI / Roboto)</option>
+          </select>
+        </div>
+
+        <div class="setting-item">
+          <label for="select-font-mono">Fixed-Width / Code Font Family</label>
+          <select id="select-font-mono" class="select-input">
+            <option value="'JetBrains Mono', monospace">JetBrains Mono (Recommended)</option>
+            <option value="'Fira Code', monospace">Fira Code</option>
+            <option value="'Roboto Mono', monospace">Roboto Mono</option>
+            <option value="'Cascadia Code', Consolas, monospace">Cascadia Code / Consolas</option>
+            <option value="'Courier New', monospace">Courier New</option>
+          </select>
+        </div>
+
+        <div class="setting-item">
+          <label for="select-font-size">Font Size Scale</label>
+          <select id="select-font-size" class="select-input">
+            <option value="13px">Compact (13px)</option>
+            <option value="14px" selected>Normal (14px)</option>
+            <option value="16px">Large (16px)</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="btn-reset-settings" class="btn btn-secondary btn-sm">Reset Defaults</button>
+        <button id="btn-save-settings" class="btn btn-primary btn-sm">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Application Logic -->
+  <script src="./scripts/sqlliteviewer/app.js"></script>
+
+</body>
+
+</html>

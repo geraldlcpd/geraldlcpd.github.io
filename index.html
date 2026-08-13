@@ -972,6 +972,14 @@
         tags: ["Google Forms", "Automation", "Workflow"]
       },
       {
+        filename: "sqlite_viewer.html",
+        title: "Offline SQLite Database Browser",
+        desc: "A client-side, 100% offline WebAssembly SQLite file inspector and query tool. Browse tables, inspect schemas, execute custom SQL, filter rows, and export data without server uploads.",
+        category: "developer-tools",
+        icon: "fa-database",
+        tags: ["SQLite", "WebAssembly", "Database Browser", "SQL", "Offline"]
+      },
+      {
         filename: "locker-unlocked.html",
         title: "Editable Google Forms Pre-fill Generator",
         desc: "An interactive pre-fill link generator for locked/editable Google Forms that enables fast customized form deployment.",
@@ -987,7 +995,7 @@
     const GITHUB_COMMITS_URL = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/commits?path=`;
     const GITHUB_REPO_META = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}`;
 
-    const CACHE_KEY = 'geraldlcpd_repo_items';
+    const CACHE_KEY = 'geraldlcpd_repo_items_v3';
     const CACHE_EXPIRY_KEY = 'geraldlcpd_repo_expiry';
     const CACHE_DURATION = 10 * 60 * 1000; // 10 minutes cache
 
@@ -1045,7 +1053,7 @@
         );
 
         // Map and enrich with static definitions
-        toolsData = htmlFiles.map(file => {
+        const remoteTools = htmlFiles.map(file => {
           const known = KNOWN_TOOLS.find(k => k.filename === file.name);
           return {
             filename: file.name,
@@ -1058,6 +1066,20 @@
             tags: known ? known.tags : ["General"]
           };
         });
+
+        // Merge any local KNOWN_TOOLS that haven't been pushed to GitHub API contents yet
+        const missingLocalTools = KNOWN_TOOLS.filter(k => !remoteTools.some(r => r.filename === k.filename)).map(t => ({
+          filename: t.filename,
+          title: t.title,
+          desc: t.desc,
+          category: t.category,
+          icon: t.icon,
+          size: "Local File",
+          path: t.filename,
+          tags: t.tags
+        }));
+
+        toolsData = [...remoteTools, ...missingLocalTools];
 
         // Save to cache
         localStorage.setItem(CACHE_KEY, JSON.stringify(toolsData));
