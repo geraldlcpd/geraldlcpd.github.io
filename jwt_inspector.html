@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JWT Inspector</title>
+  <meta name="description" content="Decode JWT header and payload offline. Inspect claims, check expiration, and verify HMAC signatures locally in your browser.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root{--font-primary:'Plus Jakarta Sans',sans-serif;--font-mono:'JetBrains Mono',monospace;--bg:#090d16;--bg-card:rgba(17,24,39,.7);--border:rgba(255,255,255,.08);--border-accent:rgba(99,102,241,.3);--text-primary:#f8fafc;--text-secondary:#94a3b8;--text-muted:#64748b;--accent-indigo:#6366f1;--accent-cyan:#06b6d4;--accent-emerald:#10b981;--accent-amber:#f59e0b;--accent-rose:#f43f5e;--glow-indigo:rgba(99,102,241,.2);--shadow-card:0 10px 30px -10px rgba(0,0,0,.5);--transition:all .3s cubic-bezier(.16,1,.3,1)}
+    [data-theme="light"]{--bg:#f8fafc;--bg-card:rgba(255,255,255,.8);--border:rgba(0,0,0,.08);--border-accent:rgba(79,70,229,.2);--text-primary:#0f172a;--text-secondary:#475569;--text-muted:#94a3b8;--accent-indigo:#4f46e5;--accent-cyan:#0284c7;--accent-emerald:#059669;--accent-amber:#d97706;--accent-rose:#e11d48;--glow-indigo:rgba(79,70,229,.12);--shadow-card:0 10px 30px -10px rgba(148,163,184,.2)}
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:var(--font-primary);background:var(--bg);color:var(--text-primary);min-height:100vh;display:flex;flex-direction:column;line-height:1.6;transition:background .4s,color .4s}
+    body::before{content:'';position:fixed;top:-100px;left:50%;transform:translateX(-50%);width:800px;height:400px;background:radial-gradient(circle,rgba(99,102,241,.12) 0%,transparent 70%);pointer-events:none;z-index:0}
+    header{position:sticky;top:0;z-index:100;backdrop-filter:blur(16px);background:rgba(9,13,22,.75);border-bottom:1px solid var(--border);padding:1rem 2rem;display:flex;justify-content:space-between;align-items:center}
+    [data-theme="light"] header{background:rgba(248,250,252,.85)}
+    .brand{display:flex;align-items:center;gap:.75rem;font-size:1.25rem;font-weight:700;color:var(--text-primary);text-decoration:none}
+    .brand i{color:var(--accent-indigo)}
+    .header-nav{display:flex;align-items:center;gap:1.25rem}
+    .nav-link{color:var(--text-secondary);text-decoration:none;font-weight:500;font-size:.9rem;display:flex;align-items:center;gap:.4rem;transition:var(--transition)}
+    .nav-link:hover{color:var(--accent-indigo)}
+    .theme-toggle-btn{background:transparent;border:1px solid var(--border);color:var(--text-secondary);width:38px;height:38px;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:var(--transition)}
+    .theme-toggle-btn:hover{border-color:var(--accent-indigo);color:var(--text-primary);background:var(--glow-indigo)}
+    main{flex:1;max-width:1280px;width:100%;margin:0 auto;padding:2.5rem 1.5rem 4rem;z-index:1}
+    .page-title{text-align:center;margin-bottom:2.5rem}
+    .page-title h1{font-size:2.25rem;font-weight:800;letter-spacing:-.02em;margin-bottom:.5rem}
+    .page-title p{color:var(--text-secondary);max-width:640px;margin:0 auto}
+    .inspector-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.75rem}
+    @media(max-width:992px){.inspector-grid{grid-template-columns:1fr}}
+    .card{background:var(--bg-card);border:1px solid var(--border);border-radius:16px;padding:1.75rem;box-shadow:var(--shadow-card);backdrop-filter:blur(12px)}
+    .card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;padding-bottom:.75rem;border-bottom:1px solid var(--border)}
+    .card-title{font-size:1.1rem;font-weight:700;display:flex;align-items:center;gap:.6rem}
+    .card-title i{color:var(--accent-indigo)}
+    textarea,input[type="password"]{width:100%;background:rgba(0,0,0,.2);border:1px solid var(--border);border-radius:10px;padding:1rem;color:var(--text-primary);font-family:var(--font-mono);font-size:.825rem;resize:vertical;line-height:1.5;transition:var(--transition)}
+    [data-theme="light"] textarea,[data-theme="light"] input[type="password"]{background:rgba(255,255,255,.6)}
+    textarea{height:180px}
+  textarea:focus,input:focus{outline:none;border-color:var(--accent-indigo);box-shadow:0 0 0 3px var(--glow-indigo)}
+    .action-bar{display:flex;gap:.75rem;flex-wrap:wrap;margin-top:1rem}
+    .btn{padding:.75rem 1.25rem;border-radius:10px;font-family:var(--font-primary);font-weight:600;font-size:.9rem;cursor:pointer;display:inline-flex;align-items:center;gap:.5rem;transition:var(--transition);border:1px solid transparent}
+    .btn-primary{background:var(--accent-indigo);color:#fff}
+    .btn-secondary{background:transparent;border-color:var(--border);color:var(--text-secondary)}
+    .btn-sample{background:rgba(6,182,212,.1);border-color:rgba(6,182,212,.3);color:var(--accent-cyan)}
+    .badge{display:inline-flex;align-items:center;gap:.35rem;padding:.25rem .65rem;border-radius:20px;font-size:.75rem;font-weight:600;text-transform:uppercase}
+    .badge-valid{background:rgba(16,185,129,.15);color:var(--accent-emerald);border:1px solid rgba(16,185,129,.3)}
+    .badge-expired{background:rgba(244,63,94,.15);color:var(--accent-rose);border:1px solid rgba(244,63,94,.3)}
+    .badge-info{background:rgba(99,102,241,.15);color:var(--accent-indigo);border:1px solid rgba(99,102,241,.3)}
+    .badge-warn{background:rgba(245,158,11,.15);color:var(--accent-amber);border:1px solid rgba(245,158,11,.3)}
+    .detail-group{margin-bottom:1.5rem}
+    .detail-group-title{font-size:.8rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);margin-bottom:.75rem}
+    .info-table{width:100%;border-collapse:collapse}
+    .info-table tr{border-bottom:1px solid var(--border)}
+    .info-table td{padding:.65rem 0;font-size:.875rem;vertical-align:top}
+    .info-table td.label{color:var(--text-secondary);width:28%;font-weight:500}
+    .info-table td.value{word-break:break-all;font-weight:600}
+    .json-block{background:rgba(0,0,0,.25);border:1px solid var(--border);border-radius:8px;padding:1rem;font-family:var(--font-mono);font-size:.8rem;overflow-x:auto;white-space:pre-wrap}
+    [data-theme="light"] .json-block{background:rgba(0,0,0,.04)}
+    .json-key{color:var(--accent-cyan)}.json-string{color:var(--accent-emerald)}.json-number{color:var(--accent-amber)}.json-boolean,.json-null{color:var(--accent-rose)}
+    .secret-note{font-size:.8rem;color:var(--text-muted);margin-top:.5rem}
+    .empty-state{text-align:center;padding:3rem 1.5rem;color:var(--text-muted)}
+    .empty-state i{font-size:3rem;color:var(--border-accent);margin-bottom:1rem;display:block}
+    .toast{position:fixed;bottom:2rem;right:2rem;background:var(--bg-card);border:1px solid var(--accent-indigo);padding:.75rem 1.25rem;border-radius:10px;z-index:1000;opacity:0;transform:translateY(20px);transition:var(--transition);pointer-events:none}
+    .toast.show{opacity:1;transform:translateY(0)}
+    footer{border-top:1px solid var(--border);padding:1.5rem;text-align:center;font-size:.85rem;color:var(--text-muted)}
+  </style>
+</head>
+<body>
+  <header>
+    <a href="index.html" class="brand"><i class="fa-solid fa-shield-halved"></i><span>JWT Inspector</span></a>
+    <div class="header-nav">
+      <a href="index.html" class="nav-link"><i class="fa-solid fa-arrow-left"></i> Tools</a>
+      <button class="theme-toggle-btn" id="theme-toggle" title="Toggle theme"><i class="fa-solid fa-moon"></i></button>
+    </div>
+  </header>
+  <main>
+    <div class="page-title">
+      <h1>JWT Inspector</h1>
+      <p>Decode JSON Web Token headers and payloads, inspect standard claims, check expiration, and optionally verify HMAC signatures — all locally in your browser.</p>
+    </div>
+    <div class="inspector-grid">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title"><i class="fa-solid fa-file-import"></i><span>Paste JWT</span></div>
+          <button class="btn btn-sample" id="sample-btn"><i class="fa-solid fa-vial"></i> Sample</button>
+        </div>
+        <textarea id="jwt-input" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0..."></textarea>
+        <label class="detail-group-title" style="display:block;margin-top:1rem">HMAC Secret (optional, local-only)</label>
+        <input type="password" id="secret-input" placeholder="Only used for HS256/384/512 verification" autocomplete="off">
+        <p class="secret-note"><i class="fa-solid fa-lock"></i> Secret never leaves this tab. Verification uses Web Crypto API.</p>
+        <div class="action-bar">
+          <button class="btn btn-primary" id="decode-btn"><i class="fa-solid fa-magnifying-glass"></i> Decode</button>
+          <button class="btn btn-secondary" id="clear-btn"><i class="fa-solid fa-rotate-left"></i> Clear</button>
+        </div>
+      </div>
+      <div class="card" id="results-card">
+        <div class="card-header">
+          <div class="card-title"><i class="fa-solid fa-list-check"></i><span>Decoded Token</span></div>
+          <div id="status-badge"></div>
+        </div>
+        <div id="results-content">
+          <div class="empty-state"><i class="fa-solid fa-shield-halved"></i><h3>No Token Loaded</h3><p>Paste a JWT on the left to decode its header, payload, and claims.</p></div>
+        </div>
+      </div>
+    </div>
+  </main>
+  <div class="toast" id="toast"><span id="toast-msg">Copied</span></div>
+  <footer>
+    <p>JWT Inspector &bull; Processing stays in your browser &bull; No network requests &bull; Powered by Web Crypto API</p>
+  </footer>
+  <script src="scripts/jwt_inspector/app.js"></script>
+  <script>
+    const themeToggle=document.getElementById('theme-toggle');
+    function initTheme(){const t=localStorage.getItem('theme')||'dark';document.documentElement.setAttribute('data-theme',t);themeToggle.querySelector('i').className=t==='light'?'fa-solid fa-sun':'fa-solid fa-moon'}
+    themeToggle.addEventListener('click',()=>{const c=document.documentElement.getAttribute('data-theme');const n=c==='dark'?'light':'dark';document.documentElement.setAttribute('data-theme',n);localStorage.setItem('theme',n);themeToggle.querySelector('i').className=n==='light'?'fa-solid fa-sun':'fa-solid fa-moon'});
+    initTheme();
+
+    const jwtInput=document.getElementById('jwt-input');
+    const secretInput=document.getElementById('secret-input');
+    const resultsContent=document.getElementById('results-content');
+    const statusBadge=document.getElementById('status-badge');
+    const toast=document.getElementById('toast');
+
+    const SAMPLE='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyLCJleHAiOjE3MDAwMDAwMDB9.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c';
+
+    document.getElementById('sample-btn').addEventListener('click',()=>{jwtInput.value=SAMPLE;decodeJwt()});
+    document.getElementById('decode-btn').addEventListener('click',decodeJwt);
+    document.getElementById('clear-btn').addEventListener('click',()=>{jwtInput.value='';secretInput.value='';statusBadge.innerHTML='';resultsContent.innerHTML='<div class="empty-state"><i class="fa-solid fa-shield-halved"></i><h3>No Token Loaded</h3><p>Paste a JWT on the left to decode its header, payload, and claims.</p></div>'});
+    jwtInput.addEventListener('input',()=>{if(jwtInput.value.trim().split('.').length>=2)decodeJwt()});
+
+    async function decodeJwt(){
+      const token=jwtInput.value.trim();
+      if(!token){showToast('Paste a JWT first');return}
+      try{
+        const parsed=JwtInspector.parseJwt(token);
+        const expiry=JwtInspector.getExpiryStatus(parsed.payload);
+        let sigHtml='';
+        const alg=(parsed.header.alg||'').toUpperCase();
+
+        if(!parsed.signed){sigHtml='<span class="badge badge-warn"><i class="fa-solid fa-triangle-exclamation"></i> Unsigned</span>'}
+        else if(secretInput.value&&JwtInspector.HMAC_ALG_MAP[alg]){
+          const parts=token.split('.');
+          const valid=await JwtInspector.verifyHmacSignature(alg,secretInput.value,parts[0]+'.'+parts[1],parts[2]);
+          sigHtml=valid?'<span class="badge badge-valid"><i class="fa-solid fa-check"></i> Signature Valid</span>':'<span class="badge badge-expired"><i class="fa-solid fa-xmark"></i> Signature Invalid</span>';
+        }else if(parsed.signed){
+          sigHtml='<span class="badge badge-info"><i class="fa-solid fa-signature"></i> Signed ('+JwtInspector.escapeHtml(alg||'unknown')+')</span>';
+        }
+
+        if(expiry&&expiry.expired)statusBadge.innerHTML='<span class="badge badge-expired"><i class="fa-solid fa-clock"></i> Expired</span>';
+        else if(expiry)statusBadge.innerHTML='<span class="badge badge-valid"><i class="fa-solid fa-circle-check"></i> Valid</span>';
+        else statusBadge.innerHTML='<span class="badge badge-info"><i class="fa-solid fa-circle-info"></i> No Expiry</span>';
+
+        const claimKeys=Object.keys(parsed.payload);
+        const ordered=[...JwtInspector.PRIORITY_CLAIMS.filter(k=>claimKeys.includes(k)),...claimKeys.filter(k=>!JwtInspector.PRIORITY_CLAIMS.includes(k))];
+        const claimsRows=ordered.map(k=>{
+          const isExp=k==='exp'&&expiry;
+          const style=isExp&&expiry.expired?' style="color:var(--accent-rose)"':'';
+          return '<tr><td class="label">'+JwtInspector.escapeHtml(JwtInspector.CLAIM_LABELS[k]||k)+'</td><td class="value"'+style+'>'+JwtInspector.escapeHtml(JwtInspector.formatClaimValue(k,parsed.payload[k]))+'</td></tr>';
+        }).join('');
+
+        resultsContent.innerHTML=
+          '<div class="detail-group"><div class="detail-group-title">Signature</div>'+sigHtml+'</div>'+
+          '<div class="detail-group"><div class="detail-group-title">Header</div><div class="json-block">'+JwtInspector.highlightJson(parsed.header)+'</div></div>'+
+          '<div class="detail-group"><div class="detail-group-title">Claims</div><table class="info-table">'+claimsRows+'</table></div>'+
+          '<div class="detail-group"><div class="detail-group-title">Payload (raw)</div><div class="json-block">'+JwtInspector.highlightJson(parsed.payload)+'</div></div>';
+      }catch(err){
+        statusBadge.innerHTML='<span class="badge badge-expired"><i class="fa-solid fa-xmark"></i> Error</span>';
+        resultsContent.innerHTML='<div class="empty-state" style="color:var(--accent-rose)"><i class="fa-solid fa-triangle-exclamation"></i><h3>Decode Error</h3><p>'+JwtInspector.escapeHtml(err.message)+'</p></div>';
+      }
+    }
+
+    function showToast(msg){document.getElementById('toast-msg').textContent=msg;toast.classList.add('show');setTimeout(()=>toast.classList.remove('show'),2500)}
+  </script>
+</body>
+</html>
