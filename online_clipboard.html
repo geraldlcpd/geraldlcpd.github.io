@@ -12,10 +12,12 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@300;400;500;600;700&display=swap"
         rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <!-- Local Vendor CSS -->
     <link rel="stylesheet" href="./scripts/ocputils/styles/tokyo-night-dark.min.css">
     <link rel="stylesheet" href="./scripts/ocputils/styles/ocp-styles.css">
+    <link rel="stylesheet" href="scripts/tool-download.css">
 
     <!-- Local Vendor Scripts -->
     <script src="./scripts/ocputils/syntax/lucide.min.js"></script>
@@ -47,7 +49,7 @@
     <script src="./scripts/ocputils/sync-manager.js"></script>
 </head>
 
-<body>
+<body data-tool-file="online_clipboard.html">
 
     <!-- Remote Edit Detected Top Banner -->
     <div class="sync-banner" id="syncBanner">
@@ -792,6 +794,8 @@
 
     <!-- App Application Script -->
     <script src="./scripts/ocputils/clipboard-app.js"></script>
+    <script src="scripts/tool-bundler.js"></script>
+    <script src="scripts/tool-download-init.js"></script>
 </body>
 
 </html>

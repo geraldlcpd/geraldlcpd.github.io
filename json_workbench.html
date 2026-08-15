@@ -9,6 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="scripts/tool-download.css">
   <link rel="stylesheet" href="scripts/ocputils/styles/tokyo-night-dark.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/js-yaml/4.1.0/js-yaml.min.js"></script>
   <script src="scripts/ocputils/syntax/highlight.min.js"></script>
@@ -52,7 +53,7 @@
     .toast.show{opacity:1}
   </style>
 </head>
-<body>
+<body data-tool-file="json_workbench.html">
   <header>
     <a href="index.html" class="brand"><i class="fa-solid fa-code"></i><span>JSON / YAML Workbench</span></a>
     <div class="header-nav">
@@ -152,5 +153,7 @@
 
     function showToast(m){document.getElementById('toast-msg').textContent=m;document.getElementById('toast').classList.add('show');setTimeout(()=>document.getElementById('toast').classList.remove('show'),2500)}
   </script>
+  <script src="scripts/tool-bundler.js"></script>
+  <script src="scripts/tool-download-init.js"></script>
 </body>
 </html>

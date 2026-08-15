@@ -17,6 +17,7 @@
 
   <!-- FontAwesome for fallback/extra icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="scripts/tool-download.css">
 
   <style>
     /* CSS Variables & Theme Configuration */
@@ -443,11 +444,15 @@
       display: flex;
       flex-direction: column;
       position: relative;
-      overflow: hidden;
+      overflow: visible;
       backdrop-filter: blur(16px);
       -webkit-backdrop-filter: blur(16px);
       transition: var(--transition-smooth);
       box-shadow: 0 10px 30px -10px var(--shadow-color);
+    }
+
+    .tool-card:has(.download-menu.open) {
+      z-index: 50;
     }
 
     .tool-card::before {
@@ -457,6 +462,7 @@
       left: 0;
       width: 100%;
       height: 100%;
+      border-radius: 24px;
       background: radial-gradient(800px circle at var(--mouse-x, 0) var(--mouse-y, 0), rgba(255, 255, 255, 0.04), transparent 40%);
       pointer-events: none;
       z-index: 1;
@@ -570,6 +576,37 @@
       display: flex;
       gap: 0.75rem;
       margin-top: auto;
+      align-items: stretch;
+    }
+
+    .card-footer .btn-primary {
+      flex: 1;
+    }
+
+    .download-wrap-portal {
+      flex: 0 0 auto;
+    }
+
+    .btn-download-portal {
+      height: 100%;
+      min-height: 48px;
+      border-color: var(--border-color);
+      background: var(--bg-glass);
+      color: var(--text-secondary);
+    }
+
+    .btn-download-portal:hover:not(:disabled) {
+      border-color: var(--color-primary);
+      color: var(--text-primary);
+      background: var(--bg-glass-hover);
+    }
+
+    .cell-actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 0.5rem;
+      flex-wrap: wrap;
     }
 
     .btn {
@@ -928,6 +965,8 @@
         rel="noopener">GitHub</a></div>
   </footer>
 
+  <script src="scripts/tool-bundler.js"></script>
+  <script src="scripts/tool-download-init.js"></script>
   <script>
     // Config: Static details that enrich repo items or serve as immediate fallback
     const KNOWN_TOOLS = [
@@ -937,7 +976,8 @@
         desc: "End-to-end encrypted online clipboard featuring AES-GCM 256-bit encryption, WebAuthn Passkeys, real-time MQTT sync, multi-language syntax highlighting, and Markdown rendering.",
         category: "security",
         icon: "fa-clipboard-check",
-        tags: ["Security", "Encryption", "Clipboard", "Realtime"]
+        tags: ["Security", "Encryption", "Clipboard", "Realtime"],
+        bundle: { tier: "network", offlineCapable: false, warning: "Portable bundle only. MQTT sync requires network." }
       },
       {
         filename: "tools_font_offline.html",
@@ -945,7 +985,8 @@
         desc: "A secure, strict offline generator and key storage utility using local fonts and offline assets. Protects secrets and tokens from network leakage.",
         category: "security",
         icon: "fa-lock",
-        tags: ["Security", "Local Fonts", "Offline"]
+        tags: ["Security", "Local Fonts", "Offline"],
+        bundle: { tier: "medium", offlineCapable: true }
       },
       {
         filename: "snap_signature_debugger.html",
@@ -953,7 +994,8 @@
         desc: "A developer tool designed to test, verify, and debug SNAP API payload signatures and cryptographical hashes dynamically.",
         category: "developer-tools",
         icon: "fa-terminal",
-        tags: ["Developer Tools", "Cryptography", "Debugging"]
+        tags: ["Developer Tools", "Cryptography", "Debugging"],
+        bundle: { tier: "light", offlineCapable: true }
       },
       {
         filename: "pgp_inspector.html",
@@ -961,7 +1003,8 @@
         desc: "Inspect, parse, and analyze PGP public and private keys offline. View key fingerprints, IDs, user IDs, creation/expiry dates, algorithms, and subkeys.",
         category: "security",
         icon: "fa-key",
-        tags: ["Security", "PGP", "Cryptography", "OpenPGP", "Key Inspector"]
+        tags: ["Security", "PGP", "Cryptography", "OpenPGP", "Key Inspector"],
+        bundle: { tier: "medium", offlineCapable: true }
       },
       {
         filename: "jwt_inspector.html",
@@ -969,7 +1012,8 @@
         desc: "Decode JWT header and payload offline. Inspect standard claims (exp, iat, aud, iss), highlight expired tokens, and verify HMAC signatures locally with Web Crypto.",
         category: "security",
         icon: "fa-shield-halved",
-        tags: ["Security", "JWT", "OAuth", "Token", "HMAC"]
+        tags: ["Security", "JWT", "OAuth", "Token", "HMAC"],
+        bundle: { tier: "light", offlineCapable: true }
       },
       {
         filename: "json_workbench.html",
@@ -977,7 +1021,8 @@
         desc: "Validate, pretty-print, minify, and convert between JSON and YAML. Shows parse errors with line/column info and copies escaped strings for embedding in code.",
         category: "developer-tools",
         icon: "fa-code",
-        tags: ["Developer Tools", "JSON", "YAML", "Formatter", "Validator"]
+        tags: ["Developer Tools", "JSON", "YAML", "Formatter", "Validator"],
+        bundle: { tier: "medium", offlineCapable: true }
       },
       {
         filename: "cron_explainer.html",
@@ -985,7 +1030,8 @@
         desc: "Parse 5- and 6-field cron expressions offline. Get human-readable schedules, next N run times, and quick preset chips like @daily and @hourly.",
         category: "developer-tools",
         icon: "fa-clock",
-        tags: ["Developer Tools", "Cron", "Scheduler", "DevOps"]
+        tags: ["Developer Tools", "Cron", "Scheduler", "DevOps"],
+        bundle: { tier: "light", offlineCapable: true }
       },
       {
         filename: "cert_inspector.html",
@@ -993,7 +1039,8 @@
         desc: "Inspect PEM certificates and CSRs offline. View subject, issuer, SANs, validity window, SHA-256 fingerprint, and public key type/size without uploading.",
         category: "security",
         icon: "fa-certificate",
-        tags: ["Security", "TLS", "X.509", "Certificate", "PEM"]
+        tags: ["Security", "TLS", "X.509", "Certificate", "PEM"],
+        bundle: { tier: "medium", offlineCapable: true }
       },
       {
         filename: "encode_decode.html",
@@ -1001,7 +1048,8 @@
         desc: "Swiss Army encoder for Base64, Base64URL, Hex, URL encoding, and HTML entities. Supports file drop for small inputs — all processing stays local.",
         category: "developer-tools",
         icon: "fa-right-left",
-        tags: ["Developer Tools", "Base64", "Hex", "Encoding", "URL"]
+        tags: ["Developer Tools", "Base64", "Hex", "Encoding", "URL"],
+        bundle: { tier: "light", offlineCapable: true }
       },
       {
         filename: "muilockerauto.html",
@@ -1009,7 +1057,8 @@
         desc: "Automate and pre-populate complex Google Forms fields using customizable link formats and field pre-fill protocols.",
         category: "google-forms",
         icon: "fa-list-check",
-        tags: ["Google Forms", "Automation", "Workflow"]
+        tags: ["Google Forms", "Automation", "Workflow"],
+        bundle: { tier: "medium", offlineCapable: false, warning: "Offline bundle not supported (Tailwind CDN). Use Portable mode." }
       },
       {
         filename: "sqlite_viewer.html",
@@ -1017,7 +1066,8 @@
         desc: "A client-side, 100% offline WebAssembly SQLite file inspector and query tool. Browse tables, inspect schemas, execute custom SQL, filter rows, and export data without server uploads.",
         category: "developer-tools",
         icon: "fa-database",
-        tags: ["SQLite", "WebAssembly", "Database Browser", "SQL", "Offline"]
+        tags: ["SQLite", "WebAssembly", "Database Browser", "SQL", "Offline"],
+        bundle: { tier: "heavy", offlineCapable: true, warning: "Large download (~2 MB), may take 10–20 seconds." }
       },
       {
         filename: "locker-unlocked.html",
@@ -1025,7 +1075,8 @@
         desc: "An interactive pre-fill link generator for locked/editable Google Forms that enables fast customized form deployment.",
         category: "google-forms",
         icon: "fa-link",
-        tags: ["Google Forms", "Link Generator", "Editable"]
+        tags: ["Google Forms", "Link Generator", "Editable"],
+        bundle: { tier: "medium", offlineCapable: false, warning: "Offline bundle not supported (Tailwind CDN). Use Portable mode." }
       }
     ];
 
@@ -1160,6 +1211,33 @@
       return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
     }
 
+    function renderDownloadMenuHtml(filename) {
+      const info = ToolBundler.estimateComplexity(filename);
+      const offlineDisabled = !info.offlineCapable;
+      const offlineTitle = info.warning || 'Offline not supported';
+      return `
+        <div class="download-wrap download-wrap-portal" data-tool="${filename}">
+          <button type="button" class="btn-download btn-download-portal" data-bundle-tool="${filename}" title="Download single-file bundle">
+            <i class="fa-solid fa-download"></i>
+            <span class="dl-label">Download</span>
+            <i class="fa-solid fa-chevron-down dl-chevron"></i>
+          </button>
+          <div class="download-menu">
+            <button type="button" class="download-menu-item" data-mode="portable">
+              <i class="fa-solid fa-file-export"></i> Portable (.html)
+            </button>
+            ${offlineDisabled
+          ? `<button type="button" class="download-menu-item disabled" disabled title="${offlineTitle.replace(/"/g, '&quot;')}">
+                  <i class="fa-solid fa-plane"></i> Offline (.html)
+                </button>`
+          : `<button type="button" class="download-menu-item" data-mode="offline">
+                  <i class="fa-solid fa-plane"></i> Offline (.html)
+                </button>`}
+          </div>
+        </div>
+      `;
+    }
+
     // Display / Filter Logic
     function displayTools(tools) {
       loadingState.style.display = 'none';
@@ -1227,6 +1305,7 @@
                 <a href="${tool.path}" class="btn btn-primary">
                   Launch Utility <i class="fa-solid fa-arrow-up-right-from-square"></i>
                 </a>
+                ${renderDownloadMenuHtml(tool.filename)}
               </div>
             </div>
           `;
@@ -1283,9 +1362,12 @@
                       <span style="font-size: 0.85rem; color: var(--text-secondary);">${tool.size}</span>
                     </td>
                     <td class="cell-action" style="text-align: right;">
-                      <a href="${tool.path}" class="btn btn-primary" style="padding: 0.5rem 1rem; font-size: 0.8rem; border-radius: 10px; display: inline-flex;">
-                        Launch <i class="fa-solid fa-arrow-up-right-from-square" style="font-size: 0.75rem;"></i>
-                      </a>
+                      <div class="cell-actions">
+                        <a href="${tool.path}" class="btn btn-primary" style="padding: 0.5rem 1rem; font-size: 0.8rem; border-radius: 10px; display: inline-flex; flex: 0 0 auto;">
+                          Launch <i class="fa-solid fa-arrow-up-right-from-square" style="font-size: 0.75rem;"></i>
+                        </a>
+                        ${renderDownloadMenuHtml(tool.filename)}
+                      </div>
                     </td>
                   </tr>
                 `;
@@ -1294,6 +1376,8 @@
           </table>
         `;
       }
+
+      if (window.ToolDownload) ToolDownload.wirePortalMenus();
     }
 
     // View Mode controls

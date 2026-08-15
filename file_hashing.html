@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="100% Offline File Hash Generator & Windows Certutil Command Builder. Calculates SHA-256, SHA-512, MD5, SHA-1, SHA-384 hashes in browser with zero network traffic.">
   <title>Offline File Hash Generator & Certutil Helper</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="scripts/tool-download.css">
   <style>
     :root {
       --bg-dark: #0f172a;
@@ -389,7 +391,7 @@
     }
   </style>
 </head>
-<body>
+<body data-tool-file="file_hashing.html">
   <div class="container">
     <header>
       <div class="badge-offline">
@@ -512,5 +514,7 @@
   <!-- Local Offline JS Scripts -->
   <script src="scripts/filehashing/md5.js"></script>
   <script src="scripts/filehashing/file-hasher.js"></script>
+  <script src="scripts/tool-bundler.js"></script>
+  <script src="scripts/tool-download-init.js"></script>
 </body>
 </html>

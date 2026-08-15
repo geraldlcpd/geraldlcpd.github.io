@@ -14,6 +14,7 @@
 
   <!-- FontAwesome Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="scripts/tool-download.css">
 
   <!-- Local OpenPGP.js -->
   <script src="openpgp.min.js"></script>
@@ -640,7 +641,7 @@
   </style>
 </head>
 
-<body>
+<body data-tool-file="pgp_inspector.html">
   <header>
     <a href="index.html" class="brand">
       <i class="fa-solid fa-key"></i>
@@ -1120,6 +1121,8 @@ Y2Z5W8L6V8L4T1Z7W0X9Y2Z5W8L6V8L4T1Z7W0X9Y2Z5W8L6V8L4T1Z7W0X9Y2Z5
         .replace(/'/g, "&#039;");
     }
   </script>
+  <script src="scripts/tool-bundler.js"></script>
+  <script src="scripts/tool-download-init.js"></script>
 </body>
 
 </html>

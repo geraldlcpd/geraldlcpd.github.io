@@ -23,6 +23,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <!-- FontAwesome for Premium Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="scripts/tool-download.css">
     <!-- Load QRious for QR Code generation -->
     <script src="https://cdn.jsdelivr.net/npm/qrious@4.0.2/dist/qrious.min.js"></script>
     <style>
@@ -67,7 +68,9 @@
         }
     </style>
 </head>
-<body class="bg-[#090b11] text-slate-100 min-h-screen p-4 sm:p-6 font-sans relative overflow-x-hidden">
+<body data-tool-file="locker-unlocked.html" class="bg-[#090b11] text-slate-100 min-h-screen p-4 sm:p-6 font-sans relative overflow-x-hidden">
+
+    <div class="header-actions flex justify-end max-w-4xl mx-auto mb-2 relative z-10"></div>
 
     <!-- Decorative Spotlights -->
     <div class="spotlight top-[-100px] left-[-100px]"></div>
@@ -446,5 +449,7 @@
 
         window.onload = initialize;
     </script>
+    <script src="scripts/tool-bundler.js"></script>
+    <script src="scripts/tool-download-init.js"></script>
 </body>
 </html>

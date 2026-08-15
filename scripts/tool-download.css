@@ -1,0 +1,131 @@
+.download-wrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.btn-download {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.85rem;
+  border-radius: 10px;
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.08));
+  background: transparent;
+  color: var(--text-secondary, #94a3b8);
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.btn-download:hover:not(:disabled) {
+  border-color: var(--accent-indigo, #6366f1);
+  color: var(--text-primary, #f8fafc);
+  background: var(--glow-indigo, rgba(99, 102, 241, 0.15));
+}
+
+.btn-download:disabled,
+.btn-download.is-bundling {
+  opacity: 0.55;
+  cursor: wait;
+}
+
+.btn-download .dl-chevron {
+  font-size: 0.65rem;
+  opacity: 0.7;
+}
+
+.download-wrap-header .btn-download {
+  width: auto;
+  height: 38px;
+  padding: 0 0.75rem;
+}
+
+.download-wrap-header .dl-label,
+.download-wrap-header .dl-chevron {
+  display: none;
+}
+
+.download-menu {
+  display: none;
+  position: absolute;
+  right: 0;
+  top: calc(100% + 0.35rem);
+  min-width: 200px;
+  background: var(--bg-card, rgba(17, 24, 39, 0.95));
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.1));
+  border-radius: 12px;
+  padding: 0.35rem;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+  z-index: 200;
+  backdrop-filter: blur(12px);
+}
+
+.download-menu.open {
+  display: block;
+}
+
+.download-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.6rem 0.75rem;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-primary, #f8fafc);
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.2s;
+}
+
+.download-menu-item:hover:not(:disabled) {
+  background: rgba(99, 102, 241, 0.15);
+}
+
+.download-menu-item.disabled,
+.download-menu-item:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.bundle-toast {
+  position: fixed;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: 9999;
+}
+
+.bundle-toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+.bundle-toast-inner {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.85rem 1.25rem;
+  border-radius: 12px;
+  background: rgba(17, 24, 39, 0.95);
+  border: 1px solid rgba(99, 102, 241, 0.35);
+  color: #f8fafc;
+  font-size: 0.9rem;
+  font-weight: 500;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(12px);
+  max-width: min(90vw, 420px);
+}
+
+.bundle-toast-error .bundle-toast-inner {
+  border-color: rgba(244, 63, 94, 0.45);
+}
