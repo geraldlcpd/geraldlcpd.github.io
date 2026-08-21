@@ -1007,6 +1007,15 @@
         bundle: { tier: "medium", offlineCapable: true }
       },
       {
+        filename: "exif_analyser.html",
+        title: "EXIF Analyser",
+        desc: "Extract maximum EXIF, XMP, IPTC, and GPS metadata from photos and videos offline. Common fields shown first, full metadata grouped below. Export reports as HTML, Markdown, or PDF. GPS plotted on an OpenStreetMap overlay.",
+        category: "developer-tools",
+        icon: "fa-camera-retro",
+        tags: ["EXIF", "GPS", "Metadata", "Image", "Video", "Map", "Camera", "Export"],
+        bundle: { tier: "medium", offlineCapable: true, warning: "Map tiles require network (OpenStreetMap). PDF export adds ~200 KB (html2pdf)." }
+      },
+      {
         filename: "jwt_inspector.html",
         title: "JWT Inspector",
         desc: "Decode JWT header and payload offline. Inspect standard claims (exp, iat, aud, iss), highlight expired tokens, and verify HMAC signatures locally with Web Crypto.",

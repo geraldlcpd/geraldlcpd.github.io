@@ -2,6 +2,7 @@
   'use strict';
 
   const BUNDLE_MANIFEST = {
+    'exif_analyser.html': { tier: 'medium', offlineCapable: true, warning: 'Map tiles require network (OpenStreetMap). PDF export adds ~200 KB (html2pdf).' },
     'jwt_inspector.html': { tier: 'light', offlineCapable: true },
     'cron_explainer.html': { tier: 'light', offlineCapable: true },
     'encode_decode.html': { tier: 'light', offlineCapable: true },
