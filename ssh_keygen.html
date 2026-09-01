@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SSH-RSA Keypair Generator</title>
+  <meta name="description" content="Generate OpenSSH-compatible RSA keypairs for SFTP and SSH authentication. Keys are created locally in your browser — nothing is uploaded.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="scripts/tool-download.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/forge/1.3.1/forge.min.js"></script>
+  <style>
+    :root{--font-primary:'Plus Jakarta Sans',sans-serif;--font-mono:'JetBrains Mono',monospace;--bg:#090d16;--bg-card:rgba(17,24,39,.7);--border:rgba(255,255,255,.08);--border-accent:rgba(99,102,241,.3);--text-primary:#f8fafc;--text-secondary:#94a3b8;--text-muted:#64748b;--accent-indigo:#6366f1;--accent-cyan:#06b6d4;--accent-emerald:#10b981;--accent-amber:#f59e0b;--accent-rose:#f43f5e;--glow-indigo:rgba(99,102,241,.2);--shadow-card:0 10px 30px -10px rgba(0,0,0,.5);--transition:all .3s cubic-bezier(.16,1,.3,1)}
+    [data-theme="light"]{--bg:#f8fafc;--bg-card:rgba(255,255,255,.8);--border:rgba(0,0,0,.08);--border-accent:rgba(79,70,229,.2);--text-primary:#0f172a;--text-secondary:#475569;--text-muted:#94a3b8;--accent-indigo:#4f46e5;--accent-cyan:#0284c7;--accent-emerald:#059669;--accent-amber:#d97706;--accent-rose:#e11d48;--glow-indigo:rgba(79,70,229,.12);--shadow-card:0 10px 30px -10px rgba(148,163,184,.2)}
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:var(--font-primary);background:var(--bg);color:var(--text-primary);min-height:100vh;display:flex;flex-direction:column;line-height:1.6;transition:background .4s,color .4s}
+    body::before{content:'';position:fixed;top:-100px;left:50%;transform:translateX(-50%);width:800px;height:400px;background:radial-gradient(circle,rgba(99,102,241,.12) 0%,transparent 70%);pointer-events:none;z-index:0}
+    header{position:sticky;top:0;z-index:100;backdrop-filter:blur(16px);background:rgba(9,13,22,.75);border-bottom:1px solid var(--border);padding:1rem 2rem;display:flex;justify-content:space-between;align-items:center}
+    [data-theme="light"] header{background:rgba(248,250,252,.85)}
+    .brand{display:flex;align-items:center;gap:.75rem;font-size:1.25rem;font-weight:700;color:var(--text-primary);text-decoration:none}
+    .brand i{color:var(--accent-indigo)}
+    .header-nav{display:flex;align-items:center;gap:1.25rem}
+    .nav-link{color:var(--text-secondary);text-decoration:none;font-weight:500;font-size:.9rem;display:flex;align-items:center;gap:.4rem;transition:var(--transition)}
+    .nav-link:hover{color:var(--accent-indigo)}
+    .theme-toggle-btn{background:transparent;border:1px solid var(--border);color:var(--text-secondary);width:38px;height:38px;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:var(--transition)}
+    .theme-toggle-btn:hover{border-color:var(--accent-indigo);color:var(--text-primary);background:var(--glow-indigo)}
+    main{flex:1;max-width:1280px;width:100%;margin:0 auto;padding:2.5rem 1.5rem 4rem;z-index:1}
+    .page-title{text-align:center;margin-bottom:2.5rem}
+    .page-title h1{font-size:2.25rem;font-weight:800;letter-spacing:-.02em;margin-bottom:.5rem}
+    .page-title p{color:var(--text-secondary);max-width:720px;margin:0 auto}
+    .inspector-grid{display:grid;grid-template-columns:380px 1fr;gap:1.75rem;align-items:start}
+    @media(max-width:992px){.inspector-grid{grid-template-columns:1fr}}
+    .card{background:var(--bg-card);border:1px solid var(--border);border-radius:16px;padding:1.75rem;box-shadow:var(--shadow-card);backdrop-filter:blur(12px)}
+    .card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;padding-bottom:.75rem;border-bottom:1px solid var(--border)}
+    .card-title{font-size:1.1rem;font-weight:700;display:flex;align-items:center;gap:.6rem}
+    .card-title i{color:var(--accent-indigo)}
+    .field{margin-bottom:1.25rem}
+    .field label{display:block;font-size:.8rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--text-muted);margin-bottom:.5rem}
+    .field-hint{font-size:.8rem;color:var(--text-muted);margin-top:.35rem}
+    input[type="text"],input[type="password"],select{width:100%;background:rgba(0,0,0,.2);border:1px solid var(--border);border-radius:10px;padding:.75rem 1rem;color:var(--text-primary);font-family:var(--font-primary);font-size:.9rem;transition:var(--transition)}
+    [data-theme="light"] input[type="text"],[data-theme="light"] input[type="password"],[data-theme="light"] select{background:rgba(255,255,255,.6)}
+    input:focus,select:focus{outline:none;border-color:var(--accent-indigo);box-shadow:0 0 0 3px var(--glow-indigo)}
+    textarea{width:100%;height:140px;background:rgba(0,0,0,.2);border:1px solid var(--border);border-radius:10px;padding:1rem;color:var(--text-primary);font-family:var(--font-mono);font-size:.8rem;resize:vertical;line-height:1.5;transition:var(--transition)}
+    [data-theme="light"] textarea{background:rgba(255,255,255,.6)}
+    textarea:focus{outline:none;border-color:var(--accent-indigo);box-shadow:0 0 0 3px var(--glow-indigo)}
+    .btn{padding:.75rem 1.25rem;border-radius:10px;font-family:var(--font-primary);font-weight:600;font-size:.9rem;cursor:pointer;display:inline-flex;align-items:center;gap:.5rem;transition:var(--transition);border:1px solid transparent}
+    .btn:disabled{opacity:.55;cursor:not-allowed}
+    .btn-primary{background:var(--accent-indigo);color:#fff}
+    .btn-primary:hover:not(:disabled){filter:brightness(1.08)}
+    .btn-secondary{background:transparent;border-color:var(--border);color:var(--text-secondary)}
+    .btn-secondary:hover:not(:disabled){border-color:var(--accent-indigo);color:var(--text-primary)}
+    .btn-sm{padding:.45rem .85rem;font-size:.8rem}
+    .action-bar{display:flex;gap:.75rem;flex-wrap:wrap;margin-top:1rem}
+    .warning-box{background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.25);border-radius:10px;padding:.85rem 1rem;font-size:.85rem;color:var(--accent-amber);margin-bottom:1.25rem;display:flex;gap:.65rem;align-items:flex-start}
+    .warning-box i{margin-top:.15rem}
+    .info-table{width:100%;border-collapse:collapse;margin-bottom:1.25rem}
+    .info-table tr{border-bottom:1px solid var(--border)}
+    .info-table td{padding:.65rem 0;font-size:.875rem;vertical-align:top}
+    .info-table td.label{color:var(--text-secondary);width:34%;font-weight:500}
+    .info-table td.value{word-break:break-all;font-weight:600;font-family:var(--font-mono);font-size:.8rem}
+    .key-block{margin-bottom:1.25rem}
+    .key-block-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem}
+    .key-block-title{font-size:.8rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted)}
+    .key-actions{display:flex;gap:.4rem}
+    .empty-state{text-align:center;padding:3rem 1.5rem;color:var(--text-muted)}
+    .empty-state i{font-size:3rem;color:var(--border-accent);margin-bottom:1rem;display:block}
+    .progress-box{display:none;background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.25);border-radius:10px;padding:1rem;margin-top:1rem;font-size:.85rem;color:var(--text-secondary)}
+    .progress-box.active{display:block}
+    .progress-box i{color:var(--accent-indigo);margin-right:.35rem}
+    .toast{position:fixed;bottom:2rem;right:2rem;background:var(--bg-card);border:1px solid var(--accent-indigo);padding:.75rem 1.25rem;border-radius:10px;z-index:1000;opacity:0;transform:translateY(20px);transition:var(--transition);pointer-events:none}
+    .toast.show{opacity:1;transform:translateY(0)}
+    footer{border-top:1px solid var(--border);padding:1.5rem;text-align:center;font-size:.85rem;color:var(--text-muted)}
+  </style>
+</head>
+<body data-tool-file="ssh_keygen.html">
+  <header>
+    <a href="index.html" class="brand"><i class="fa-solid fa-key"></i><span>SSH Key Generator</span></a>
+    <div class="header-nav">
+      <a href="index.html" class="nav-link"><i class="fa-solid fa-arrow-left"></i> Tools</a>
+      <button class="theme-toggle-btn" id="theme-toggle" title="Toggle theme"><i class="fa-solid fa-moon"></i></button>
+    </div>
+  </header>
+  <main>
+    <div class="page-title">
+      <h1>SSH-RSA Keypair Generator</h1>
+      <p>Generate OpenSSH-format RSA keys for SFTP and SSH authentication. Keys are created entirely in your browser and never leave your device.</p>
+    </div>
+    <div class="inspector-grid">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title"><i class="fa-solid fa-sliders"></i><span>Key Options</span></div>
+        </div>
+        <div class="warning-box">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+          <span>Store your private key securely. Anyone with the private key can authenticate as you. Clear this page when finished on shared machines.</span>
+        </div>
+        <div class="field">
+          <label for="bits-select">Key Size</label>
+          <select id="bits-select">
+            <option value="2048" selected>2048 bits (standard)</option>
+            <option value="3072">3072 bits (recommended)</option>
+            <option value="4096">4096 bits (maximum)</option>
+          </select>
+          <p class="field-hint">2048-bit RSA is widely accepted for SFTP. Use 3072 or 4096 for stronger security.</p>
+        </div>
+        <div class="field">
+          <label for="comment-input">Comment (optional)</label>
+          <input type="text" id="comment-input" placeholder="user@hostname" autocomplete="off">
+          <p class="field-hint">Appended to the public key line, e.g. <code>ssh-rsa AAAA… user@host</code></p>
+        </div>
+        <div class="field">
+          <label for="passphrase-input">Passphrase (optional)</label>
+          <input type="password" id="passphrase-input" placeholder="Encrypt private key at rest" autocomplete="new-password">
+          <p class="field-hint">If set, the private key is encrypted with AES. You will need this passphrase when connecting.</p>
+        </div>
+        <div class="action-bar" style="margin-top:0">
+          <button class="btn btn-primary" id="generate-btn"><i class="fa-solid fa-wand-magic-sparkles"></i> Generate Keypair</button>
+        </div>
+        <div class="progress-box" id="progress-box">
+          <i class="fa-solid fa-spinner fa-spin"></i>
+          Generating RSA keypair — this may take a few seconds for larger key sizes…
+        </div>
+      </div>
+      <div class="card" id="results-card">
+        <div class="card-header">
+          <div class="card-title"><i class="fa-solid fa-file-shield"></i><span>Generated Keys</span></div>
+        </div>
+        <div id="results-content">
+          <div class="empty-state">
+            <i class="fa-solid fa-key"></i>
+            <h3>No Keypair Yet</h3>
+            <p>Configure options on the left and click Generate to create an OpenSSH RSA keypair.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+  <div class="toast" id="toast"><span id="toast-msg">Copied</span></div>
+  <footer>
+    <p>SSH-RSA Keypair Generator &bull; Processing stays in your browser &bull; Key generation via <a href="https://cdnjs.cloudflare.com/ajax/libs/forge/1.3.1/forge.min.js" target="_blank" rel="noopener">forge.js CDN</a></p>
+  </footer>
+  <script src="scripts/ssh_keygen/app.js"></script>
+  <script>
+    const themeToggle=document.getElementById('theme-toggle');
+    function initTheme(){const t=localStorage.getItem('theme')||'dark';document.documentElement.setAttribute('data-theme',t);themeToggle.querySelector('i').className=t==='light'?'fa-solid fa-sun':'fa-solid fa-moon'}
+    themeToggle.addEventListener('click',()=>{const c=document.documentElement.getAttribute('data-theme');const n=c==='dark'?'light':'dark';document.documentElement.setAttribute('data-theme',n);localStorage.setItem('theme',n);themeToggle.querySelector('i').className=n==='light'?'fa-solid fa-sun':'fa-solid fa-moon'});
+    initTheme();
+
+    const generateBtn=document.getElementById('generate-btn');
+    const progressBox=document.getElementById('progress-box');
+    const resultsContent=document.getElementById('results-content');
+    const toast=document.getElementById('toast');
+    let currentKeypair=null;
+
+    generateBtn.addEventListener('click',generateKeypair);
+
+    async function generateKeypair(){
+      const bits=parseInt(document.getElementById('bits-select').value,10);
+      const comment=document.getElementById('comment-input').value.trim();
+      const passphrase=document.getElementById('passphrase-input').value;
+
+      generateBtn.disabled=true;
+      progressBox.classList.add('active');
+      resultsContent.innerHTML='<div class="empty-state"><i class="fa-solid fa-spinner fa-spin"></i><h3>Generating…</h3><p>Creating '+bits+'-bit RSA keypair. Please wait.</p></div>';
+
+      try{
+        currentKeypair=await SshKeygen.generateKeypair({bits,comment,passphrase});
+        renderResults(currentKeypair);
+        showToast('Keypair generated');
+      }catch(err){
+        resultsContent.innerHTML='<div class="empty-state" style="color:var(--accent-rose)"><i class="fa-solid fa-triangle-exclamation"></i><h3>Generation Failed</h3><p>'+SshKeygen.escapeHtml(err.message)+'</p></div>';
+        showToast('Generation failed');
+      }finally{
+        generateBtn.disabled=false;
+        progressBox.classList.remove('active');
+      }
+    }
+
+    function renderResults(kp){
+      const encLabel=kp.encrypted?'Yes (AES encrypted)':'No';
+      resultsContent.innerHTML=
+        '<table class="info-table">'+
+          '<tr><td class="label">Algorithm</td><td class="value">ssh-rsa</td></tr>'+
+          '<tr><td class="label">Key Size</td><td class="value">'+kp.bits+' bits</td></tr>'+
+          '<tr><td class="label">Comment</td><td class="value">'+(kp.comment?SshKeygen.escapeHtml(kp.comment):'<span style="color:var(--text-muted)">(none)</span>')+'</td></tr>'+
+          '<tr><td class="label">Private Key Encrypted</td><td class="value">'+encLabel+'</td></tr>'+
+          '<tr><td class="label">MD5 Fingerprint</td><td class="value">'+SshKeygen.escapeHtml(kp.fingerprintMd5)+'</td></tr>'+
+          '<tr><td class="label">SHA256 Fingerprint</td><td class="value">'+SshKeygen.escapeHtml(kp.fingerprintSha256)+'</td></tr>'+
+        '</table>'+
+        keyBlockHtml('Public Key (authorized_keys / server upload)','public')+
+        keyBlockHtml('Private Key (keep secret — use for SFTP client)','private')+
+        '<div class="action-bar">'+
+          '<button class="btn btn-primary" id="download-both-btn"><i class="fa-solid fa-download"></i> Download Both (.pub + private)</button>'+
+        '</div>';
+
+      document.getElementById('public-key').value=kp.publicKey;
+      document.getElementById('private-key').value=kp.privateKey;
+
+      document.getElementById('download-both-btn').addEventListener('click',()=>{
+        SshKeygen.downloadText('id_rsa.pub',kp.publicKey);
+        SshKeygen.downloadText('id_rsa',kp.privateKey);
+        showToast('Downloaded id_rsa and id_rsa.pub');
+      });
+
+      resultsContent.querySelectorAll('[data-copy]').forEach(btn=>{
+        btn.addEventListener('click',()=>{
+          const target=btn.getAttribute('data-copy');
+          const text=target==='public'?kp.publicKey:kp.privateKey;
+          navigator.clipboard.writeText(text).then(()=>showToast('Copied '+target+' key'));
+        });
+      });
+      resultsContent.querySelectorAll('[data-download]').forEach(btn=>{
+        btn.addEventListener('click',()=>{
+          const target=btn.getAttribute('data-download');
+          if(target==='public'){SshKeygen.downloadText('id_rsa.pub',kp.publicKey);showToast('Downloaded id_rsa.pub')}
+          else{SshKeygen.downloadText('id_rsa',kp.privateKey);showToast('Downloaded id_rsa')}
+        });
+      });
+    }
+
+    function keyBlockHtml(title,id){
+      return '<div class="key-block">'+
+        '<div class="key-block-header">'+
+          '<span class="key-block-title">'+title+'</span>'+
+          '<div class="key-actions">'+
+            '<button class="btn btn-secondary btn-sm" data-copy="'+id+'"><i class="fa-solid fa-copy"></i> Copy</button>'+
+            '<button class="btn btn-secondary btn-sm" data-download="'+id+'"><i class="fa-solid fa-download"></i> Download</button>'+
+          '</div>'+
+        '</div>'+
+        '<textarea readonly id="'+id+'-key"></textarea>'+
+      '</div>';
+    }
+
+    function showToast(msg){document.getElementById('toast-msg').textContent=msg;toast.classList.add('show');setTimeout(()=>toast.classList.remove('show'),2500)}
+  </script>
+  <script src="scripts/tool-bundler.js"></script>
+  <script src="scripts/tool-download-init.js"></script>
+</body>
+</html>

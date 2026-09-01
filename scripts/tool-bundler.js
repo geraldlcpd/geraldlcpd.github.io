@@ -8,6 +8,7 @@
     'encode_decode.html': { tier: 'light', offlineCapable: true },
     'snap_signature_debugger.html': { tier: 'light', offlineCapable: true },
     'cert_inspector.html': { tier: 'medium', offlineCapable: true },
+    'ssh_keygen.html': { tier: 'medium', offlineCapable: true },
     'json_workbench.html': { tier: 'medium', offlineCapable: true },
     'file_hashing.html': { tier: 'medium', offlineCapable: true },
     'pgp_inspector.html': { tier: 'medium', offlineCapable: true },
