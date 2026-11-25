@@ -258,7 +258,7 @@
                     <!-- Storage Provider Selection & Manual Enable Bar -->
                     <div
                         style="display: flex; align-items: center; justify-content: space-between; background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 8px 12px; gap: 10px; flex-wrap: wrap;">
-                        <div style="display: flex; align-items: center; gap: 8px; font-size: 0.78rem;">
+                        <div style="display: flex; align-items: center; gap: 8px; font-size: 0.78rem; flex-wrap: wrap;">
                             <i data-lucide="cloud" style="width: 14px; height: 14px; color: var(--accent-cyan);"></i>
                             <span style="color: var(--text-muted); font-weight: 500;">Active Hosting Provider:</span>
                             <select class="select-input" id="selectBucketProvider"
@@ -269,6 +269,11 @@
                                 <option value="catbox">Catbox.moe (Public Free Host)</option>
                                 <option value="custom_r2">Cloudflare R2 / Custom Presigned API</option>
                             </select>
+                            <button class="btn btn-secondary" id="btnConfigR2Settings" title="Configure Cloudflare R2 Cookie Settings"
+                                style="display: none; padding: 4px 8px; font-size: 0.76rem; border-color: rgba(245, 158, 11, 0.4); color: var(--accent-amber); align-items: center; gap: 5px;">
+                                <i data-lucide="settings" style="width: 13px; height: 13px;"></i>
+                                <span>R2 Cookie Settings</span>
+                            </button>
                         </div>
                         <button class="btn btn-secondary" id="btnToggleEnableUploads"
                             style="padding: 5px 12px; font-size: 0.76rem; border-color: rgba(244, 63, 94, 0.4); color: var(--accent-rose);">
@@ -782,6 +787,67 @@
             <div class="modal-footer-actions">
                 <button class="btn btn-secondary" id="btnCancelDelete">Cancel</button>
                 <button class="btn btn-danger" id="btnConfirmDelete">Delete Page</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cloudflare R2 Cookie Configuration Modal -->
+    <div class="modal-overlay" id="r2ConfigModal">
+        <div class="modal-card modal-card-sm" style="max-width: 500px;">
+            <button class="modal-close-btn" id="btnCloseR2Config" title="Close">
+                <i data-lucide="x" style="width: 18px; height: 18px;"></i>
+            </button>
+            <div class="modal-header">
+                <div class="modal-icon"
+                    style="background: rgba(245, 158, 11, 0.15); color: var(--accent-amber); border-color: rgba(245, 158, 11, 0.3);">
+                    <i data-lucide="cloud" style="width: 24px; height: 24px;"></i>
+                </div>
+                <h2 class="modal-title">Cloudflare R2 Configuration</h2>
+                <p class="modal-desc">Configure your Cloudflare R2 Worker endpoint. URL is stored safely in your browser cookies (not hardcoded).</p>
+            </div>
+
+            <div class="panel-content" style="gap: 12px;">
+                <div class="input-field">
+                    <label class="input-label" style="display: flex; justify-content: space-between; align-items: center;">
+                        <span>R2 Worker / Gateway URL</span>
+                        <span id="r2CookieStatusBadge" style="font-size: 0.7rem; color: var(--accent-amber); font-weight: 600;">Not configured</span>
+                    </label>
+                    <input type="url" class="text-input" id="inputR2CookieUrl"
+                        placeholder="https://r2-gateway.yourname.workers.dev" autocomplete="off" spellcheck="false">
+                    <span style="font-size: 0.72rem; color: var(--text-dim); margin-top: 2px;">
+                        The public URL of your Cloudflare Worker with R2 binding (e.g. *.workers.dev).
+                    </span>
+                </div>
+
+                <div class="input-field">
+                    <label class="input-label">Optional Auth Token (Header: x-custom-token)</label>
+                    <input type="password" class="text-input" id="inputR2CookieToken"
+                        placeholder="Leave blank if Worker has no custom secret" autocomplete="off">
+                    <span style="font-size: 0.72rem; color: var(--text-dim); margin-top: 2px;">
+                        Optional secret token if your Cloudflare Worker validates client credentials.
+                    </span>
+                </div>
+
+                <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 10px 12px; font-size: 0.74rem; color: var(--text-muted); line-height: 1.45;">
+                    <div style="font-weight: 600; color: var(--accent-cyan); display: flex; align-items: center; gap: 6px; margin-bottom: 4px;">
+                        <i data-lucide="shield-check" style="width: 14px; height: 14px;"></i>
+                        <span>Zero-Knowledge E2EE Guaranteed</span>
+                    </div>
+                    <div>Files are AES-256-GCM encrypted in browser memory prior to transmission. Cloudflare R2 stores only opaque ciphertext binaries.</div>
+                </div>
+
+                <div class="modal-footer-actions" style="margin-top: 4px;">
+                    <button class="btn btn-secondary" id="btnClearR2Cookie" style="color: var(--accent-rose); border-color: rgba(244, 63, 94, 0.3);">
+                        <i data-lucide="trash-2" style="width: 13px; height: 13px;"></i> Clear Cookie
+                    </button>
+                    <button class="btn btn-secondary" id="btnTestR2Connection">
+                        <i data-lucide="activity" style="width: 13px; height: 13px;"></i> Test Ping
+                    </button>
+                    <button class="btn btn-primary" id="btnSaveR2Cookie"
+                        style="background: var(--accent-amber); border-color: var(--accent-amber);">
+                        <i data-lucide="check-circle-2" style="width: 13px; height: 13px;"></i> Save Cookie
+                    </button>
+                </div>
             </div>
         </div>
     </div>
