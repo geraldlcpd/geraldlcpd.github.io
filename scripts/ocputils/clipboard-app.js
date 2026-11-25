@@ -18,6 +18,42 @@ const APP_CONFIG = {
     DEFAULT_SUPABASE_BUCKET: 'bdioc-bucket'
 };
 
+// --- Browser Storage Helper (Cookies with localStorage Fallback for localhost & file://) ---
+const CookieStorage = {
+    _memoryStore: {},
+    get(name) {
+        try {
+            const matches = document.cookie.match(new RegExp('(?:^|; )' + name.replace(/([\.$?*|{}\(\)\[\]\\\/\+^])/g, '\\$1') + '=([^;]*)'));
+            if (matches && matches[1]) return decodeURIComponent(matches[1]);
+        } catch (e) { }
+        try {
+            const val = localStorage.getItem(name);
+            if (val) return val;
+        } catch (e) { }
+        return CookieStorage._memoryStore[name] || null;
+    },
+    set(name, value, days = 365) {
+        try {
+            const secure = location.protocol === 'https:' ? '; Secure' : '';
+            const maxAge = days * 24 * 60 * 60;
+            document.cookie = `${encodeURIComponent(name)}=${encodeURIComponent(value)}; path=/; max-age=${maxAge}; SameSite=Lax${secure}`;
+        } catch (e) { }
+        try {
+            localStorage.setItem(name, value);
+        } catch (e) { }
+        CookieStorage._memoryStore[name] = value;
+    },
+    delete(name) {
+        try {
+            document.cookie = `${encodeURIComponent(name)}=; path=/; max-age=0; SameSite=Lax`;
+        } catch (e) { }
+        try {
+            localStorage.removeItem(name);
+        } catch (e) { }
+        delete CookieStorage._memoryStore[name];
+    }
+};
+
 const VERIFY_MAGIC_TOKEN = "ROOM_VERIFY_VALID_2026";
 
 // Initialize Icons
@@ -247,6 +283,7 @@ const elements = {
     fileBucketContainer: document.getElementById('fileBucketContainer'),
     selectBucketProvider: document.getElementById('selectBucketProvider'),
     badgeBucketProvider: document.getElementById('badgeBucketProvider'),
+    btnConfigR2Settings: document.getElementById('btnConfigR2Settings'),
     btnToggleEnableUploads: document.getElementById('btnToggleEnableUploads'),
     textToggleUploads: document.getElementById('textToggleUploads'),
     iconUploadStatus: document.getElementById('iconUploadStatus'),
@@ -256,6 +293,16 @@ const elements = {
     fileDropzoneDesc: document.getElementById('fileDropzoneDesc'),
     bucketFileInput: document.getElementById('bucketFileInput'),
     fileBucketGrid: document.getElementById('fileBucketGrid'),
+
+    // Cloudflare R2 Cookie Configuration Modal Elements
+    r2ConfigModal: document.getElementById('r2ConfigModal'),
+    btnCloseR2Config: document.getElementById('btnCloseR2Config'),
+    inputR2CookieUrl: document.getElementById('inputR2CookieUrl'),
+    inputR2CookieToken: document.getElementById('inputR2CookieToken'),
+    r2CookieStatusBadge: document.getElementById('r2CookieStatusBadge'),
+    btnClearR2Cookie: document.getElementById('btnClearR2Cookie'),
+    btnTestR2Connection: document.getElementById('btnTestR2Connection'),
+    btnSaveR2Cookie: document.getElementById('btnSaveR2Cookie'),
 
     imageLightboxModal: document.getElementById('imageLightboxModal'),
     btnCloseLightbox: document.getElementById('btnCloseLightbox'),
@@ -1051,13 +1098,17 @@ function renderFileBucketView(page) {
     const activeProvider = page.provider || 'supabase_storage';
     if (elements.selectBucketProvider) elements.selectBucketProvider.value = activeProvider;
 
+    if (elements.btnConfigR2Settings) {
+        elements.btnConfigR2Settings.style.display = (activeProvider === 'custom_r2') ? 'inline-flex' : 'none';
+    }
+
     if (elements.badgeBucketProvider) {
         const providerNames = {
             firebase_rtdb: 'Firebase RTDB (Inline Sub-nodes)',
             supabase_storage: 'Supabase Storage (Free Plan Bucket)',
             firebase_storage: 'Firebase Storage (GCS Bucket)',
             catbox: 'Catbox.moe (Public Free Host)',
-            custom_r2: 'Cloudflare R2 / Custom Presigned API'
+            custom_r2: 'Cloudflare R2 (Worker Gateway / Cookies)'
         };
         elements.badgeBucketProvider.textContent = `Provider: ${providerNames[activeProvider] || activeProvider}`;
     }
@@ -1118,8 +1169,19 @@ function renderFileBucketView(page) {
                     }
                 } else if (fileItem.url) {
                     showToast("Downloading & decrypting file...");
+                    const downloadHeaders = {};
+                    if (fileItem.provider === 'supabase_storage') {
+                        Object.assign(downloadHeaders, getSupabaseHeaders());
+                    } else if (fileItem.provider === 'custom_r2') {
+                        const r2Token = CookieStorage.get('ocp_r2_auth_token');
+                        if (r2Token) {
+                            downloadHeaders['x-custom-token'] = r2Token;
+                            downloadHeaders['Authorization'] = `Bearer ${r2Token}`;
+                        }
+                    }
+
                     const res = await fetch(fileItem.url, {
-                        headers: fileItem.provider === 'supabase_storage' ? getSupabaseHeaders() : {}
+                        headers: downloadHeaders
                     });
 
                     if (!res.ok) throw new Error(`Download failed HTTP ${res.status}`);
@@ -1152,7 +1214,7 @@ function renderFileBucketView(page) {
         card.querySelector('.btn-delete-file').addEventListener('click', async (e) => {
             e.stopPropagation();
 
-            // Perform remote delete if Supabase Storage
+            // Perform remote delete if Supabase Storage or Cloudflare R2
             if (fileItem.provider === 'supabase_storage' && fileItem.remotePath) {
                 try {
                     let baseUrl = (APP_CONFIG.DEFAULT_SUPABASE_URL || '').trim().replace(/\/+$/, '');
@@ -1161,6 +1223,19 @@ function renderFileBucketView(page) {
                     await fetch(deleteEndpoint, {
                         method: 'DELETE',
                         headers: getSupabaseHeaders()
+                    });
+                } catch (e) { }
+            } else if (fileItem.provider === 'custom_r2' && fileItem.url) {
+                try {
+                    const deleteHeaders = {};
+                    const r2Token = CookieStorage.get('ocp_r2_auth_token');
+                    if (r2Token) {
+                        deleteHeaders['x-custom-token'] = r2Token;
+                        deleteHeaders['Authorization'] = `Bearer ${r2Token}`;
+                    }
+                    await fetch(fileItem.url, {
+                        method: 'DELETE',
+                        headers: deleteHeaders
                     });
                 } catch (e) { }
             }
@@ -1183,77 +1258,133 @@ async function addFileAttachmentToBucket(file) {
     if (page.type !== 'file') return;
     if (!page.files) page.files = [];
 
+    if (!AppState.isUnlocked || !AppState.masterKey) {
+        showErrorModal("Room Locked", "Please unlock your room with your Master Passphrase or Passkey before attaching files.");
+        return;
+    }
+
     const activeProvider = page.provider || 'supabase_storage';
     showToast(`Encrypting & uploading file (${activeProvider})...`);
 
     try {
         const reader = new FileReader();
         reader.onload = async (e) => {
-            const rawDataUrl = e.target.result;
-            const sizeKB = Math.round(rawDataUrl.length / 1024);
-            const fileId = 'file_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
-            const fileNameOnStore = `${AppState.roomCode}/${fileId}.bin`;
+            try {
+                const rawDataUrl = e.target.result;
+                const sizeKB = Math.round(rawDataUrl.length / 1024);
+                const fileId = 'file_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
+                const fileNameOnStore = `${AppState.roomCode}/${fileId}.bin`;
 
-            // 1. Encrypt raw file DataURL in browser memory with AES-256-GCM
-            const encryptedCipher = await CryptoEngine.encryptPayload(rawDataUrl, AppState.masterKey);
-
-            let fileRecord = {
-                id: fileId,
-                name: file.name,
-                mimeType: file.type || 'application/octet-stream',
-                sizeKB: sizeKB,
-                provider: activeProvider,
-                timestamp: Date.now()
-            };
-
-            if (activeProvider === 'supabase_storage') {
-                // Direct HTTP upload to Supabase REST Storage endpoint (compatible with anon key)
-                let baseUrl = (APP_CONFIG.DEFAULT_SUPABASE_URL || '').trim().replace(/\/+$/, '');
-                baseUrl = baseUrl.replace(/\.storage\.supabase\.co.*$/, '.supabase.co').replace(/\/storage\/v1\/s3$/, '');
-                const uploadEndpoint = `${baseUrl}/storage/v1/object/${APP_CONFIG.DEFAULT_SUPABASE_BUCKET}/${fileNameOnStore}`;
-
-                const uploadHeaders = getSupabaseHeaders('text/plain');
-                uploadHeaders['x-upsert'] = 'true';
-
-                const uploadRes = await fetch(uploadEndpoint, {
-                    method: 'POST',
-                    headers: uploadHeaders,
-                    body: encryptedCipher
-                });
-
-                if (!uploadRes.ok) {
-                    const errText = await uploadRes.text();
-                    throw new Error(`Supabase Storage upload failed (${uploadRes.status}): ${errText}`);
+                if (!AppState.masterKey) {
+                    throw new Error("Encryption key unavailable. Please unlock the room first.");
                 }
 
-                // Construct Public / Signed GET Download URL
-                fileRecord.remotePath = fileNameOnStore;
-                fileRecord.url = `${baseUrl}/storage/v1/object/public/${APP_CONFIG.DEFAULT_SUPABASE_BUCKET}/${fileNameOnStore}`;
-            } else if (activeProvider === 'catbox') {
-                // Direct FormData upload to Catbox API
-                const formData = new FormData();
-                formData.append('reqtype', 'fileupload');
-                formData.append('fileToUpload', new Blob([encryptedCipher], { type: 'text/plain' }), `${fileId}.bin`);
+                // 1. Encrypt raw file DataURL in browser memory with AES-256-GCM
+                const encryptedCipher = await CryptoEngine.encryptPayload(rawDataUrl, AppState.masterKey);
+                if (!encryptedCipher) {
+                    throw new Error("Encryption failed. Verify that your browser supports Web Crypto.");
+                }
 
-                const catboxRes = await fetch('https://catbox.moe/user/api.php', {
-                    method: 'POST',
-                    body: formData
-                });
+                let fileRecord = {
+                    id: fileId,
+                    name: file.name,
+                    mimeType: file.type || 'application/octet-stream',
+                    sizeKB: sizeKB,
+                    provider: activeProvider,
+                    timestamp: Date.now()
+                };
 
-                if (catboxRes.ok) {
-                    fileRecord.url = (await catboxRes.text()).trim();
+                if (activeProvider === 'supabase_storage') {
+                    // Direct HTTP upload to Supabase REST Storage endpoint (compatible with anon key)
+                    let baseUrl = (APP_CONFIG.DEFAULT_SUPABASE_URL || '').trim().replace(/\/+$/, '');
+                    baseUrl = baseUrl.replace(/\.storage\.supabase\.co.*$/, '.supabase.co').replace(/\/storage\/v1\/s3$/, '');
+                    const uploadEndpoint = `${baseUrl}/storage/v1/object/${APP_CONFIG.DEFAULT_SUPABASE_BUCKET}/${fileNameOnStore}`;
+
+                    const uploadHeaders = getSupabaseHeaders('text/plain');
+                    uploadHeaders['x-upsert'] = 'true';
+
+                    const uploadRes = await fetch(uploadEndpoint, {
+                        method: 'POST',
+                        headers: uploadHeaders,
+                        body: encryptedCipher
+                    });
+
+                    if (!uploadRes.ok) {
+                        const errText = await uploadRes.text();
+                        throw new Error(`Supabase Storage upload failed (${uploadRes.status}): ${errText}`);
+                    }
+
+                    // Construct Public / Signed GET Download URL
+                    fileRecord.remotePath = fileNameOnStore;
+                    fileRecord.url = `${baseUrl}/storage/v1/object/public/${APP_CONFIG.DEFAULT_SUPABASE_BUCKET}/${fileNameOnStore}`;
+                } else if (activeProvider === 'catbox') {
+                    // Direct FormData upload to Catbox API
+                    const formData = new FormData();
+                    formData.append('reqtype', 'fileupload');
+                    formData.append('fileToUpload', new Blob([encryptedCipher], { type: 'text/plain' }), `${fileId}.bin`);
+
+                    const catboxRes = await fetch('https://catbox.moe/user/api.php', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    if (catboxRes.ok) {
+                        fileRecord.url = (await catboxRes.text()).trim();
+                    } else {
+                        fileRecord.encryptedPayload = encryptedCipher;
+                    }
+                } else if (activeProvider === 'custom_r2') {
+                    // Direct E2EE Upload to Cloudflare R2 Worker Gateway (URL stored in cookies / localStorage)
+                    const r2Endpoint = CookieStorage.get('ocp_r2_endpoint');
+                    const r2Token = CookieStorage.get('ocp_r2_auth_token');
+
+                    if (!r2Endpoint) {
+                        openR2ConfigModal();
+                        throw new Error("Cloudflare R2 endpoint URL not configured. Please save your Worker URL in the cookie settings.");
+                    }
+
+                    const cleanBase = r2Endpoint.trim().replace(/\/+$/, '');
+                    const uploadEndpoint = `${cleanBase}/${fileNameOnStore}`;
+
+                    const uploadHeaders = { 'Content-Type': 'text/plain' };
+                    if (r2Token) {
+                        uploadHeaders['x-custom-token'] = r2Token;
+                        uploadHeaders['Authorization'] = `Bearer ${r2Token}`;
+                    }
+
+                    let r2Res;
+                    try {
+                        r2Res = await fetch(uploadEndpoint, {
+                            method: 'PUT',
+                            headers: uploadHeaders,
+                            body: encryptedCipher
+                        });
+                    } catch (fetchErr) {
+                        throw new Error(`Network/CORS error reaching R2 Worker at ${uploadEndpoint}: ${fetchErr.message}. Ensure your Cloudflare Worker is running and CORS is enabled (Access-Control-Allow-Origin: *).`);
+                    }
+
+                    if (!r2Res.ok) {
+                        const errText = await r2Res.text();
+                        throw new Error(`Cloudflare R2 upload failed (HTTP ${r2Res.status}): ${errText}`);
+                    }
+
+                    fileRecord.remotePath = fileNameOnStore;
+                    fileRecord.url = uploadEndpoint;
                 } else {
+                    // Firebase RTDB Inline Payload Fallback
                     fileRecord.encryptedPayload = encryptedCipher;
                 }
-            } else {
-                // Firebase RTDB Inline Payload Fallback
-                fileRecord.encryptedPayload = encryptedCipher;
-            }
 
-            page.files.unshift(fileRecord);
-            renderFileBucketView(page);
-            SyncManager.broadcastState();
-            showToast(`Uploaded & attached ${file.name} (${sizeKB} KB)!`);
+                page.files.unshift(fileRecord);
+                renderFileBucketView(page);
+                SyncManager.broadcastState();
+                showToast(`Uploaded & attached ${file.name} (${sizeKB} KB)!`);
+            } catch (innerErr) {
+                showErrorModal("File Upload Error", innerErr.message);
+            }
+        };
+        reader.onerror = () => {
+            showErrorModal("File Read Error", "Failed to read file from disk.");
         };
         reader.readAsDataURL(file);
     } catch (err) {
@@ -1270,6 +1401,11 @@ if (elements.selectBucketProvider) {
             renderFileBucketView(page);
             SyncManager.broadcastState();
             showToast(`Switched storage provider to ${e.target.value}`);
+
+            // Automatically open R2 cookie setup if switching to R2 and cookie is not set
+            if (e.target.value === 'custom_r2' && !CookieStorage.get('ocp_r2_endpoint')) {
+                openR2ConfigModal();
+            }
         }
     });
 }
@@ -1345,7 +1481,11 @@ if (elements.btnToggleEnableUploads) {
 if (elements.fileDropzone && elements.bucketFileInput) {
     elements.fileDropzone.addEventListener('click', () => {
         if (!AppState.isFileUploadEnabled) {
-            showToast("Uploads disabled. Click 'Enable File Uploads' above first.");
+            showToast("Uploads disabled. Click 'Enable File Uploads' button above first.");
+            if (elements.btnToggleEnableUploads) {
+                elements.btnToggleEnableUploads.style.boxShadow = '0 0 15px rgba(244, 63, 94, 0.9)';
+                setTimeout(() => { if (elements.btnToggleEnableUploads) elements.btnToggleEnableUploads.style.boxShadow = ''; }, 1200);
+            }
             return;
         }
         elements.bucketFileInput.click();
@@ -1377,7 +1517,11 @@ if (elements.fileDropzone && elements.bucketFileInput) {
     elements.fileDropzone.addEventListener('drop', async (e) => {
         e.preventDefault();
         if (!AppState.isFileUploadEnabled) {
-            showToast("Uploads disabled. Click 'Enable File Uploads' above first.");
+            showToast("Uploads disabled. Click 'Enable File Uploads' button above first.");
+            if (elements.btnToggleEnableUploads) {
+                elements.btnToggleEnableUploads.style.boxShadow = '0 0 15px rgba(244, 63, 94, 0.9)';
+                setTimeout(() => { if (elements.btnToggleEnableUploads) elements.btnToggleEnableUploads.style.boxShadow = ''; }, 1200);
+            }
             return;
         }
         elements.fileDropzone.style.borderColor = 'rgba(56, 189, 248, 0.4)';
@@ -2260,4 +2404,123 @@ document.addEventListener('click', (e) => {
 fetchExistingRooms();
 if (elements.inputRoomCode) {
     checkDomainPasskeyRegistration(elements.inputRoomCode.value);
+}
+
+// --- Cloudflare R2 Cookie Configuration Modal Handlers ---
+function updateR2CookieBadge() {
+    if (!elements.r2CookieStatusBadge) return;
+    const savedEndpoint = CookieStorage.get('ocp_r2_endpoint');
+    if (savedEndpoint) {
+        elements.r2CookieStatusBadge.textContent = 'Active (Saved in Cookie)';
+        elements.r2CookieStatusBadge.style.color = 'var(--accent-green)';
+    } else {
+        elements.r2CookieStatusBadge.textContent = 'Not configured';
+        elements.r2CookieStatusBadge.style.color = 'var(--accent-amber)';
+    }
+}
+
+function openR2ConfigModal() {
+    if (!elements.r2ConfigModal) return;
+    if (elements.inputR2CookieUrl) {
+        elements.inputR2CookieUrl.value = CookieStorage.get('ocp_r2_endpoint') || '';
+    }
+    if (elements.inputR2CookieToken) {
+        elements.inputR2CookieToken.value = CookieStorage.get('ocp_r2_auth_token') || '';
+    }
+    updateR2CookieBadge();
+    elements.r2ConfigModal.classList.add('active');
+    setTimeout(() => elements.inputR2CookieUrl && elements.inputR2CookieUrl.focus(), 100);
+}
+
+function closeR2ConfigModal() {
+    if (elements.r2ConfigModal) {
+        elements.r2ConfigModal.classList.remove('active');
+    }
+}
+
+if (elements.btnConfigR2Settings) {
+    elements.btnConfigR2Settings.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openR2ConfigModal();
+    });
+}
+
+if (elements.btnCloseR2Config) {
+    elements.btnCloseR2Config.addEventListener('click', closeR2ConfigModal);
+}
+
+if (elements.r2ConfigModal) {
+    elements.r2ConfigModal.addEventListener('click', (e) => {
+        if (e.target === elements.r2ConfigModal) {
+            closeR2ConfigModal();
+        }
+    });
+}
+
+if (elements.btnSaveR2Cookie) {
+    elements.btnSaveR2Cookie.addEventListener('click', () => {
+        const url = (elements.inputR2CookieUrl ? elements.inputR2CookieUrl.value : '').trim().replace(/\/+$/, '');
+        const token = (elements.inputR2CookieToken ? elements.inputR2CookieToken.value : '').trim();
+
+        if (!url) {
+            showToast("Please enter an R2 endpoint URL");
+            return;
+        }
+
+        if (!/^https?:\/\//i.test(url)) {
+            showToast("URL must begin with https:// or http://");
+            return;
+        }
+
+        CookieStorage.set('ocp_r2_endpoint', url, 365);
+        if (token) {
+            CookieStorage.set('ocp_r2_auth_token', token, 365);
+        } else {
+            CookieStorage.delete('ocp_r2_auth_token');
+        }
+
+        updateR2CookieBadge();
+        showToast("Cloudflare R2 endpoint saved to cookies!");
+        closeR2ConfigModal();
+    });
+}
+
+if (elements.btnClearR2Cookie) {
+    elements.btnClearR2Cookie.addEventListener('click', () => {
+        CookieStorage.delete('ocp_r2_endpoint');
+        CookieStorage.delete('ocp_r2_auth_token');
+        if (elements.inputR2CookieUrl) elements.inputR2CookieUrl.value = '';
+        if (elements.inputR2CookieToken) elements.inputR2CookieToken.value = '';
+        updateR2CookieBadge();
+        showToast("Cleared Cloudflare R2 cookies.");
+    });
+}
+
+if (elements.btnTestR2Connection) {
+    elements.btnTestR2Connection.addEventListener('click', async () => {
+        const url = (elements.inputR2CookieUrl ? elements.inputR2CookieUrl.value : '').trim().replace(/\/+$/, '');
+        const token = (elements.inputR2CookieToken ? elements.inputR2CookieToken.value : '').trim();
+
+        if (!url) {
+            showToast("Enter an endpoint URL first to test ping");
+            return;
+        }
+
+        showToast("Testing R2 endpoint connection...");
+        try {
+            const headers = {};
+            if (token) {
+                headers['x-custom-token'] = token;
+                headers['Authorization'] = `Bearer ${token}`;
+            }
+            const res = await fetch(url, { method: 'GET', headers });
+            if (res.ok || res.status === 200 || res.status === 404) {
+                showToast(`Ping successful! Worker responded with HTTP ${res.status}`);
+            } else {
+                showToast(`Worker responded with HTTP ${res.status}`);
+            }
+        } catch (err) {
+            showErrorModal("R2 Connection Test Failed", `Could not reach R2 Worker at ${url}: ${err.message}. Ensure CORS is enabled on your Cloudflare Worker.`);
+        }
+    });
 }
