@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light dark">
+  <title>Timestamp &amp; Timezone Converter</title>
+  <meta name="description" content="Convert Unix epochs (s/ms/µs/ns), ISO 8601, and RFC 2822 timestamps offline with nanosecond preservation and multi-timezone comparison.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="scripts/tool-download.css">
+  <style>
+    :root{color-scheme:dark;--font-primary:'Plus Jakarta Sans',sans-serif;--font-mono:'JetBrains Mono',monospace;--bg:#090d16;--bg-card:rgba(17,24,39,.7);--border:rgba(255,255,255,.08);--text-primary:#f8fafc;--text-secondary:#94a3b8;--text-muted:#64748b;--accent-indigo:#6366f1;--accent-cyan:#06b6d4;--accent-emerald:#10b981;--accent-rose:#f43f5e;--glow-indigo:rgba(99,102,241,.2);--shadow-card:0 10px 30px -10px rgba(0,0,0,.5);--transition:all .3s cubic-bezier(.16,1,.3,1)}
+    [data-theme="light"]{color-scheme:light;--bg:#f8fafc;--bg-card:rgba(255,255,255,.8);--border:rgba(0,0,0,.08);--text-primary:#0f172a;--text-secondary:#475569;--text-muted:#94a3b8;--accent-indigo:#4f46e5;--glow-indigo:rgba(79,70,229,.12)}
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:var(--font-primary);background:var(--bg);color:var(--text-primary);min-height:100vh;display:flex;flex-direction:column}
+    header{position:sticky;top:0;z-index:100;backdrop-filter:blur(16px);background:rgba(9,13,22,.75);border-bottom:1px solid var(--border);padding:1rem 2rem;display:flex;justify-content:space-between;align-items:center}
+    [data-theme="light"] header{background:rgba(248,250,252,.85)}
+    .brand{display:flex;align-items:center;gap:.75rem;font-size:1.25rem;font-weight:700;color:var(--text-primary);text-decoration:none}
+    .brand i{color:var(--accent-indigo)}
+    .header-nav{display:flex;align-items:center;gap:1.25rem}
+    .nav-link{color:var(--text-secondary);text-decoration:none;font-weight:500;font-size:.9rem;display:flex;align-items:center;gap:.4rem}
+    .nav-link:hover{color:var(--accent-indigo)}
+    .theme-toggle-btn{background:transparent;border:1px solid var(--border);color:var(--text-secondary);width:38px;height:38px;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+    main{flex:1;max-width:1020px;width:100%;margin:0 auto;padding:2.25rem 1.5rem 4rem}
+    .page-title{text-align:center;margin-bottom:2rem}
+    .page-title h1{font-size:2.2rem;font-weight:800;margin-bottom:.5rem}
+    .page-title p{color:var(--text-secondary)}
+    .card{background:var(--bg-card);border:1px solid var(--border);border-radius:16px;padding:1.5rem;box-shadow:var(--shadow-card);backdrop-filter:blur(12px);margin-bottom:1.5rem}
+    .now-bar{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem;padding:1rem 1.25rem;border-radius:12px;background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.25);margin-bottom:1.25rem}
+    .now-readout{font-family:var(--font-mono);font-size:.95rem;font-weight:600;color:var(--accent-cyan)}
+    .input-row{display:flex;gap:.75rem;flex-wrap:wrap;margin-bottom:1rem}
+    .ts-input{flex:2;min-width:240px;font-family:var(--font-mono);font-size:1rem;padding:.85rem 1rem;background:rgba(0,0,0,.22);border:1px solid var(--border);border-radius:10px;color:var(--text-primary)}
+    .dt-input{flex:1;min-width:210px;font-family:var(--font-mono);font-size:.9rem;padding:.85rem 1rem;background:rgba(0,0,0,.22);border:1px solid var(--border);border-radius:10px;color:var(--text-primary)}
+    [data-theme="light"] .ts-input,[data-theme="light"] .dt-input{background:rgba(255,255,255,.75)}
+    .ts-input:focus,.dt-input:focus{outline:none;border-color:var(--accent-indigo);box-shadow:0 0 0 3px var(--glow-indigo)}
+    .presets{display:flex;flex-wrap:wrap;gap:.5rem}
+    .chip{padding:.4rem .85rem;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--text-secondary);font-family:var(--font-mono);font-size:.78rem;font-weight:600;cursor:pointer;transition:var(--transition)}
+    .chip:hover{border-color:var(--accent-indigo);color:var(--accent-indigo);background:var(--glow-indigo)}
+    .btn{padding:.55rem .95rem;border-radius:10px;font-family:var(--font-primary);font-weight:600;font-size:.825rem;cursor:pointer;display:inline-flex;align-items:center;gap:.4rem;border:1px solid var(--border);background:transparent;color:var(--text-secondary);transition:var(--transition)}
+    .btn-primary{background:var(--accent-indigo);color:#fff;border-color:var(--accent-indigo)}
+    .kv-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:.85rem}
+    .kv-item{background:rgba(0,0,0,.18);border:1px solid var(--border);border-radius:12px;padding:.85rem 1rem;cursor:pointer;transition:var(--transition)}
+    [data-theme="light"] .kv-item{background:rgba(0,0,0,.03)}
+    .kv-item:hover{border-color:var(--accent-indigo)}
+    .kv-label{font-size:.72rem;text-transform:uppercase;color:var(--text-muted);font-weight:700;margin-bottom:.25rem}
+    .kv-val{font-family:var(--font-mono);font-size:.9rem;font-weight:600;word-break:break-all}
+    .error-box{background:rgba(244,63,94,.1);border:1px solid rgba(244,63,94,.3);border-radius:10px;padding:.85rem 1rem;color:var(--accent-rose);font-size:.875rem;margin-bottom:1rem}
+    .tz-controls{display:flex;gap:.65rem;flex-wrap:wrap;margin-bottom:1rem;align-items:center}
+    .tz-controls input{flex:1;min-width:220px;background:rgba(0,0,0,.22);border:1px solid var(--border);border-radius:10px;padding:.55rem .85rem;color:var(--text-primary);font-family:var(--font-mono);font-size:.85rem}
+    [data-theme="light"] .tz-controls input{background:rgba(255,255,255,.75)}
+    .table-wrapper{overflow:auto;max-inline-size:100%;max-block-size:440px;container-type:inline-size;border:1px solid var(--border);border-radius:12px}
+    table{width:100%;border-collapse:separate;border-spacing:0;font-family:var(--font-mono);font-size:.84rem;text-align:left}
+    thead{position:sticky;inset-block-start:0;z-index:1;background:var(--bg)}
+    th,td{padding:.75rem .9rem;border-bottom:1px solid var(--border)}
+    th{font-family:var(--font-primary);font-size:.75rem;text-transform:uppercase;color:var(--text-muted);font-weight:700}
+    @container (width < 560px){
+      table,thead,tbody,tr,th,td{display:block}
+      thead{display:none}
+      tr{border-bottom:1px solid var(--border);padding:.75rem}
+      td{border-bottom:none;padding:.25rem 0}
+      td::before{content:attr(data-label) ": ";font-family:var(--font-primary);font-weight:700;color:var(--text-muted);font-size:.75rem}
+    }
+    footer{border-top:1px solid var(--border);padding:1.5rem;text-align:center;font-size:.85rem;color:var(--text-muted)}
+    .toast{position:fixed;bottom:2rem;right:2rem;background:var(--bg-card);border:1px solid var(--accent-indigo);padding:.75rem 1.25rem;border-radius:10px;z-index:1000;opacity:0;pointer-events:none;transition:var(--transition)}
+    .toast.show{opacity:1}
+  </style>
+</head>
+<body data-tool-file="timestamp_converter.html">
+  <header>
+    <a href="index.html" class="brand"><i class="fa-solid fa-calendar-days"></i><span>Timestamp Converter</span></a>
+    <div class="header-nav">
+      <a href="index.html" class="nav-link"><i class="fa-solid fa-arrow-left"></i> Tools</a>
+      <button class="theme-toggle-btn" id="theme-toggle" aria-label="Toggle theme"><i class="fa-solid fa-moon"></i></button>
+    </div>
+  </header>
+  <main>
+    <div class="page-title">
+      <h1>Timestamp &amp; Timezone Converter</h1>
+      <p>Convert Unix epochs (seconds, ms, &mu;s, ns), ISO 8601, and RFC 2822 strings offline and compare global timezones.</p>
+    </div>
+
+    <div class="card">
+      <div class="now-bar">
+        <div>
+          <div style="font-size:.72rem;text-transform:uppercase;color:var(--text-muted);font-weight:700">Current Unix Epoch</div>
+          <div class="now-readout" id="now-readout">—</div>
+        </div>
+        <div style="display:flex;gap:.5rem">
+          <button type="button" class="btn" id="btn-pause"><i class="fa-solid fa-pause"></i> Pause</button>
+          <button type="button" class="btn btn-primary" id="btn-use-now"><i class="fa-solid fa-bolt"></i> Use Now</button>
+        </div>
+      </div>
+
+      <div class="input-row">
+        <input type="text" class="ts-input" id="ts-input" placeholder="Unix epoch, ISO 8601, or 'now'..." spellcheck="false" aria-label="Timestamp input">
+        <input type="datetime-local" class="dt-input" id="dt-picker" step="1" aria-label="Local date and time picker">
+      </div>
+      <div class="presets" id="presets"></div>
+    </div>
+
+    <div id="error-box" class="error-box" style="display:none"></div>
+
+    <div class="card" id="outputs-card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:.5rem">
+        <h2 style="font-size:1.1rem;font-weight:700">Converted Formats <span style="font-size:.78rem;color:var(--text-muted);font-weight:500">(click to copy)</span></h2>
+        <span id="detected-badge" style="font-size:.78rem;color:var(--accent-cyan);font-family:var(--font-mono)"></span>
+      </div>
+      <div class="kv-grid" id="kv-grid"></div>
+    </div>
+
+    <div class="card" id="tz-card">
+      <h2 id="tz-caption" style="font-size:1.1rem;font-weight:700;margin-bottom:1rem"><i class="fa-solid fa-earth-americas"></i> Multi-Timezone Comparison</h2>
+      <div class="tz-controls">
+        <input type="text" id="tz-add-input" list="tz-datalist" placeholder="Add IANA timezone (e.g. Asia/Seoul, Europe/Paris)...">
+        <datalist id="tz-datalist">
+          <option value="Asia/Seoul"></option>
+          <option value="Asia/Bangkok"></option>
+          <option value="Asia/Kolkata"></option>
+          <option value="Europe/Paris"></option>
+          <option value="Europe/Zurich"></option>
+          <option value="America/Chicago"></option>
+          <option value="America/Sao_Paulo"></option>
+          <option value="Pacific/Auckland"></option>
+        </datalist>
+        <button type="button" class="btn btn-primary" id="btn-add-tz"><i class="fa-solid fa-plus"></i> Add Zone</button>
+      </div>
+      <div tabindex="0" role="region" aria-labelledby="tz-caption" class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Timezone</th>
+              <th>Date &amp; Time</th>
+              <th>Day</th>
+              <th>Offset</th>
+            </tr>
+          </thead>
+          <tbody id="tz-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+  <div class="toast" id="toast"><span id="toast-msg">Copied</span></div>
+  <footer>
+    <p>Timestamp &amp; Timezone Converter &bull; Processing stays in your browser &bull; Pure JavaScript, zero dependencies</p>
+  </footer>
+
+  <script src="scripts/timestamp_converter/app.js"></script>
+  <script>
+    const themeToggle = document.getElementById('theme-toggle');
+    function initTheme() {
+      const t = localStorage.getItem('theme') || 'dark';
+      document.documentElement.setAttribute('data-theme', t);
+      themeToggle.querySelector('i').className = t === 'light' ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
+    }
+    themeToggle.addEventListener('click', () => {
+      const c = document.documentElement.getAttribute('data-theme');
+      const n = c === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', n);
+      localStorage.setItem('theme', n);
+      themeToggle.querySelector('i').className = n === 'light' ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
+    });
+    initTheme();
+
+    const nowReadout = document.getElementById('now-readout');
+    const btnPause = document.getElementById('btn-pause');
+    const tsInput = document.getElementById('ts-input');
+    const dtPicker = document.getElementById('dt-picker');
+    const errEl = document.getElementById('error-box');
+    const outputsCard = document.getElementById('outputs-card');
+    const tzCard = document.getElementById('tz-card');
+    const kvGrid = document.getElementById('kv-grid');
+    const detectedBadge = document.getElementById('detected-badge');
+    const tzTbody = document.getElementById('tz-tbody');
+    const toastEl = document.getElementById('toast');
+    const toastMsg = document.getElementById('toast-msg');
+
+    let paused = false;
+    let activeZones = [...TimestampConverter.DEFAULT_TIMEZONES];
+
+    function showToast(msg) {
+      toastMsg.textContent = msg;
+      toastEl.classList.add('show');
+      setTimeout(() => toastEl.classList.remove('show'), 1800);
+    }
+
+    function esc(s) {
+      return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    function tickNow() {
+      if (!paused) {
+        const ms = Date.now();
+        nowReadout.textContent = `${Math.floor(ms / 1000)} s  (${ms} ms)`;
+      }
+    }
+    setInterval(tickNow, 500);
+    tickNow();
+
+    btnPause.addEventListener('click', () => {
+      paused = !paused;
+      btnPause.innerHTML = paused
+        ? '<i class="fa-solid fa-play"></i> Resume'
+        : '<i class="fa-solid fa-pause"></i> Pause';
+    });
+
+    document.getElementById('btn-use-now').addEventListener('click', () => {
+      tsInput.value = String(Math.floor(Date.now() / 1000));
+      convert(true);
+    });
+
+    const PRESETS = [
+      ['Now', 'now'],
+      ['Unix 0', '0'],
+      ['1700000000', '1700000000'],
+      ['Nano ISO', '2026-04-01T12:00:00.000123456Z']
+    ];
+    const presetsEl = document.getElementById('presets');
+    PRESETS.forEach(([label, val]) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'chip';
+      btn.textContent = label;
+      btn.addEventListener('click', () => { tsInput.value = val; convert(true); });
+      presetsEl.appendChild(btn);
+    });
+
+    function syncPickerFromMs(epochMs) {
+      const d = new Date(epochMs);
+      if (Number.isNaN(d.getTime())) return;
+      const pad = (n) => String(n).padStart(2, '0');
+      dtPicker.value =
+        `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T` +
+        `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+    }
+
+    function convert(syncPicker) {
+      errEl.style.display = 'none';
+      try {
+        const res = TimestampConverter.parseInput(tsInput.value);
+        outputsCard.style.display = 'block';
+        tzCard.style.display = 'block';
+        detectedBadge.textContent = 'Detected: ' + res.detectedFormat;
+        if (syncPicker) syncPickerFromMs(res.epochMs);
+
+        const items = [
+          ['Unix Seconds', String(res.epochSec)],
+          ['Unix Milliseconds', String(res.epochMs)],
+          ['Unix Microseconds', res.epochUs.toString()],
+          ['Unix Nanoseconds', res.epochNs.toString()],
+          ['ISO 8601 (UTC)', res.isoUtc],
+          ['ISO 8601 (Nanosecond)', res.isoUtcNano],
+          ['RFC 2822 / HTTP', res.rfc2822],
+          ['Relative Time', TimestampConverter.relativeTime(res.epochMs)]
+        ];
+        kvGrid.innerHTML = items.map(([label, val]) =>
+          `<div class="kv-item" data-copy="${esc(val)}"><div class="kv-label">${esc(label)}</div><div class="kv-val">${esc(val)}</div></div>`
+        ).join('');
+        kvGrid.querySelectorAll('.kv-item').forEach((el) => {
+          el.addEventListener('click', () => {
+            navigator.clipboard.writeText(el.dataset.copy).then(() => showToast('Copied: ' + el.dataset.copy));
+          });
+        });
+
+        tzTbody.innerHTML = activeZones.map((tz) => {
+          const f = TimestampConverter.formatInTimezone(res.epochMs, tz);
+          return `<tr>
+            <td data-label="Timezone">${esc(f.label)}</td>
+            <td data-label="Date &amp; Time">${esc(f.formatted)}</td>
+            <td data-label="Day">${esc(f.weekday)}</td>
+            <td data-label="Offset">${esc(f.offset)}</td>
+          </tr>`;
+        }).join('');
+      } catch (err) {
+        errEl.textContent = err.message;
+        errEl.style.display = 'block';
+        outputsCard.style.display = 'none';
+        tzCard.style.display = 'none';
+      }
+    }
+
+    dtPicker.addEventListener('change', () => {
+      if (!dtPicker.value) return;
+      const d = new Date(dtPicker.value);
+      if (!Number.isNaN(d.getTime())) {
+        tsInput.value = String(Math.floor(d.getTime() / 1000));
+        convert(false);
+      }
+    });
+
+    document.getElementById('btn-add-tz').addEventListener('click', () => {
+      const val = document.getElementById('tz-add-input').value.trim();
+      if (!val) return;
+      try {
+        TimestampConverter.formatInTimezone(Date.now(), val);
+        if (!activeZones.includes(val)) activeZones.push(val);
+        document.getElementById('tz-add-input').value = '';
+        convert(false);
+      } catch {
+        showToast('Invalid IANA timezone: ' + val);
+      }
+    });
+
+    tsInput.addEventListener('input', () => convert(true));
+    tsInput.value = String(Math.floor(Date.now() / 1000));
+    convert(true);
+  </script>
+  <script src="scripts/tool-bundler.js"></script>
+  <script src="scripts/tool-download-init.js"></script>
+</body>
+</html>

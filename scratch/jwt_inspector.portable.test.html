@@ -1,0 +1,937 @@
+<!DOCTYPE html>
+<!-- test bundle portable -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JWT Inspector</title>
+  <meta name="description" content="Decode JWT header and payload offline. Inspect claims, check expiration, and verify HMAC signatures locally in your browser.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style data-inlined-from="scripts/tool-download.css">.download-wrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.btn-download {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.85rem;
+  border-radius: 10px;
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.08));
+  background: transparent;
+  color: var(--text-secondary, #94a3b8);
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.btn-download:hover:not(:disabled) {
+  border-color: var(--accent-indigo, #6366f1);
+  color: var(--text-primary, #f8fafc);
+  background: var(--glow-indigo, rgba(99, 102, 241, 0.15));
+}
+
+.btn-download:disabled,
+.btn-download.is-bundling {
+  opacity: 0.55;
+  cursor: wait;
+}
+
+.btn-download .dl-chevron {
+  font-size: 0.65rem;
+  opacity: 0.7;
+}
+
+.download-wrap-header .btn-download {
+  width: auto;
+  height: 38px;
+  padding: 0 0.75rem;
+}
+
+.download-wrap-header .dl-label,
+.download-wrap-header .dl-chevron {
+  display: none;
+}
+
+.download-menu {
+  display: none;
+  position: absolute;
+  right: 0;
+  top: calc(100% + 0.35rem);
+  min-width: 200px;
+  background: var(--bg-card, rgba(17, 24, 39, 0.95));
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.1));
+  border-radius: 12px;
+  padding: 0.35rem;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+  z-index: 200;
+  backdrop-filter: blur(12px);
+}
+
+.download-menu.open {
+  display: block;
+}
+
+.download-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.6rem 0.75rem;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-primary, #f8fafc);
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.2s;
+}
+
+.download-menu-item:hover:not(:disabled) {
+  background: rgba(99, 102, 241, 0.15);
+}
+
+.download-menu-item.disabled,
+.download-menu-item:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.bundle-toast {
+  position: fixed;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: 9999;
+}
+
+.bundle-toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+.bundle-toast-inner {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.85rem 1.25rem;
+  border-radius: 12px;
+  background: rgba(17, 24, 39, 0.95);
+  border: 1px solid rgba(99, 102, 241, 0.35);
+  color: #f8fafc;
+  font-size: 0.9rem;
+  font-weight: 500;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(12px);
+  max-width: min(90vw, 420px);
+}
+
+.bundle-toast-error .bundle-toast-inner {
+  border-color: rgba(244, 63, 94, 0.45);
+}
+</style>
+  <style>
+    :root{--font-primary:'Plus Jakarta Sans',sans-serif;--font-mono:'JetBrains Mono',monospace;--bg:#090d16;--bg-card:rgba(17,24,39,.7);--border:rgba(255,255,255,.08);--border-accent:rgba(99,102,241,.3);--text-primary:#f8fafc;--text-secondary:#94a3b8;--text-muted:#64748b;--accent-indigo:#6366f1;--accent-cyan:#06b6d4;--accent-emerald:#10b981;--accent-amber:#f59e0b;--accent-rose:#f43f5e;--glow-indigo:rgba(99,102,241,.2);--shadow-card:0 10px 30px -10px rgba(0,0,0,.5);--transition:all .3s cubic-bezier(.16,1,.3,1)}
+    [data-theme="light"]{--bg:#f8fafc;--bg-card:rgba(255,255,255,.8);--border:rgba(0,0,0,.08);--border-accent:rgba(79,70,229,.2);--text-primary:#0f172a;--text-secondary:#475569;--text-muted:#94a3b8;--accent-indigo:#4f46e5;--accent-cyan:#0284c7;--accent-emerald:#059669;--accent-amber:#d97706;--accent-rose:#e11d48;--glow-indigo:rgba(79,70,229,.12);--shadow-card:0 10px 30px -10px rgba(148,163,184,.2)}
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:var(--font-primary);background:var(--bg);color:var(--text-primary);min-height:100vh;display:flex;flex-direction:column;line-height:1.6;transition:background .4s,color .4s}
+    body::before{content:'';position:fixed;top:-100px;left:50%;transform:translateX(-50%);width:800px;height:400px;background:radial-gradient(circle,rgba(99,102,241,.12) 0%,transparent 70%);pointer-events:none;z-index:0}
+    header{position:sticky;top:0;z-index:100;backdrop-filter:blur(16px);background:rgba(9,13,22,.75);border-bottom:1px solid var(--border);padding:1rem 2rem;display:flex;justify-content:space-between;align-items:center}
+    [data-theme="light"] header{background:rgba(248,250,252,.85)}
+    .brand{display:flex;align-items:center;gap:.75rem;font-size:1.25rem;font-weight:700;color:var(--text-primary);text-decoration:none}
+    .brand i{color:var(--accent-indigo)}
+    .header-nav{display:flex;align-items:center;gap:1.25rem}
+    .nav-link{color:var(--text-secondary);text-decoration:none;font-weight:500;font-size:.9rem;display:flex;align-items:center;gap:.4rem;transition:var(--transition)}
+    .nav-link:hover{color:var(--accent-indigo)}
+    .theme-toggle-btn{background:transparent;border:1px solid var(--border);color:var(--text-secondary);width:38px;height:38px;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:var(--transition)}
+    .theme-toggle-btn:hover{border-color:var(--accent-indigo);color:var(--text-primary);background:var(--glow-indigo)}
+    main{flex:1;max-width:1280px;width:100%;margin:0 auto;padding:2.5rem 1.5rem 4rem;z-index:1}
+    .page-title{text-align:center;margin-bottom:2.5rem}
+    .page-title h1{font-size:2.25rem;font-weight:800;letter-spacing:-.02em;margin-bottom:.5rem}
+    .page-title p{color:var(--text-secondary);max-width:640px;margin:0 auto}
+    .inspector-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.75rem}
+    @media(max-width:992px){.inspector-grid{grid-template-columns:1fr}}
+    .card{background:var(--bg-card);border:1px solid var(--border);border-radius:16px;padding:1.75rem;box-shadow:var(--shadow-card);backdrop-filter:blur(12px)}
+    .card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;padding-bottom:.75rem;border-bottom:1px solid var(--border)}
+    .card-title{font-size:1.1rem;font-weight:700;display:flex;align-items:center;gap:.6rem}
+    .card-title i{color:var(--accent-indigo)}
+    textarea,input[type="password"]{width:100%;background:rgba(0,0,0,.2);border:1px solid var(--border);border-radius:10px;padding:1rem;color:var(--text-primary);font-family:var(--font-mono);font-size:.825rem;resize:vertical;line-height:1.5;transition:var(--transition)}
+    [data-theme="light"] textarea,[data-theme="light"] input[type="password"]{background:rgba(255,255,255,.6)}
+    textarea{height:180px}
+  textarea:focus,input:focus{outline:none;border-color:var(--accent-indigo);box-shadow:0 0 0 3px var(--glow-indigo)}
+    .action-bar{display:flex;gap:.75rem;flex-wrap:wrap;margin-top:1rem}
+    .btn{padding:.75rem 1.25rem;border-radius:10px;font-family:var(--font-primary);font-weight:600;font-size:.9rem;cursor:pointer;display:inline-flex;align-items:center;gap:.5rem;transition:var(--transition);border:1px solid transparent}
+    .btn-primary{background:var(--accent-indigo);color:#fff}
+    .btn-secondary{background:transparent;border-color:var(--border);color:var(--text-secondary)}
+    .btn-sample{background:rgba(6,182,212,.1);border-color:rgba(6,182,212,.3);color:var(--accent-cyan)}
+    .badge{display:inline-flex;align-items:center;gap:.35rem;padding:.25rem .65rem;border-radius:20px;font-size:.75rem;font-weight:600;text-transform:uppercase}
+    .badge-valid{background:rgba(16,185,129,.15);color:var(--accent-emerald);border:1px solid rgba(16,185,129,.3)}
+    .badge-expired{background:rgba(244,63,94,.15);color:var(--accent-rose);border:1px solid rgba(244,63,94,.3)}
+    .badge-info{background:rgba(99,102,241,.15);color:var(--accent-indigo);border:1px solid rgba(99,102,241,.3)}
+    .badge-warn{background:rgba(245,158,11,.15);color:var(--accent-amber);border:1px solid rgba(245,158,11,.3)}
+    .detail-group{margin-bottom:1.5rem}
+    .detail-group-title{font-size:.8rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);margin-bottom:.75rem}
+    .info-table{width:100%;border-collapse:collapse}
+    .info-table tr{border-bottom:1px solid var(--border)}
+    .info-table td{padding:.65rem 0;font-size:.875rem;vertical-align:top}
+    .info-table td.label{color:var(--text-secondary);width:28%;font-weight:500}
+    .info-table td.value{word-break:break-all;font-weight:600}
+    .json-block{background:rgba(0,0,0,.25);border:1px solid var(--border);border-radius:8px;padding:1rem;font-family:var(--font-mono);font-size:.8rem;overflow-x:auto;white-space:pre-wrap}
+    [data-theme="light"] .json-block{background:rgba(0,0,0,.04)}
+    .json-key{color:var(--accent-cyan)}.json-string{color:var(--accent-emerald)}.json-number{color:var(--accent-amber)}.json-boolean,.json-null{color:var(--accent-rose)}
+    .secret-note{font-size:.8rem;color:var(--text-muted);margin-top:.5rem}
+    .empty-state{text-align:center;padding:3rem 1.5rem;color:var(--text-muted)}
+    .empty-state i{font-size:3rem;color:var(--border-accent);margin-bottom:1rem;display:block}
+    .toast{position:fixed;bottom:2rem;right:2rem;background:var(--bg-card);border:1px solid var(--accent-indigo);padding:.75rem 1.25rem;border-radius:10px;z-index:1000;opacity:0;transform:translateY(20px);transition:var(--transition);pointer-events:none}
+    .toast.show{opacity:1;transform:translateY(0)}
+    footer{border-top:1px solid var(--border);padding:1.5rem;text-align:center;font-size:.85rem;color:var(--text-muted)}
+  </style>
+</head>
+<body data-tool-file="jwt_inspector.html">
+  <header>
+    <a href="index.html" class="brand"><i class="fa-solid fa-shield-halved"></i><span>JWT Inspector</span></a>
+    <div class="header-nav">
+      <a href="index.html" class="nav-link"><i class="fa-solid fa-arrow-left"></i> Tools</a>
+      <button class="theme-toggle-btn" id="theme-toggle" title="Toggle theme"><i class="fa-solid fa-moon"></i></button>
+    </div>
+  </header>
+  <main>
+    <div class="page-title">
+      <h1>JWT Inspector</h1>
+      <p>Decode JSON Web Token headers and payloads, inspect standard claims, check expiration, and optionally verify HMAC signatures — all locally in your browser.</p>
+    </div>
+    <div class="inspector-grid">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title"><i class="fa-solid fa-file-import"></i><span>Paste JWT</span></div>
+          <button class="btn btn-sample" id="sample-btn"><i class="fa-solid fa-vial"></i> Sample</button>
+        </div>
+        <textarea id="jwt-input" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0..."></textarea>
+        <label class="detail-group-title" style="display:block;margin-top:1rem">HMAC Secret (optional, local-only)</label>
+        <input type="password" id="secret-input" placeholder="Only used for HS256/384/512 verification" autocomplete="off">
+        <p class="secret-note"><i class="fa-solid fa-lock"></i> Secret never leaves this tab. Verification uses Web Crypto API.</p>
+        <div class="action-bar">
+          <button class="btn btn-primary" id="decode-btn"><i class="fa-solid fa-magnifying-glass"></i> Decode</button>
+          <button class="btn btn-secondary" id="clear-btn"><i class="fa-solid fa-rotate-left"></i> Clear</button>
+        </div>
+      </div>
+      <div class="card" id="results-card">
+        <div class="card-header">
+          <div class="card-title"><i class="fa-solid fa-list-check"></i><span>Decoded Token</span></div>
+          <div id="status-badge"></div>
+        </div>
+        <div id="results-content">
+          <div class="empty-state"><i class="fa-solid fa-shield-halved"></i><h3>No Token Loaded</h3><p>Paste a JWT on the left to decode its header, payload, and claims.</p></div>
+        </div>
+      </div>
+    </div>
+  </main>
+  <div class="toast" id="toast"><span id="toast-msg">Copied</span></div>
+  <footer>
+    <p>JWT Inspector &bull; Processing stays in your browser &bull; No network requests &bull; Powered by Web Crypto API</p>
+  </footer>
+  <script data-inlined-from="scripts/jwt_inspector/app.js">(function () {
+  'use strict';
+
+  function base64UrlDecode(str) {
+    let s = str.replace(/-/g, '+').replace(/_/g, '/');
+    const pad = s.length % 4;
+    if (pad) s += '='.repeat(4 - pad);
+    const binary = atob(s);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    return new TextDecoder().decode(bytes);
+  }
+
+  function base64UrlToBytes(str) {
+    let s = str.replace(/-/g, '+').replace(/_/g, '/');
+    const pad = s.length % 4;
+    if (pad) s += '='.repeat(4 - pad);
+    const binary = atob(s);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    return bytes;
+  }
+
+  function parseJwt(token) {
+    const parts = token.trim().split('.');
+    if (parts.length < 2) throw new Error('Invalid JWT: expected at least header and payload segments.');
+    if (parts.length > 3) throw new Error('Invalid JWT: too many dot-separated segments.');
+
+    let header, payload;
+    try {
+      header = JSON.parse(base64UrlDecode(parts[0]));
+    } catch (e) {
+      throw new Error('Failed to decode header: ' + e.message);
+    }
+    try {
+      payload = JSON.parse(base64UrlDecode(parts[1]));
+    } catch (e) {
+      throw new Error('Failed to decode payload: ' + e.message);
+    }
+
+    return { header, payload, signature: parts[2] || null, signed: parts.length === 3 };
+  }
+
+  function formatClaimValue(key, value) {
+    if (value === null || value === undefined) return '—';
+    if (key === 'exp' || key === 'iat' || key === 'nbf') {
+      const n = Number(value);
+      if (!Number.isFinite(n)) return String(value);
+      const d = new Date(n * 1000);
+      return `${d.toUTCString()} (${n})`;
+    }
+    if (typeof value === 'object') return JSON.stringify(value);
+    return String(value);
+  }
+
+  function getExpiryStatus(payload) {
+    if (!payload.exp) return null;
+    const exp = Number(payload.exp);
+    if (!Number.isFinite(exp)) return null;
+    const now = Date.now() / 1000;
+    if (exp < now) return { expired: true, expDate: new Date(exp * 1000) };
+    return { expired: false, expDate: new Date(exp * 1000), remaining: exp - now };
+  }
+
+  const HMAC_ALG_MAP = {
+    HS256: 'SHA-256',
+    HS384: 'SHA-384',
+    HS512: 'SHA-512'
+  };
+
+  async function verifyHmacSignature(alg, secret, signingInput, signatureB64) {
+    const hash = HMAC_ALG_MAP[alg];
+    if (!hash) throw new Error(`Unsupported HMAC algorithm: ${alg}. Only HS256, HS384, HS512 are supported.`);
+
+    const key = await crypto.subtle.importKey(
+      'raw',
+      new TextEncoder().encode(secret),
+      { name: 'HMAC', hash },
+      false,
+      ['verify']
+    );
+
+    const sigBytes = base64UrlToBytes(signatureB64);
+    return crypto.subtle.verify('HMAC', key, sigBytes, new TextEncoder().encode(signingInput));
+  }
+
+  function escapeHtml(text) {
+    return String(text)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function highlightJson(obj) {
+    const json = JSON.stringify(obj, null, 2);
+    return json.replace(
+      /("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g,
+      (match) => {
+        let cls = 'json-number';
+        if (/^"/.test(match)) {
+          cls = /:$/.test(match) ? 'json-key' : 'json-string';
+        } else if (/true|false/.test(match)) {
+          cls = 'json-boolean';
+        } else if (/null/.test(match)) {
+          cls = 'json-null';
+        }
+        return `<span class="${cls}">${escapeHtml(match)}</span>`;
+      }
+    );
+  }
+
+  const CLAIM_LABELS = {
+    iss: 'Issuer',
+    sub: 'Subject',
+    aud: 'Audience',
+    exp: 'Expiration',
+    nbf: 'Not Before',
+    iat: 'Issued At',
+    jti: 'JWT ID'
+  };
+
+  const PRIORITY_CLAIMS = ['iss', 'sub', 'aud', 'exp', 'nbf', 'iat', 'jti'];
+
+  window.JwtInspector = {
+    parseJwt,
+    formatClaimValue,
+    getExpiryStatus,
+    verifyHmacSignature,
+    highlightJson,
+    escapeHtml,
+    CLAIM_LABELS,
+    PRIORITY_CLAIMS,
+    HMAC_ALG_MAP
+  };
+})();
+</script>
+  <script>
+    const themeToggle=document.getElementById('theme-toggle');
+    function initTheme(){const t=localStorage.getItem('theme')||'dark';document.documentElement.setAttribute('data-theme',t);themeToggle.querySelector('i').className=t==='light'?'fa-solid fa-sun':'fa-solid fa-moon'}
+    themeToggle.addEventListener('click',()=>{const c=document.documentElement.getAttribute('data-theme');const n=c==='dark'?'light':'dark';document.documentElement.setAttribute('data-theme',n);localStorage.setItem('theme',n);themeToggle.querySelector('i').className=n==='light'?'fa-solid fa-sun':'fa-solid fa-moon'});
+    initTheme();
+
+    const jwtInput=document.getElementById('jwt-input');
+    const secretInput=document.getElementById('secret-input');
+    const resultsContent=document.getElementById('results-content');
+    const statusBadge=document.getElementById('status-badge');
+    const toast=document.getElementById('toast');
+
+    const SAMPLE='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyLCJleHAiOjE3MDAwMDAwMDB9.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c';
+
+    document.getElementById('sample-btn').addEventListener('click',()=>{jwtInput.value=SAMPLE;decodeJwt()});
+    document.getElementById('decode-btn').addEventListener('click',decodeJwt);
+    document.getElementById('clear-btn').addEventListener('click',()=>{jwtInput.value='';secretInput.value='';statusBadge.innerHTML='';resultsContent.innerHTML='<div class="empty-state"><i class="fa-solid fa-shield-halved"></i><h3>No Token Loaded</h3><p>Paste a JWT on the left to decode its header, payload, and claims.</p></div>'});
+    jwtInput.addEventListener('input',()=>{if(jwtInput.value.trim().split('.').length>=2)decodeJwt()});
+
+    async function decodeJwt(){
+      const token=jwtInput.value.trim();
+      if(!token){showToast('Paste a JWT first');return}
+      try{
+        const parsed=JwtInspector.parseJwt(token);
+        const expiry=JwtInspector.getExpiryStatus(parsed.payload);
+        let sigHtml='';
+        const alg=(parsed.header.alg||'').toUpperCase();
+
+        if(!parsed.signed){sigHtml='<span class="badge badge-warn"><i class="fa-solid fa-triangle-exclamation"></i> Unsigned</span>'}
+        else if(secretInput.value&&JwtInspector.HMAC_ALG_MAP[alg]){
+          const parts=token.split('.');
+          const valid=await JwtInspector.verifyHmacSignature(alg,secretInput.value,parts[0]+'.'+parts[1],parts[2]);
+          sigHtml=valid?'<span class="badge badge-valid"><i class="fa-solid fa-check"></i> Signature Valid</span>':'<span class="badge badge-expired"><i class="fa-solid fa-xmark"></i> Signature Invalid</span>';
+        }else if(parsed.signed){
+          sigHtml='<span class="badge badge-info"><i class="fa-solid fa-signature"></i> Signed ('+JwtInspector.escapeHtml(alg||'unknown')+')</span>';
+        }
+
+        if(expiry&&expiry.expired)statusBadge.innerHTML='<span class="badge badge-expired"><i class="fa-solid fa-clock"></i> Expired</span>';
+        else if(expiry)statusBadge.innerHTML='<span class="badge badge-valid"><i class="fa-solid fa-circle-check"></i> Valid</span>';
+        else statusBadge.innerHTML='<span class="badge badge-info"><i class="fa-solid fa-circle-info"></i> No Expiry</span>';
+
+        const claimKeys=Object.keys(parsed.payload);
+        const ordered=[...JwtInspector.PRIORITY_CLAIMS.filter(k=>claimKeys.includes(k)),...claimKeys.filter(k=>!JwtInspector.PRIORITY_CLAIMS.includes(k))];
+        const claimsRows=ordered.map(k=>{
+          const isExp=k==='exp'&&expiry;
+          const style=isExp&&expiry.expired?' style="color:var(--accent-rose)"':'';
+          return '<tr><td class="label">'+JwtInspector.escapeHtml(JwtInspector.CLAIM_LABELS[k]||k)+'</td><td class="value"'+style+'>'+JwtInspector.escapeHtml(JwtInspector.formatClaimValue(k,parsed.payload[k]))+'</td></tr>';
+        }).join('');
+
+        resultsContent.innerHTML=
+          '<div class="detail-group"><div class="detail-group-title">Signature</div>'+sigHtml+'</div>'+
+          '<div class="detail-group"><div class="detail-group-title">Header</div><div class="json-block">'+JwtInspector.highlightJson(parsed.header)+'</div></div>'+
+          '<div class="detail-group"><div class="detail-group-title">Claims</div><table class="info-table">'+claimsRows+'</table></div>'+
+          '<div class="detail-group"><div class="detail-group-title">Payload (raw)</div><div class="json-block">'+JwtInspector.highlightJson(parsed.payload)+'</div></div>';
+      }catch(err){
+        statusBadge.innerHTML='<span class="badge badge-expired"><i class="fa-solid fa-xmark"></i> Error</span>';
+        resultsContent.innerHTML='<div class="empty-state" style="color:var(--accent-rose)"><i class="fa-solid fa-triangle-exclamation"></i><h3>Decode Error</h3><p>'+JwtInspector.escapeHtml(err.message)+'</p></div>';
+      }
+    }
+
+    function showToast(msg){document.getElementById('toast-msg').textContent=msg;toast.classList.add('show');setTimeout(()=>toast.classList.remove('show'),2500)}
+  </script>
+  <script data-inlined-from="scripts/tool-bundler.js">(function (global) {
+  'use strict';
+
+  const BUNDLE_MANIFEST = {
+    'jwt_inspector.html': { tier: 'light', offlineCapable: true },
+    'cron_explainer.html': { tier: 'light', offlineCapable: true },
+    'encode_decode.html': { tier: 'light', offlineCapable: true },
+    'snap_signature_debugger.html': { tier: 'light', offlineCapable: true },
+    'cert_inspector.html': { tier: 'medium', offlineCapable: true },
+    'json_workbench.html': { tier: 'medium', offlineCapable: true },
+    'file_hashing.html': { tier: 'medium', offlineCapable: true },
+    'pgp_inspector.html': { tier: 'medium', offlineCapable: true },
+    'hash_check.html': { tier: 'medium', offlineCapable: true },
+    'sqlite_viewer.html': { tier: 'heavy', offlineCapable: true, warning: 'Large download (~2 MB), may take 10–20 seconds.' },
+    'online_clipboard.html': { tier: 'network', offlineCapable: false, warning: 'Portable bundle only. MQTT sync requires network.' },
+    'tools_font_offline.html': { tier: 'medium', offlineCapable: true },
+    'muilockerauto.html': { tier: 'medium', offlineCapable: false, warning: 'Offline bundle not supported (Tailwind CDN). Use Portable mode.' },
+    'locker-unlocked.html': { tier: 'medium', offlineCapable: false, warning: 'Offline bundle not supported (Tailwind CDN). Use Portable mode.' },
+    'sik_automation.html': { tier: 'medium', offlineCapable: true },
+    'hash_check.html': { tier: 'medium', offlineCapable: true }
+  };
+
+  const OFFLINE_UNSUPPORTED_HOSTS = ['cdn.tailwindcss.com'];
+
+  function getManifest(filename) {
+    return BUNDLE_MANIFEST[filename] || { tier: 'medium', offlineCapable: true };
+  }
+
+  function estimateComplexity(filename) {
+    const m = getManifest(filename);
+    return {
+      tier: m.tier,
+      offlineCapable: m.offlineCapable !== false,
+      warning: m.warning || null
+    };
+  }
+
+  function resolveUrl(href, baseUrl) {
+    try {
+      return new URL(href, baseUrl).href;
+    } catch {
+      return href;
+    }
+  }
+
+  function isSameOrigin(url, pageOrigin) {
+    try {
+      const u = new URL(url);
+      return u.origin === pageOrigin;
+    } catch {
+      return false;
+    }
+  }
+
+  function isOfflineUnsupported(url) {
+    try {
+      const host = new URL(url).hostname;
+      return OFFLINE_UNSUPPORTED_HOSTS.some((h) => host === h || host.endsWith('.' + h));
+    } catch {
+      return false;
+    }
+  }
+
+  async function fetchText(url) {
+    const res = await fetch(url, { cache: 'force-cache' });
+    if (!res.ok) throw new Error('Failed to fetch ' + url + ' (' + res.status + ')');
+    return res.text();
+  }
+
+  async function fetchBytes(url) {
+    const res = await fetch(url, { cache: 'force-cache' });
+    if (!res.ok) throw new Error('Failed to fetch ' + url + ' (' + res.status + ')');
+    return res.arrayBuffer();
+  }
+
+  function arrayBufferToBase64(buffer) {
+    const bytes = new Uint8Array(buffer);
+    let binary = '';
+    const chunk = 0x8000;
+    for (let i = 0; i < bytes.length; i += chunk) {
+      binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk));
+    }
+    return btoa(binary);
+  }
+
+  function mimeFromUrl(url) {
+    const lower = url.split('?')[0].toLowerCase();
+    if (lower.endsWith('.woff2')) return 'font/woff2';
+    if (lower.endsWith('.woff')) return 'font/woff';
+    if (lower.endsWith('.ttf')) return 'font/ttf';
+    if (lower.endsWith('.svg')) return 'image/svg+xml';
+    if (lower.endsWith('.png')) return 'image/png';
+    if (lower.endsWith('.gif')) return 'image/gif';
+    return 'application/octet-stream';
+  }
+
+  async function rewriteCssUrls(css, cssBaseUrl, offline) {
+    if (!offline) return css;
+    const urlRegex = /url\(\s*(['"]?)([^'")]+)\1\s*\)/g;
+    const replacements = [];
+    let match;
+    while ((match = urlRegex.exec(css)) !== null) {
+      const raw = match[2].trim();
+      if (raw.startsWith('data:') || raw.startsWith('#')) continue;
+      const abs = resolveUrl(raw, cssBaseUrl);
+      replacements.push({ from: match[0], abs });
+    }
+    let out = css;
+    for (const { from, abs } of replacements) {
+      try {
+        const buf = await fetchBytes(abs);
+        const b64 = arrayBufferToBase64(buf);
+        const dataUri = 'url(data:' + mimeFromUrl(abs) + ';base64,' + b64 + ')';
+        out = out.split(from).join(dataUri);
+      } catch {
+        /* keep original url on failure */
+      }
+    }
+    return out;
+  }
+
+  function shouldInlineAsset(url, pageOrigin, mode) {
+    if (mode === 'offline') {
+      if (isOfflineUnsupported(url)) return false;
+      return true;
+    }
+    return isSameOrigin(url, pageOrigin);
+  }
+
+  async function inlineStylesheets(doc, baseUrl, mode, pageOrigin, onProgress, progress) {
+    const links = [...doc.querySelectorAll('link[rel="stylesheet"][href]')];
+    for (const link of links) {
+      const href = link.getAttribute('href');
+      const abs = resolveUrl(href, baseUrl);
+      progress.current++;
+      onProgress && onProgress(progress);
+
+      if (!shouldInlineAsset(abs, pageOrigin, mode)) continue;
+
+      try {
+        let css = await fetchText(abs);
+        css = await rewriteCssUrls(css, abs, mode === 'offline');
+        const style = doc.createElement('style');
+        style.setAttribute('data-inlined-from', href);
+        style.textContent = css;
+        link.replaceWith(style);
+      } catch (err) {
+        if (mode === 'offline') {
+          const comment = doc.createComment(' failed to inline stylesheet: ' + href + ' — ' + err.message + ' ');
+          link.parentNode.insertBefore(comment, link);
+        }
+      }
+    }
+  }
+
+  async function inlineScripts(doc, baseUrl, mode, pageOrigin, onProgress, progress) {
+    const scripts = [...doc.querySelectorAll('script[src]')];
+    for (const script of scripts) {
+      const src = script.getAttribute('src');
+      const abs = resolveUrl(src, baseUrl);
+      progress.current++;
+      onProgress && onProgress(progress);
+
+      if (!shouldInlineAsset(abs, pageOrigin, mode)) {
+        if (mode === 'offline' && isOfflineUnsupported(abs)) {
+          const comment = doc.createComment(' offline bundle skipped (unsupported CDN): ' + src + ' ');
+          script.parentNode.insertBefore(comment, script);
+        }
+        continue;
+      }
+
+      try {
+        const js = await fetchText(abs);
+        const inline = doc.createElement('script');
+        inline.setAttribute('data-inlined-from', src);
+        if (script.type) inline.type = script.type;
+        if (script.defer) inline.defer = true;
+        if (script.async) inline.async = true;
+        inline.textContent = js;
+        script.replaceWith(inline);
+      } catch (err) {
+        if (mode === 'offline') {
+          const comment = doc.createComment(' failed to inline script: ' + src + ' — ' + err.message + ' ');
+          script.parentNode.insertBefore(comment, script);
+        }
+      }
+    }
+  }
+
+  function finalizeDocument(doc, mode) {
+    if (mode === 'offline') {
+      doc.querySelectorAll('link[rel="preconnect"], link[rel="dns-prefetch"]').forEach((el) => el.remove());
+    }
+
+    doc.querySelectorAll('a[href="index.html"], a[href="./index.html"]').forEach((a) => {
+      a.setAttribute('href', '#');
+      a.setAttribute('title', 'Standalone bundle — portal link disabled');
+    });
+
+    const footer = doc.querySelector('footer');
+    if (footer) {
+      const note = doc.createElement('p');
+      note.style.cssText = 'margin-top:0.5rem;font-size:0.8rem;opacity:0.85';
+      note.textContent =
+        'Standalone bundle (' +
+        mode +
+        ' mode) generated by DevOps Tool Directory on ' +
+        new Date().toISOString().slice(0, 10) +
+        '.';
+      footer.appendChild(note);
+    }
+  }
+
+  function countAssets(doc) {
+    return (
+      doc.querySelectorAll('link[rel="stylesheet"][href]').length +
+      doc.querySelectorAll('script[src]').length
+    );
+  }
+
+  async function bundleTool(htmlPath, mode, onProgress) {
+    if (mode !== 'portable' && mode !== 'offline') {
+      throw new Error('Invalid bundle mode: ' + mode);
+    }
+
+    const manifest = getManifest(htmlPath);
+    if (mode === 'offline' && manifest.offlineCapable === false) {
+      throw new Error(manifest.warning || 'Offline bundle is not supported for this tool.');
+    }
+
+    const baseUrl = resolveUrl(htmlPath, window.location.href);
+    const pageOrigin = window.location.origin;
+
+    const html = await fetchText(baseUrl);
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+
+    const progress = { current: 0, total: countAssets(doc) + 1 };
+
+    await inlineStylesheets(doc, baseUrl, mode, pageOrigin, onProgress, progress);
+    await inlineScripts(doc, baseUrl, mode, pageOrigin, onProgress, progress);
+
+    progress.current++;
+    onProgress && onProgress(progress);
+
+    finalizeDocument(doc, mode);
+
+    const comment =
+      '<!-- Bundled by DevOps Tool Directory | mode: ' +
+      mode +
+      ' | source: ' +
+      htmlPath +
+      ' | date: ' +
+      new Date().toISOString() +
+      ' -->\n';
+
+    return '<!DOCTYPE html>\n' + comment + doc.documentElement.outerHTML;
+  }
+
+  function downloadBlob(html, filename) {
+    const safeName = filename.replace(/\.html$/i, '') + '.standalone.html';
+    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = safeName;
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+      URL.revokeObjectURL(url);
+      a.remove();
+    }, 200);
+  }
+
+  global.ToolBundler = {
+    BUNDLE_MANIFEST,
+    bundleTool,
+    downloadBlob,
+    estimateComplexity,
+    getManifest
+  };
+})(typeof window !== 'undefined' ? window : globalThis);
+</script>
+  <script data-inlined-from="scripts/tool-download-init.js">(function () {
+  'use strict';
+
+  if (typeof ToolBundler === 'undefined') {
+    console.error('tool-download-init.js requires tool-bundler.js');
+    return;
+  }
+
+  let activeBundle = false;
+
+  function ensureToast() {
+    let toast = document.getElementById('bundle-toast');
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.id = 'bundle-toast';
+      toast.className = 'bundle-toast';
+      toast.innerHTML = '<div class="bundle-toast-inner"><i class="fa-solid fa-spinner fa-spin"></i><span id="bundle-toast-msg">Bundling…</span></div>';
+      document.body.appendChild(toast);
+    }
+    return toast;
+  }
+
+  function showToast(msg, isError) {
+    const toast = ensureToast();
+    const msgEl = document.getElementById('bundle-toast-msg');
+    const icon = toast.querySelector('i');
+    if (msgEl) msgEl.textContent = msg;
+    if (icon) {
+      icon.className = isError ? 'fa-solid fa-triangle-exclamation' : 'fa-solid fa-spinner fa-spin';
+    }
+    toast.classList.toggle('bundle-toast-error', !!isError);
+    toast.classList.add('show');
+  }
+
+  function hideToast(delay) {
+    setTimeout(() => {
+      const toast = document.getElementById('bundle-toast');
+      if (toast) toast.classList.remove('show');
+    }, delay || 0);
+  }
+
+  function setButtonsDisabled(disabled) {
+    document.querySelectorAll('[data-bundle-tool]').forEach((btn) => {
+      btn.disabled = disabled;
+      btn.classList.toggle('is-bundling', disabled);
+    });
+  }
+
+  async function runBundle(toolFile, mode) {
+    if (activeBundle) return;
+    activeBundle = true;
+    setButtonsDisabled(true);
+
+    const info = ToolBundler.estimateComplexity(toolFile);
+    if (info.warning && info.tier !== 'light') {
+      const proceed = window.confirm(info.warning + '\n\nContinue with download?');
+      if (!proceed) {
+        activeBundle = false;
+        setButtonsDisabled(false);
+        return;
+      }
+    }
+
+    showToast('Bundling ' + toolFile + '…');
+
+    try {
+      const html = await ToolBundler.bundleTool(toolFile, mode, (p) => {
+        const msg =
+          p.total > 0
+            ? 'Bundling ' + toolFile + '… (' + Math.min(p.current, p.total) + '/' + p.total + ')'
+            : 'Bundling ' + toolFile + '…';
+        showToast(msg);
+      });
+
+      ToolBundler.downloadBlob(html, toolFile);
+      showToast('Download started: ' + toolFile.replace(/\.html$/i, '') + '.standalone.html');
+      hideToast(2500);
+    } catch (err) {
+      showToast(err.message || 'Bundle failed', true);
+      hideToast(4000);
+    } finally {
+      activeBundle = false;
+      setButtonsDisabled(false);
+    }
+  }
+
+  function closeAllMenus() {
+    document.querySelectorAll('.download-menu.open').forEach((m) => m.classList.remove('open'));
+  }
+
+  function buildDownloadMenu(toolFile, extraClass) {
+    const info = ToolBundler.estimateComplexity(toolFile);
+    const offlineDisabled = !info.offlineCapable;
+
+    const wrap = document.createElement('div');
+    wrap.className = 'download-wrap' + (extraClass ? ' ' + extraClass : '');
+
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'btn-download';
+    btn.setAttribute('data-bundle-tool', toolFile);
+    btn.title = 'Download single-file bundle';
+    btn.innerHTML = '<i class="fa-solid fa-download"></i><span class="dl-label">Download</span><i class="fa-solid fa-chevron-down dl-chevron"></i>';
+
+    const menu = document.createElement('div');
+    menu.className = 'download-menu';
+    menu.innerHTML =
+      '<button type="button" class="download-menu-item" data-mode="portable"><i class="fa-solid fa-file-export"></i> Portable (.html)</button>' +
+      (offlineDisabled
+        ? '<button type="button" class="download-menu-item disabled" disabled title="' +
+          (info.warning || 'Offline not supported') +
+          '"><i class="fa-solid fa-wifi"></i> Offline (.html)</button>'
+        : '<button type="button" class="download-menu-item" data-mode="offline"><i class="fa-solid fa-plane"></i> Offline (.html)</button>');
+
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const wasOpen = menu.classList.contains('open');
+      closeAllMenus();
+      if (!wasOpen) menu.classList.add('open');
+    });
+
+    menu.querySelectorAll('.download-menu-item[data-mode]').forEach((item) => {
+      item.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        closeAllMenus();
+        runBundle(toolFile, item.getAttribute('data-mode'));
+      });
+    });
+
+    wrap.appendChild(btn);
+    wrap.appendChild(menu);
+    return wrap;
+  }
+
+  function findDownloadAnchor() {
+    const selectors = [
+      'header .header-nav',
+      'header .header-actions',
+      '.header-actions',
+      '.header > div:last-child',
+      'header'
+    ];
+    for (let i = 0; i < selectors.length; i++) {
+      const el = document.querySelector(selectors[i]);
+      if (el) return el;
+    }
+    return null;
+  }
+
+  function injectToolPageButton() {
+    const toolFile = document.body.getAttribute('data-tool-file');
+    if (!toolFile) return;
+
+    const nav = findDownloadAnchor();
+    if (!nav || nav.querySelector('.download-wrap')) return;
+
+    const menu = buildDownloadMenu(toolFile, 'download-wrap-header');
+    const themeBtn = nav.querySelector('#theme-toggle, .theme-toggle-btn');
+    if (themeBtn) nav.insertBefore(menu, themeBtn);
+    else nav.appendChild(menu);
+  }
+
+  function wirePortalMenus() {
+    document.querySelectorAll('.download-wrap[data-tool]').forEach((wrap) => {
+      if (wrap.dataset.wired === '1') return;
+      wrap.dataset.wired = '1';
+      const toolFile = wrap.getAttribute('data-tool');
+      const btn = wrap.querySelector('.btn-download');
+      const menu = wrap.querySelector('.download-menu');
+      if (!btn || !menu) return;
+
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const wasOpen = menu.classList.contains('open');
+        closeAllMenus();
+        if (!wasOpen) menu.classList.add('open');
+      });
+
+      menu.querySelectorAll('.download-menu-item[data-mode]').forEach((item) => {
+        item.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          closeAllMenus();
+          runBundle(toolFile, item.getAttribute('data-mode'));
+        });
+      });
+    });
+  }
+
+  document.addEventListener('click', () => closeAllMenus());
+
+  document.addEventListener('DOMContentLoaded', () => {
+    injectToolPageButton();
+    wirePortalMenus();
+  });
+
+  window.ToolDownload = {
+    runBundle,
+    buildDownloadMenu,
+    wirePortalMenus,
+    showToast
+  };
+})();
+</script>
+</body>
+</html>

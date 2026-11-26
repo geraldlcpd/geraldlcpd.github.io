@@ -1104,6 +1104,60 @@
         icon: "fa-file-pdf",
         tags: ["PDF", "Offline", "Utilities", "Privacy"],
         bundle: { tier: "light", offlineCapable: true }
+      },
+      {
+        filename: "diff_viewer.html",
+        title: "Text & Semantic JSON Diff Viewer",
+        desc: "Compare text, configs, or JSON objects side-by-side or as unified diffs completely offline. Semantic JSON mode ignores key order and whitespace.",
+        category: "developer-tools",
+        icon: "fa-code-compare",
+        tags: ["Developer Tools", "Diff", "JSON", "Compare", "Offline"],
+        bundle: { tier: "light", offlineCapable: true }
+      },
+      {
+        filename: "cidr_calculator.html",
+        title: "CIDR / Subnet & IP Calculator",
+        desc: "Analyze IPv4 and IPv6 CIDR blocks, netmasks, usable hosts, and binary bitmasks offline. Split subnets and check IP membership or CIDR overlap.",
+        category: "developer-tools",
+        icon: "fa-network-wired",
+        tags: ["Developer Tools", "CIDR", "Subnet", "IPv4", "IPv6", "Networking"],
+        bundle: { tier: "light", offlineCapable: true }
+      },
+      {
+        filename: "timestamp_converter.html",
+        title: "Timestamp & Timezone Converter",
+        desc: "Convert Unix epochs (s, ms, µs, ns), ISO 8601, and RFC 2822 timestamps offline with nanosecond preservation and multi-timezone comparison.",
+        category: "developer-tools",
+        icon: "fa-calendar-days",
+        tags: ["Developer Tools", "Timestamp", "Unix", "Timezone", "ISO 8601"],
+        bundle: { tier: "light", offlineCapable: true }
+      },
+      {
+        filename: "hmac_generator.html",
+        title: "Text Hash & HMAC Generator",
+        desc: "Compute MD5, SHA-1, SHA-256, SHA-384, and SHA-512 hashes and HMAC signatures locally via Web Crypto with constant-time digest verification.",
+        category: "security",
+        icon: "fa-fingerprint",
+        tags: ["Security", "Hash", "HMAC", "SHA-256", "MD5", "Cryptography"],
+        bundle: { tier: "light", offlineCapable: true }
+      },
+      {
+        filename: "file_hashing.html",
+        title: "Offline File Hash Generator & Certutil Helper",
+        desc: "Calculate SHA-256, SHA-512, MD5, SHA-1, and SHA-384 hashes for local files in your browser with Windows Certutil command generation.",
+        category: "security",
+        icon: "fa-file-shield",
+        tags: ["Security", "Hash", "Checksum", "Certutil", "Offline"],
+        bundle: { tier: "medium", offlineCapable: true }
+      },
+      {
+        filename: "hash_check.html",
+        title: "File Hash Check & Checksum Verifier",
+        desc: "100% client-side file hash and checksum calculator. Compute MD5, SHA-1, SHA-256, SHA-384, SHA-512, and CRC32 directly in your browser.",
+        category: "security",
+        icon: "fa-check-double",
+        tags: ["Security", "Checksum", "Hash", "CRC32", "Verifier"],
+        bundle: { tier: "medium", offlineCapable: true }
       }
     ];
 
@@ -1113,7 +1167,7 @@
     const GITHUB_COMMITS_URL = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/commits?path=`;
     const GITHUB_REPO_META = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}`;
 
-    const CACHE_KEY = 'geraldlcpd_repo_items_v3';
+    const CACHE_KEY = 'geraldlcpd_repo_items_v4';
     const CACHE_EXPIRY_KEY = 'geraldlcpd_repo_expiry';
     const CACHE_DURATION = 10 * 60 * 1000; // 10 minutes cache
 

@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light dark">
+  <title>Text &amp; Semantic JSON Diff Viewer</title>
+  <meta name="description" content="Compare text, configs, or JSON objects side-by-side or as unified diffs completely offline. Semantic JSON mode ignores key order and whitespace.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="scripts/tool-download.css">
+  <style>
+    :root{color-scheme:dark;--font-primary:'Plus Jakarta Sans',sans-serif;--font-mono:'JetBrains Mono',monospace;--bg:#090d16;--bg-card:rgba(17,24,39,.7);--border:rgba(255,255,255,.08);--text-primary:#f8fafc;--text-secondary:#94a3b8;--text-muted:#64748b;--accent-indigo:#6366f1;--accent-cyan:#06b6d4;--accent-emerald:#10b981;--accent-rose:#f43f5e;--glow-indigo:rgba(99,102,241,.2);--shadow-card:0 10px 30px -10px rgba(0,0,0,.5);--transition:all .3s cubic-bezier(.16,1,.3,1)}
+    [data-theme="light"]{color-scheme:light;--bg:#f8fafc;--bg-card:rgba(255,255,255,.8);--border:rgba(0,0,0,.08);--text-primary:#0f172a;--text-secondary:#475569;--text-muted:#94a3b8;--accent-indigo:#4f46e5;--glow-indigo:rgba(79,70,229,.12)}
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:var(--font-primary);background:var(--bg);color:var(--text-primary);min-height:100vh;display:flex;flex-direction:column}
+    header{position:sticky;top:0;z-index:100;backdrop-filter:blur(16px);background:rgba(9,13,22,.75);border-bottom:1px solid var(--border);padding:1rem 2rem;display:flex;justify-content:space-between;align-items:center}
+    [data-theme="light"] header{background:rgba(248,250,252,.85)}
+    .brand{display:flex;align-items:center;gap:.75rem;font-size:1.25rem;font-weight:700;color:var(--text-primary);text-decoration:none}
+    .brand i{color:var(--accent-indigo)}
+    .header-nav{display:flex;align-items:center;gap:1.25rem}
+    .nav-link{color:var(--text-secondary);text-decoration:none;font-weight:500;font-size:.9rem;display:flex;align-items:center;gap:.4rem}
+    .nav-link:hover{color:var(--accent-indigo)}
+    .theme-toggle-btn{background:transparent;border:1px solid var(--border);color:var(--text-secondary);width:38px;height:38px;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+    main{flex:1;max-width:1160px;width:100%;margin:0 auto;padding:2.25rem 1.5rem 4rem}
+    .page-title{text-align:center;margin-bottom:2rem}
+    .page-title h1{font-size:2.2rem;font-weight:800;margin-bottom:.5rem}
+    .page-title p{color:var(--text-secondary)}
+    .card{background:var(--bg-card);border:1px solid var(--border);border-radius:16px;padding:1.5rem;box-shadow:var(--shadow-card);backdrop-filter:blur(12px);margin-bottom:1.5rem}
+    .toolbar{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem;margin-bottom:1rem}
+    .seg-group{display:inline-flex;border:1px solid var(--border);border-radius:10px;overflow:hidden;background:rgba(0,0,0,.15)}
+    [data-theme="light"] .seg-group{background:rgba(0,0,0,.04)}
+    .seg-btn{padding:.5rem .9rem;border:none;background:transparent;color:var(--text-secondary);font-family:var(--font-primary);font-weight:600;font-size:.825rem;cursor:pointer;transition:var(--transition)}
+    .seg-btn.active{background:var(--accent-indigo);color:#fff}
+    .checks{display:flex;flex-wrap:wrap;gap:1rem;font-size:.85rem;color:var(--text-secondary)}
+    .checks label{display:inline-flex;align-items:center;gap:.4rem;cursor:pointer}
+    .inputs-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem}
+    @media(max-width:768px){.inputs-grid{grid-template-columns:1fr}}
+    .pane-label{display:block;font-size:.75rem;font-weight:700;text-transform:uppercase;color:var(--text-muted);margin-bottom:.4rem}
+    textarea{width:100%;height:200px;background:rgba(0,0,0,.22);border:1px solid var(--border);border-radius:10px;padding:.85rem;color:var(--text-primary);font-family:var(--font-mono);font-size:.82rem;line-height:1.5;resize:vertical}
+    [data-theme="light"] textarea{background:rgba(255,255,255,.7)}
+    textarea:focus{outline:none;border-color:var(--accent-indigo);box-shadow:0 0 0 3px var(--glow-indigo)}
+    .action-bar{display:flex;gap:.65rem;flex-wrap:wrap;align-items:center;justify-content:space-between}
+    .btn-group{display:flex;gap:.6rem;flex-wrap:wrap}
+    .btn{padding:.6rem 1rem;border-radius:10px;font-family:var(--font-primary);font-weight:600;font-size:.85rem;cursor:pointer;display:inline-flex;align-items:center;gap:.4rem;border:1px solid var(--border);background:transparent;color:var(--text-secondary);transition:var(--transition)}
+    .btn-primary{background:var(--accent-indigo);color:#fff;border-color:var(--accent-indigo)}
+    .btn:hover:not(.btn-primary){border-color:var(--accent-indigo);color:var(--text-primary)}
+    .summary-pills{display:flex;gap:.5rem;flex-wrap:wrap;align-items:center}
+    .pill{font-family:var(--font-mono);font-size:.78rem;font-weight:600;padding:.25rem .65rem;border-radius:999px;border:1px solid var(--border)}
+    .pill.add{color:var(--accent-emerald);background:rgba(16,185,129,.12);border-color:rgba(16,185,129,.3)}
+    .pill.del{color:var(--accent-rose);background:rgba(244,63,94,.12);border-color:rgba(244,63,94,.3)}
+    .pill.eq{color:var(--text-secondary);background:rgba(148,163,184,.1)}
+    .error-box{background:rgba(244,63,94,.1);border:1px solid rgba(244,63,94,.3);border-radius:10px;padding:.85rem 1rem;color:var(--accent-rose);font-size:.875rem;margin-bottom:1rem}
+    .diff-surface{border:1px solid var(--border);border-radius:12px;overflow:auto;font-family:var(--font-mono);font-size:.8rem;line-height:1.55;background:rgba(0,0,0,.2)}
+    [data-theme="light"] .diff-surface{background:rgba(255,255,255,.75)}
+    .diff-sbs{display:grid;grid-template-columns:1fr 1fr;min-width:680px}
+    .diff-col{border-right:1px solid var(--border)}
+    .diff-col:last-child{border-right:none}
+    .diff-row{display:grid;grid-template-columns:46px 1fr;min-height:1.55em}
+    .diff-ln{user-select:none;text-align:right;padding:0 .5rem;color:var(--text-muted);border-right:1px solid var(--border);font-size:.72rem;line-height:1.7}
+    .diff-code{padding:0 .65rem;white-space:pre-wrap;word-break:break-word}
+    .diff-row.add{background:rgba(16,185,129,.13)}
+    .diff-row.del{background:rgba(244,63,94,.13)}
+    .diff-row.empty{background:rgba(148,163,184,.05)}
+    .tok-add{background:rgba(16,185,129,.32);border-radius:3px}
+    .tok-del{background:rgba(244,63,94,.32);border-radius:3px}
+    .unified-pre{padding:1rem;white-space:pre-wrap;word-break:break-word;margin:0}
+    .u-add{color:var(--accent-emerald);display:block;background:rgba(16,185,129,.1)}
+    .u-del{color:var(--accent-rose);display:block;background:rgba(244,63,94,.1)}
+    .u-hdr{color:var(--accent-cyan);display:block;font-weight:600}
+    footer{border-top:1px solid var(--border);padding:1.5rem;text-align:center;font-size:.85rem;color:var(--text-muted)}
+    .toast{position:fixed;bottom:2rem;right:2rem;background:var(--bg-card);border:1px solid var(--accent-indigo);padding:.75rem 1.25rem;border-radius:10px;z-index:1000;opacity:0;pointer-events:none;transition:var(--transition)}
+    .toast.show{opacity:1}
+  </style>
+</head>
+<body data-tool-file="diff_viewer.html">
+  <header>
+    <a href="index.html" class="brand"><i class="fa-solid fa-code-compare"></i><span>Diff Viewer</span></a>
+    <div class="header-nav">
+      <a href="index.html" class="nav-link"><i class="fa-solid fa-arrow-left"></i> Tools</a>
+      <button class="theme-toggle-btn" id="theme-toggle" aria-label="Toggle theme"><i class="fa-solid fa-moon"></i></button>
+    </div>
+  </header>
+  <main>
+    <div class="page-title">
+      <h1>Text &amp; Semantic JSON Diff Viewer</h1>
+      <p>Compare configs, API responses, or text side-by-side or as unified diffs. Semantic JSON mode ignores key order and whitespace.</p>
+    </div>
+    <div class="card">
+      <div class="toolbar">
+        <div class="btn-group">
+          <div class="seg-group" role="group" aria-label="Diff mode">
+            <button type="button" class="seg-btn active" data-mode="text">Text Diff</button>
+            <button type="button" class="seg-btn" data-mode="json">Semantic JSON</button>
+          </div>
+          <div class="seg-group" role="group" aria-label="View layout">
+            <button type="button" class="seg-btn active" data-view="sbs">Side-by-Side</button>
+            <button type="button" class="seg-btn" data-view="unified">Unified</button>
+          </div>
+        </div>
+        <div class="checks">
+          <label><input type="checkbox" id="opt-ws"> Ignore whitespace</label>
+          <label><input type="checkbox" id="opt-case"> Ignore case</label>
+          <label><input type="checkbox" id="opt-changes"> Only changes</label>
+        </div>
+      </div>
+
+      <div class="inputs-grid">
+        <div>
+          <label class="pane-label" for="left-input">Original</label>
+          <textarea id="left-input" spellcheck="false" placeholder="Paste original text or JSON..."></textarea>
+        </div>
+        <div>
+          <label class="pane-label" for="right-input">Modified</label>
+          <textarea id="right-input" spellcheck="false" placeholder="Paste modified text or JSON..."></textarea>
+        </div>
+      </div>
+
+      <div class="action-bar">
+        <div class="btn-group">
+          <button type="button" class="btn btn-primary" id="btn-swap"><i class="fa-solid fa-right-left"></i> Swap</button>
+          <button type="button" class="btn" id="btn-sample-json"><i class="fa-solid fa-brackets-curly"></i> Sample JSON</button>
+          <button type="button" class="btn" id="btn-sample-cfg"><i class="fa-solid fa-file-lines"></i> Sample Config</button>
+          <button type="button" class="btn" id="btn-copy-unified"><i class="fa-solid fa-copy"></i> Copy Unified Diff</button>
+          <button type="button" class="btn" id="btn-clear"><i class="fa-solid fa-rotate-left"></i> Clear</button>
+        </div>
+        <div class="summary-pills" id="summary-pills"></div>
+      </div>
+    </div>
+
+    <div id="error-box" class="error-box" style="display:none"></div>
+    <div class="card" style="padding:0;overflow:hidden">
+      <div id="diff-output" class="diff-surface"></div>
+    </div>
+  </main>
+  <div class="toast" id="toast"><span id="toast-msg">Copied</span></div>
+  <footer>
+    <p>Text &amp; Semantic JSON Diff Viewer &bull; Processing stays in your browser &bull; Pure JavaScript, zero dependencies</p>
+  </footer>
+
+  <script src="scripts/diff_viewer/app.js"></script>
+  <script>
+    const themeToggle = document.getElementById('theme-toggle');
+    function initTheme() {
+      const t = localStorage.getItem('theme') || 'dark';
+      document.documentElement.setAttribute('data-theme', t);
+      themeToggle.querySelector('i').className = t === 'light' ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
+    }
+    themeToggle.addEventListener('click', () => {
+      const c = document.documentElement.getAttribute('data-theme');
+      const n = c === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', n);
+      localStorage.setItem('theme', n);
+      themeToggle.querySelector('i').className = n === 'light' ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
+    });
+    initTheme();
+
+    const leftEl = document.getElementById('left-input');
+    const rightEl = document.getElementById('right-input');
+    const optWs = document.getElementById('opt-ws');
+    const optCase = document.getElementById('opt-case');
+    const optChanges = document.getElementById('opt-changes');
+    const outEl = document.getElementById('diff-output');
+    const errEl = document.getElementById('error-box');
+    const summaryEl = document.getElementById('summary-pills');
+    const toastEl = document.getElementById('toast');
+    const toastMsg = document.getElementById('toast-msg');
+
+    let diffMode = 'text';
+    let viewMode = 'sbs';
+    let lastUnified = '';
+
+    function showToast(msg) {
+      toastMsg.textContent = msg;
+      toastEl.classList.add('show');
+      setTimeout(() => toastEl.classList.remove('show'), 2200);
+    }
+
+    function esc(s) {
+      return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    function renderTokens(tokens, cls) {
+      return tokens.map((t) => t.type === 'equal' ? esc(t.text) : `<span class="${cls}">${esc(t.text)}</span>`).join('');
+    }
+
+    function renderSideBySide(ops, onlyChanges) {
+      const leftRows = [];
+      const rightRows = [];
+      let i = 0;
+
+      while (i < ops.length) {
+        if (ops[i].type === 'equal') {
+          if (!onlyChanges) {
+            const html = esc(ops[i].text);
+            leftRows.push(`<div class="diff-row"><span class="diff-ln">${ops[i].leftLine}</span><span class="diff-code">${html}</span></div>`);
+            rightRows.push(`<div class="diff-row"><span class="diff-ln">${ops[i].rightLine}</span><span class="diff-code">${html}</span></div>`);
+          }
+          i++;
+        } else {
+          const dels = [];
+          const adds = [];
+          while (i < ops.length && ops[i].type !== 'equal') {
+            if (ops[i].type === 'del') dels.push(ops[i]);
+            else adds.push(ops[i]);
+            i++;
+          }
+          const max = Math.max(dels.length, adds.length);
+          for (let k = 0; k < max; k++) {
+            const d = dels[k];
+            const a = adds[k];
+            if (d && a) {
+              const w = DiffViewer.diffWords(d.text, a.text);
+              leftRows.push(`<div class="diff-row del"><span class="diff-ln">${d.leftLine}</span><span class="diff-code">${renderTokens(w.left, 'tok-del')}</span></div>`);
+              rightRows.push(`<div class="diff-row add"><span class="diff-ln">${a.rightLine}</span><span class="diff-code">${renderTokens(w.right, 'tok-add')}</span></div>`);
+            } else if (d) {
+              leftRows.push(`<div class="diff-row del"><span class="diff-ln">${d.leftLine}</span><span class="diff-code">${esc(d.text)}</span></div>`);
+              rightRows.push(`<div class="diff-row empty"><span class="diff-ln"></span><span class="diff-code"></span></div>`);
+            } else if (a) {
+              leftRows.push(`<div class="diff-row empty"><span class="diff-ln"></span><span class="diff-code"></span></div>`);
+              rightRows.push(`<div class="diff-row add"><span class="diff-ln">${a.rightLine}</span><span class="diff-code">${esc(a.text)}</span></div>`);
+            }
+          }
+        }
+      }
+
+      if (leftRows.length === 0) {
+        return '<div style="padding:2rem;text-align:center;color:var(--text-muted)">No differences found.</div>';
+      }
+      return `<div class="diff-sbs"><div class="diff-col">${leftRows.join('')}</div><div class="diff-col">${rightRows.join('')}</div></div>`;
+    }
+
+    function renderUnifiedHtml(unifiedText) {
+      const lines = unifiedText.split('\n');
+      return '<pre class="unified-pre">' + lines.map((l) => {
+        if (l.startsWith('+++') || l.startsWith('---') || l.startsWith('@@')) return `<span class="u-hdr">${esc(l)}</span>`;
+        if (l.startsWith('+')) return `<span class="u-add">${esc(l)}</span>`;
+        if (l.startsWith('-')) return `<span class="u-del">${esc(l)}</span>`;
+        return esc(l);
+      }).join('\n') + '</pre>';
+    }
+
+    function compute() {
+      errEl.style.display = 'none';
+      try {
+        let left = leftEl.value;
+        let right = rightEl.value;
+        if (diffMode === 'json') {
+          left = left.trim() ? DiffViewer.canonicalizeJson(left) : '';
+          right = right.trim() ? DiffViewer.canonicalizeJson(right) : '';
+        }
+        const ops = DiffViewer.diffLines(left, right, {
+          ignoreWhitespace: optWs.checked,
+          ignoreCase: optCase.checked
+        });
+        const stats = DiffViewer.summarize(ops);
+        summaryEl.innerHTML =
+          `<span class="pill add">+${stats.added} added</span>` +
+          `<span class="pill del">-${stats.removed} removed</span>` +
+          `<span class="pill eq">=${stats.unchanged} unchanged</span>`;
+
+        lastUnified = DiffViewer.toUnifiedDiff(ops, 'original', 'modified', 3);
+        if (viewMode === 'sbs') {
+          outEl.innerHTML = renderSideBySide(ops, optChanges.checked);
+        } else {
+          outEl.innerHTML = renderUnifiedHtml(lastUnified);
+        }
+      } catch (err) {
+        errEl.textContent = err.message;
+        errEl.style.display = 'block';
+        outEl.innerHTML = '';
+        summaryEl.innerHTML = '';
+      }
+    }
+
+    document.querySelectorAll('[data-mode]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('[data-mode]').forEach((b) => b.classList.remove('active'));
+        btn.classList.add('active');
+        diffMode = btn.dataset.mode;
+        compute();
+      });
+    });
+
+    document.querySelectorAll('[data-view]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('[data-view]').forEach((b) => b.classList.remove('active'));
+        btn.classList.add('active');
+        viewMode = btn.dataset.view;
+        compute();
+      });
+    });
+
+    document.getElementById('btn-swap').addEventListener('click', () => {
+      const tmp = leftEl.value;
+      leftEl.value = rightEl.value;
+      rightEl.value = tmp;
+      compute();
+    });
+
+    document.getElementById('btn-sample-json').addEventListener('click', () => {
+      document.querySelector('[data-mode="json"]').click();
+      leftEl.value = JSON.stringify({ service: 'auth-api', port: 8080, features: { mfa: true, rateLimit: 100 }, tags: ['v1', 'prod'] }, null, 2);
+      rightEl.value = JSON.stringify({ tags: ['v1', 'prod'], port: 8443, service: 'auth-api', features: { rateLimit: 250, mfa: true, passkeys: true } }, null, 2);
+      compute();
+    });
+
+    document.getElementById('btn-sample-cfg').addEventListener('click', () => {
+      document.querySelector('[data-mode="text"]').click();
+      leftEl.value = 'PORT=8080\nLOG_LEVEL=info\nDB_POOL=10\nENABLE_CACHE=false\n';
+      rightEl.value = 'PORT=8080\nLOG_LEVEL=debug\nDB_POOL=25\nREDIS_URL=redis://localhost:6379\nENABLE_CACHE=true\n';
+      compute();
+    });
+
+    document.getElementById('btn-copy-unified').addEventListener('click', () => {
+      navigator.clipboard.writeText(lastUnified).then(() => showToast('Unified diff copied'));
+    });
+
+    document.getElementById('btn-clear').addEventListener('click', () => {
+      leftEl.value = '';
+      rightEl.value = '';
+      compute();
+    });
+
+    [leftEl, rightEl, optWs, optCase, optChanges].forEach((el) => {
+      el.addEventListener('input', compute);
+      el.addEventListener('change', compute);
+    });
+
+    document.getElementById('btn-sample-cfg').click();
+  </script>
+  <script src="scripts/tool-bundler.js"></script>
+  <script src="scripts/tool-download-init.js"></script>
+</body>
+</html>

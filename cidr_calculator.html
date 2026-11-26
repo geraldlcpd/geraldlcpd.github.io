@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light dark">
+  <title>CIDR / Subnet &amp; IP Calculator</title>
+  <meta name="description" content="Calculate IPv4 and IPv6 CIDR ranges, netmasks, usable hosts, binary bitmasks, split subnets, and check IP membership or CIDR overlap offline.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="scripts/tool-download.css">
+  <style>
+    :root{color-scheme:dark;--font-primary:'Plus Jakarta Sans',sans-serif;--font-mono:'JetBrains Mono',monospace;--bg:#090d16;--bg-card:rgba(17,24,39,.7);--border:rgba(255,255,255,.08);--text-primary:#f8fafc;--text-secondary:#94a3b8;--text-muted:#64748b;--accent-indigo:#6366f1;--accent-cyan:#06b6d4;--accent-emerald:#10b981;--accent-rose:#f43f5e;--glow-indigo:rgba(99,102,241,.2);--shadow-card:0 10px 30px -10px rgba(0,0,0,.5);--transition:all .3s cubic-bezier(.16,1,.3,1)}
+    [data-theme="light"]{color-scheme:light;--bg:#f8fafc;--bg-card:rgba(255,255,255,.8);--border:rgba(0,0,0,.08);--text-primary:#0f172a;--text-secondary:#475569;--text-muted:#94a3b8;--accent-indigo:#4f46e5;--glow-indigo:rgba(79,70,229,.12)}
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:var(--font-primary);background:var(--bg);color:var(--text-primary);min-height:100vh;display:flex;flex-direction:column}
+    header{position:sticky;top:0;z-index:100;backdrop-filter:blur(16px);background:rgba(9,13,22,.75);border-bottom:1px solid var(--border);padding:1rem 2rem;display:flex;justify-content:space-between;align-items:center}
+    [data-theme="light"] header{background:rgba(248,250,252,.85)}
+    .brand{display:flex;align-items:center;gap:.75rem;font-size:1.25rem;font-weight:700;color:var(--text-primary);text-decoration:none}
+    .brand i{color:var(--accent-indigo)}
+    .header-nav{display:flex;align-items:center;gap:1.25rem}
+    .nav-link{color:var(--text-secondary);text-decoration:none;font-weight:500;font-size:.9rem;display:flex;align-items:center;gap:.4rem}
+    .nav-link:hover{color:var(--accent-indigo)}
+    .theme-toggle-btn{background:transparent;border:1px solid var(--border);color:var(--text-secondary);width:38px;height:38px;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+    main{flex:1;max-width:1040px;width:100%;margin:0 auto;padding:2.25rem 1.5rem 4rem}
+    .page-title{text-align:center;margin-bottom:2rem}
+    .page-title h1{font-size:2.2rem;font-weight:800;margin-bottom:.5rem}
+    .page-title p{color:var(--text-secondary)}
+    .card{background:var(--bg-card);border:1px solid var(--border);border-radius:16px;padding:1.5rem;box-shadow:var(--shadow-card);backdrop-filter:blur(12px);margin-bottom:1.5rem}
+    .card h2{font-size:1.1rem;font-weight:700;margin-bottom:1rem;display:flex;align-items:center;gap:.5rem}
+    .cidr-input{width:100%;font-family:var(--font-mono);font-size:1.15rem;padding:.95rem 1.1rem;background:rgba(0,0,0,.22);border:1px solid var(--border);border-radius:10px;color:var(--text-primary);text-align:center}
+    [data-theme="light"] .cidr-input{background:rgba(255,255,255,.7)}
+    .cidr-input:focus{outline:none;border-color:var(--accent-indigo);box-shadow:0 0 0 3px var(--glow-indigo)}
+    .presets{display:flex;flex-wrap:wrap;gap:.5rem;margin-top:1rem;justify-content:center}
+    .chip{padding:.4rem .85rem;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--text-secondary);font-family:var(--font-mono);font-size:.78rem;font-weight:600;cursor:pointer;transition:var(--transition)}
+    .chip:hover{border-color:var(--accent-indigo);color:var(--accent-indigo);background:var(--glow-indigo)}
+    .kv-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:.85rem}
+    .kv-item{background:rgba(0,0,0,.18);border:1px solid var(--border);border-radius:12px;padding:.85rem 1rem;cursor:pointer;transition:var(--transition)}
+    [data-theme="light"] .kv-item{background:rgba(0,0,0,.03)}
+    .kv-item:hover{border-color:var(--accent-indigo)}
+    .kv-label{font-size:.72rem;text-transform:uppercase;color:var(--text-muted);font-weight:700;margin-bottom:.25rem}
+    .kv-val{font-family:var(--font-mono);font-size:.92rem;font-weight:600;color:var(--text-primary);word-break:break-all}
+    .bit-bar{margin-top:1.25rem;padding:1rem;border-radius:12px;background:rgba(0,0,0,.18);border:1px solid var(--border);font-family:var(--font-mono);font-size:.82rem;overflow-x:auto}
+    [data-theme="light"] .bit-bar{background:rgba(0,0,0,.03)}
+    .bit-row{display:flex;justify-content:space-between;gap:1rem;padding:.25rem 0}
+    .bit-net{color:var(--accent-cyan)}
+    .bit-host{color:var(--accent-emerald)}
+    .controls-row{display:flex;gap:.75rem;flex-wrap:wrap;align-items:center;margin-bottom:1rem}
+    input[type="text"],select{background:rgba(0,0,0,.22);border:1px solid var(--border);border-radius:10px;padding:.6rem .85rem;color:var(--text-primary);font-family:var(--font-mono);font-size:.875rem}
+    [data-theme="light"] input[type="text"],[data-theme="light"] select{background:rgba(255,255,255,.75)}
+    .btn{padding:.6rem 1rem;border-radius:10px;font-family:var(--font-primary);font-weight:600;font-size:.85rem;cursor:pointer;display:inline-flex;align-items:center;gap:.4rem;border:1px solid var(--border);background:var(--accent-indigo);color:#fff}
+    .error-box{background:rgba(244,63,94,.1);border:1px solid rgba(244,63,94,.3);border-radius:10px;padding:.85rem 1rem;color:var(--accent-rose);font-size:.875rem;margin-bottom:1rem}
+    .status-pill{display:inline-flex;align-items:center;gap:.4rem;padding:.4rem .85rem;border-radius:10px;font-size:.85rem;font-weight:600}
+    .status-pill.ok{background:rgba(16,185,129,.12);color:var(--accent-emerald);border:1px solid rgba(16,185,129,.3)}
+    .status-pill.no{background:rgba(244,63,94,.12);color:var(--accent-rose);border:1px solid rgba(244,63,94,.3)}
+    .table-wrapper{overflow:auto;max-inline-size:100%;max-block-size:420px;container-type:inline-size;border:1px solid var(--border);border-radius:12px}
+    table{width:100%;border-collapse:separate;border-spacing:0;font-family:var(--font-mono);font-size:.82rem;text-align:left}
+    thead{position:sticky;inset-block-start:0;z-index:1;background:var(--bg)}
+    th,td{padding:.7rem .9rem;border-bottom:1px solid var(--border)}
+    th{font-family:var(--font-primary);font-size:.75rem;text-transform:uppercase;color:var(--text-muted);font-weight:700}
+    @container (width < 560px){
+      table,thead,tbody,tr,th,td{display:block}
+      thead{display:none}
+      tr{border-bottom:1px solid var(--border);padding:.75rem}
+      td{border-bottom:none;padding:.25rem 0}
+      td::before{content:attr(data-label) ": ";font-family:var(--font-primary);font-weight:700;color:var(--text-muted);font-size:.75rem}
+    }
+    footer{border-top:1px solid var(--border);padding:1.5rem;text-align:center;font-size:.85rem;color:var(--text-muted)}
+    .toast{position:fixed;bottom:2rem;right:2rem;background:var(--bg-card);border:1px solid var(--accent-indigo);padding:.75rem 1.25rem;border-radius:10px;z-index:1000;opacity:0;pointer-events:none;transition:var(--transition)}
+    .toast.show{opacity:1}
+  </style>
+</head>
+<body data-tool-file="cidr_calculator.html">
+  <header>
+    <a href="index.html" class="brand"><i class="fa-solid fa-network-wired"></i><span>CIDR Calculator</span></a>
+    <div class="header-nav">
+      <a href="index.html" class="nav-link"><i class="fa-solid fa-arrow-left"></i> Tools</a>
+      <button class="theme-toggle-btn" id="theme-toggle" aria-label="Toggle theme"><i class="fa-solid fa-moon"></i></button>
+    </div>
+  </header>
+  <main>
+    <div class="page-title">
+      <h1>CIDR / Subnet &amp; IP Calculator</h1>
+      <p>Analyze IPv4 &amp; IPv6 CIDR blocks, split subnets, inspect binary masks, and verify IP membership or overlap offline.</p>
+    </div>
+
+    <div class="card">
+      <input type="text" class="cidr-input" id="cidr-input" value="192.168.1.42/24" placeholder="192.168.1.0/24 or 2001:db8::/32" spellcheck="false" aria-label="CIDR input">
+      <div class="presets" id="presets"></div>
+    </div>
+
+    <div id="error-box" class="error-box" style="display:none"></div>
+
+    <div class="card" id="details-card">
+      <h2><i class="fa-solid fa-circle-info"></i> Network Details <span style="font-size:.78rem;color:var(--text-muted);font-weight:500">(click any value to copy)</span></h2>
+      <div class="kv-grid" id="kv-grid"></div>
+      <div class="bit-bar" id="bit-bar" style="display:none"></div>
+    </div>
+
+    <div class="card" id="splitter-card">
+      <h2 id="split-caption"><i class="fa-solid fa-sitemap"></i> Subnet Splitter</h2>
+      <div class="controls-row">
+        <label for="split-prefix" style="font-size:.85rem;color:var(--text-secondary)">Target prefix:</label>
+        <select id="split-prefix"></select>
+        <span id="split-summary" style="font-size:.82rem;color:var(--text-muted)"></span>
+      </div>
+      <div tabindex="0" role="region" aria-labelledby="split-caption" class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Subnet CIDR</th>
+              <th>Usable Range</th>
+              <th>Broadcast</th>
+              <th>Usable Hosts</th>
+            </tr>
+          </thead>
+          <tbody id="split-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2><i class="fa-solid fa-magnifying-glass"></i> IP Membership &amp; CIDR Overlap Checker</h2>
+      <div class="controls-row">
+        <input type="text" id="check-ip" value="192.168.1.100" placeholder="IPv4 address (e.g. 192.168.1.100)" style="flex:1;min-width:200px">
+        <button type="button" class="btn" id="btn-check-ip">Check IP in CIDR</button>
+        <span id="ip-check-result"></span>
+      </div>
+      <div class="controls-row" style="margin-bottom:0">
+        <input type="text" id="check-cidr" value="192.168.1.128/25" placeholder="Second IPv4 CIDR (e.g. 192.168.1.128/25)" style="flex:1;min-width:200px">
+        <button type="button" class="btn" id="btn-check-overlap">Check CIDR Overlap</button>
+        <span id="overlap-check-result"></span>
+      </div>
+    </div>
+  </main>
+  <div class="toast" id="toast"><span id="toast-msg">Copied</span></div>
+  <footer>
+    <p>CIDR / Subnet &amp; IP Calculator &bull; Processing stays in your browser &bull; Pure JavaScript, zero dependencies</p>
+  </footer>
+
+  <script src="scripts/cidr_calculator/app.js"></script>
+  <script>
+    const themeToggle = document.getElementById('theme-toggle');
+    function initTheme() {
+      const t = localStorage.getItem('theme') || 'dark';
+      document.documentElement.setAttribute('data-theme', t);
+      themeToggle.querySelector('i').className = t === 'light' ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
+    }
+    themeToggle.addEventListener('click', () => {
+      const c = document.documentElement.getAttribute('data-theme');
+      const n = c === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', n);
+      localStorage.setItem('theme', n);
+      themeToggle.querySelector('i').className = n === 'light' ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
+    });
+    initTheme();
+
+    const cidrInput = document.getElementById('cidr-input');
+    const errEl = document.getElementById('error-box');
+    const detailsCard = document.getElementById('details-card');
+    const kvGrid = document.getElementById('kv-grid');
+    const bitBar = document.getElementById('bit-bar');
+    const splitterCard = document.getElementById('splitter-card');
+    const splitPrefix = document.getElementById('split-prefix');
+    const splitSummary = document.getElementById('split-summary');
+    const splitTbody = document.getElementById('split-tbody');
+    const toastEl = document.getElementById('toast');
+    const toastMsg = document.getElementById('toast-msg');
+
+    const PRESETS = ['192.168.1.0/24', '10.0.0.0/16', '172.16.0.0/12', '10.10.0.0/31', '2001:db8::/32'];
+    const presetsEl = document.getElementById('presets');
+    PRESETS.forEach((p) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'chip';
+      btn.textContent = p;
+      btn.addEventListener('click', () => { cidrInput.value = p; update(); });
+      presetsEl.appendChild(btn);
+    });
+
+    function showToast(msg) {
+      toastMsg.textContent = msg;
+      toastEl.classList.add('show');
+      setTimeout(() => toastEl.classList.remove('show'), 1800);
+    }
+
+    function esc(s) {
+      return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    function renderKv(items) {
+      kvGrid.innerHTML = items.map(([label, val]) =>
+        `<div class="kv-item" data-copy="${esc(val)}"><div class="kv-label">${esc(label)}</div><div class="kv-val">${esc(val)}</div></div>`
+      ).join('');
+      kvGrid.querySelectorAll('.kv-item').forEach((el) => {
+        el.addEventListener('click', () => {
+          navigator.clipboard.writeText(el.dataset.copy).then(() => showToast('Copied: ' + el.dataset.copy));
+        });
+      });
+    }
+
+    function colorBinaryBits(binStr, prefix) {
+      let bitIdx = 0;
+      let html = '';
+      for (const ch of binStr) {
+        if (ch === '.') {
+          html += '.';
+        } else {
+          const cls = bitIdx < prefix ? 'bit-net' : 'bit-host';
+          html += `<span class="${cls}">${ch}</span>`;
+          bitIdx++;
+        }
+      }
+      return html;
+    }
+
+    function renderSubnets() {
+      try {
+        const res = CidrCalculator.splitIpv4Cidr(cidrInput.value, Number(splitPrefix.value), 128);
+        splitSummary.textContent = res.truncated
+          ? `Showing first ${res.shown} of ${res.totalSubnets.toLocaleString()} subnets`
+          : `${res.totalSubnets} subnet${res.totalSubnets === 1 ? '' : 's'}`;
+        splitTbody.innerHTML = res.subnets.map((s) =>
+          `<tr>
+            <td data-label="Subnet CIDR">${esc(s.cidr)}</td>
+            <td data-label="Usable Range">${esc(s.firstHost)} – ${esc(s.lastHost)}</td>
+            <td data-label="Broadcast">${esc(s.broadcast)}</td>
+            <td data-label="Usable Hosts">${s.usableHosts.toLocaleString()}</td>
+          </tr>`
+        ).join('');
+      } catch (e) {
+        splitTbody.innerHTML = '';
+        splitSummary.textContent = e.message;
+      }
+    }
+
+    function update() {
+      errEl.style.display = 'none';
+      try {
+        const info = CidrCalculator.analyzeCidr(cidrInput.value);
+        detailsCard.style.display = 'block';
+        if (info.version === 4) {
+          renderKv([
+            ['Canonical CIDR', info.cidr],
+            ['Network Address', info.network],
+            ['Broadcast Address', info.broadcast],
+            ['Subnet Mask', info.netmask],
+            ['Wildcard Mask', info.wildcard],
+            ['First Usable Host', info.firstHost],
+            ['Last Usable Host', info.lastHost],
+            ['Usable / Total', `${info.usableHosts.toLocaleString()} / ${info.totalAddresses.toLocaleString()}`],
+            ['Class & Scope', `${info.ipClass} • ${info.scope}`]
+          ]);
+          bitBar.style.display = 'block';
+          bitBar.innerHTML =
+            `<div class="bit-row"><span>Input IP</span><span>${colorBinaryBits(info.binaryIp, info.prefix)}</span></div>` +
+            `<div class="bit-row"><span>Netmask</span><span>${colorBinaryBits(info.binaryMask, info.prefix)}</span></div>` +
+            `<div class="bit-row"><span>Network</span><span>${colorBinaryBits(info.binaryNetwork, info.prefix)}</span></div>`;
+
+          splitterCard.style.display = 'block';
+          const prevVal = Number(splitPrefix.value);
+          const opts = [];
+          for (let p = info.prefix; p <= 32; p++) {
+            opts.push(`<option value="${p}">/${p}</option>`);
+          }
+          splitPrefix.innerHTML = opts.join('');
+          const defaultTarget = Math.min(32, info.prefix + 2);
+          splitPrefix.value = (prevVal >= info.prefix && prevVal <= 32) ? String(prevVal) : String(defaultTarget);
+          renderSubnets();
+        } else {
+          renderKv([
+            ['Canonical CIDR', info.cidr],
+            ['Network (Compressed)', info.network],
+            ['Network (Expanded)', info.networkExpanded],
+            ['First Address', info.firstHost],
+            ['Last Address', info.lastHost],
+            ['Total Addresses', info.totalAddresses],
+            ['Scope', info.scope]
+          ]);
+          bitBar.style.display = 'none';
+          splitterCard.style.display = 'none';
+        }
+      } catch (err) {
+        errEl.textContent = err.message;
+        errEl.style.display = 'block';
+        detailsCard.style.display = 'none';
+        splitterCard.style.display = 'none';
+      }
+    }
+
+    document.getElementById('btn-check-ip').addEventListener('click', () => {
+      const out = document.getElementById('ip-check-result');
+      try {
+        const inside = CidrCalculator.ipInIpv4Cidr(document.getElementById('check-ip').value, cidrInput.value);
+        out.innerHTML = inside
+          ? '<span class="status-pill ok"><i class="fa-solid fa-check"></i> Inside CIDR</span>'
+          : '<span class="status-pill no"><i class="fa-solid fa-xmark"></i> Outside CIDR</span>';
+      } catch (err) {
+        out.innerHTML = `<span class="status-pill no">${esc(err.message)}</span>`;
+      }
+    });
+
+    document.getElementById('btn-check-overlap').addEventListener('click', () => {
+      const out = document.getElementById('overlap-check-result');
+      try {
+        const overlap = CidrCalculator.cidrsOverlapIpv4(cidrInput.value, document.getElementById('check-cidr').value);
+        out.innerHTML = overlap
+          ? '<span class="status-pill ok"><i class="fa-solid fa-check"></i> CIDRs Overlap</span>'
+          : '<span class="status-pill no"><i class="fa-solid fa-xmark"></i> Disjoint (No Overlap)</span>';
+      } catch (err) {
+        out.innerHTML = `<span class="status-pill no">${esc(err.message)}</span>`;
+      }
+    });
+
+    cidrInput.addEventListener('input', update);
+    splitPrefix.addEventListener('change', renderSubnets);
+    update();
+  </script>
+  <script src="scripts/tool-bundler.js"></script>
+  <script src="scripts/tool-download-init.js"></script>
+</body>
+</html>

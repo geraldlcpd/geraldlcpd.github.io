@@ -19,7 +19,10 @@
     'muilockerauto.html': { tier: 'medium', offlineCapable: false, warning: 'Offline bundle not supported (Tailwind CDN). Use Portable mode.' },
     'locker-unlocked.html': { tier: 'medium', offlineCapable: false, warning: 'Offline bundle not supported (Tailwind CDN). Use Portable mode.' },
     'sik_automation.html': { tier: 'medium', offlineCapable: true },
-    'hash_check.html': { tier: 'medium', offlineCapable: true }
+    'diff_viewer.html': { tier: 'light', offlineCapable: true },
+    'cidr_calculator.html': { tier: 'light', offlineCapable: true },
+    'timestamp_converter.html': { tier: 'light', offlineCapable: true },
+    'hmac_generator.html': { tier: 'light', offlineCapable: true }
   };
 
   const OFFLINE_UNSUPPORTED_HOSTS = ['cdn.tailwindcss.com'];
